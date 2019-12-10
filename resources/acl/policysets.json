@@ -1,0 +1,52 @@
+{
+
+"com.example.policysets.default": {
+		"Type": "PolicySet",
+		"Description": "Default Policy Set",
+		"Target": "True",
+		"Policies": ["com.example.policies.default"],
+		"PolicySets": [],
+		"Resolver": "ANY"
+},
+"com.example.policysets.default2" : {
+		"Type": "PolicySet",
+		"Description": "Default Policy Set 2",
+		"Target": "True",
+		"Policies": ["com.example.policies.default2"],
+		"PolicySets": [],
+		"Resolver": "ANY"
+},
+"com.example.policysets.loggedIn": {
+		"Type": "PolicySet",
+		"Description": "Allow for all logged in Users",
+		"Target": "True",
+		"Policies": ["com.example.policies.loggedIn", "com.example.policies.adminpages"],
+		"PolicySets": [],
+		"Resolver": "AND"
+},
+"com.example.policysets.alwaysGrant": {
+		"Type": "PolicySet",
+		"Description": "Always Grant Access Policy Set",
+		"Target": "True",
+		"Policies": ["com.example.policies.alwaysGrant"],
+		"PolicySets": [],
+		"Resolver": "ANY"
+},
+"com.example.policysets.alwaysDeny" : {
+		"Type": "PolicySet",
+		"Description": "Always Deny Access Policy Set",
+		"Target": "True",
+		"Policies": ["com.example.policies.alwaysDeny"],
+		"PolicySets": [],
+		"Resolver": "ANY"
+},
+"com.example.policysets.inTestGroup" : {
+		"Type": "PolicySet",
+		"Description": "Checks if user is in group /test",
+		"Target": "True",
+		"Policies": ["com.example.policies.inTestGroup"],
+		"PolicySets": [],
+		"Resolver": "ANY"
+}
+
+}

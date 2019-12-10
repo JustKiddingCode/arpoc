@@ -1,0 +1,5 @@
+-e file:./pyoidc
+pyyaml
+cherrypy
+routes
+lark-parser

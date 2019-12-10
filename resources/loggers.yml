@@ -1,0 +1,54 @@
+disable_existing_loggers: false
+formatters:
+  standard:
+    format: '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+  void:
+    format: ''
+handlers:
+  cherrypy_access:
+    backupCount: 20
+    class: logging.handlers.RotatingFileHandler
+    encoding: utf8
+    filename: access.log
+    formatter: void
+    level: INFO
+    maxBytes: 10485760
+  cherrypy_console:
+    class: logging.StreamHandler
+    formatter: void
+    level: INFO
+    stream: ext://sys.stdout
+  cherrypy_error:
+    backupCount: 20
+    class: logging.handlers.RotatingFileHandler
+    encoding: utf8
+    filename: errors.log
+    formatter: void
+    level: INFO
+    maxBytes: 10485760
+  default:
+    class: logging.StreamHandler
+    formatter: standard
+    level: DEBUG
+    stream: ext://sys.stdout
+loggers:
+  ? ''
+  : handlers:
+    - default
+    level: DEBUG
+  cherrypy.access:
+    handlers:
+    - cherrypy_access
+    level: INFO
+    propagate: false
+  cherrypy.error:
+    handlers:
+    - cherrypy_console
+    - cherrypy_error
+    level: INFO
+    propagate: false
+  default:
+    handlers:
+    - default
+    level: DEBUG
+version: 1

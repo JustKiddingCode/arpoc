@@ -1,0 +1,44 @@
+{
+"com.example.rules.default" : {
+		"Type": "Rule",
+		"Target": "True",
+		"Description": "Default Rule",
+		"Condition" : "True",
+		"Effect": "GRANT"
+},
+"com.example.rules.alwaysGrant" : {
+		"Type": "Rule",
+		"Target": "True",
+		"Description": "Always Grant Rule",
+		"Condition" : "True",
+		"Effect": "GRANT"
+},
+"com.example.rules.alwaysDeny" : {
+		"Type": "Rule",
+		"Target": "True",
+		"Description": "Always Deny Rule",
+		"Condition" : "True",
+		"Effect": "DENY"
+},
+"com.example.rules.loggedIn" : {
+		"Type": "Rule",
+		"Target": "True",
+		"Description": "Allow access when User is logged in (aka. email adress exists)",
+		"Condition" : "exists subject.email",
+		"Effect": "GRANT"
+},
+"com.example.rules.inTestGroup" : {
+		"Type": "Rule",
+		"Target": "True",
+		"Description": "Allow access when User is in /test group",
+		"Condition" : "'/test1' in subject.groups",
+		"Effect": "GRANT"
+},
+"com.example.rules.is_admin" : {
+		"Type": "Rule",
+		"Target": "True",
+		"Description": "Allow access when email starts with admin@",
+		"Condition" : "subject.email startswith 'admin@'",
+		"Effect": "GRANT"
+}
+}
