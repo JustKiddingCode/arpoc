@@ -3,7 +3,7 @@ Access Control Module for OIDC Proxy
 
 """
 import os
-import pkg_resources
+import importlib.resources
 
 import json
 
@@ -212,13 +212,12 @@ class AC_Container:
 
 
 container = AC_Container()
-
-policies_path = pkg_resources.resource_filename(
-    "__main__", os.path.join(os.pardir, 'resources', 'acl', 'policies.json'))
-rules_path = pkg_resources.resource_filename(
-    "__main__", os.path.join(os.pardir, 'resources', 'acl', 'rules.json'))
-ps_path = pkg_resources.resource_filename(
-    "__main__", os.path.join(os.pardir, 'resources', 'acl', 'policysets.json'))
-container.load_file(policies_path)
-container.load_file(rules_path)
-container.load_file(ps_path)
+with importlib.resources.path(
+        'resources.acl',
+        'policies.json') as policies_path, importlib.resources.path(
+            'resources.acl',
+            'rules.json') as rules_path, importlib.resources.path(
+                'resources.acl', 'policysets.json') as ps_path:
+    container.load_file(policies_path)
+    container.load_file(rules_path)
+    container.load_file(ps_path)

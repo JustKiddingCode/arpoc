@@ -1,8 +1,8 @@
-oidc-proxy/access.log
-oidc-proxy/errors.log
-resources/secrets.yml
+access.log
+errors.log
+oidcproxy/resources/secrets.yml
 pyoidc
 __pycache__
 *.swp
 .coverage
-oidc-proxy/htmlcov
+oidcproxy/htmlcov

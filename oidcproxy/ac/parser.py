@@ -1,4 +1,4 @@
-import pkg_resources
+import importlib.resources
 import os
 
 import logging
@@ -9,9 +9,7 @@ import re
 from lark import Lark, tree, Transformer, Tree
 import lark.exceptions
 
-grammar_path = pkg_resources.resource_filename(
-    "__main__", os.path.join(os.pardir, 'resources', 'grammar.lark'))
-with open(grammar_path) as fp:
+with importlib.resources.path('resources', 'grammar.lark') as grammar_path,open(grammar_path) as fp:
     grammar = fp.read()
 
 LOGGER = logging.getLogger(__name__)

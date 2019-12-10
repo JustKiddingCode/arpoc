@@ -5,7 +5,7 @@ import warnings
 import copy
 import datetime
 
-import pkg_resources
+import importlib.resources
 import os
 
 from http.client import HTTPConnection
@@ -33,10 +33,7 @@ logging.basicConfig(level=logging.DEBUG)
 
 LOGGING = logging.getLogger()
 
-loggers_path = pkg_resources.resource_filename(
-    __name__, os.path.join(os.pardir, 'resources', 'loggers.yml'))
-
-with open(loggers_path) as ymlfile:
+with importlib.resources.path('resources', 'loggers.yml') as loggers_path, open(loggers_path) as ymlfile:
     LOG_CONF = yaml.safe_load(ymlfile)
 
 
@@ -208,12 +205,13 @@ class OidcHandler:
     def _auth(self):
         cherrypy.session["state"] = rndstr()
         cherrypy.session["nonce"] = rndstr()
+        LOGGING.debug(cherrypy.session['client'].redirect_uris)
         args = {
             "client_id": cherrypy.session['client'].client_id,
             "response_type": "code",
             "scope": ["openid", "roles", "age", "groups"],
             "nonce": cherrypy.session["nonce"],
-            "redirect_uri": secrets[name]['redirect_uris'][0],
+            "redirect_uri": cherrypy.session['client'].redirect_uris,
             "state": cherrypy.session['state']
         }
         auth_req = cherrypy.session['client'].construct_AuthorizationRequest(
@@ -275,18 +273,14 @@ class OidcHandler:
 
 def read_config():
     global cfg
-    config_path = pkg_resources.resource_filename(
-        __name__, os.path.join(os.pardir, 'resources', 'config.yml'))
-    with open(config_path, 'r') as ymlfile:
+    with importlib.resources.path('resources','config.yml') as config_path, open(config_path, 'r') as ymlfile:
         cfg = yaml.safe_load(ymlfile)
 
 
 def read_secrets():
     global secrets
     try:
-        secrets_path = pkg_resources.resource_filename(
-            __name__, os.path.join(os.pardir, 'resources', 'secrets.yml'))
-        with open(secrets_path, 'r') as ymlfile:
+        with importlib.resources.path('resources', 'secrets.yml') as secrets_path, open(secrets_path, 'r') as ymlfile:
             secrets = yaml.safe_load(ymlfile)
     except FileNotFoundError:
         secrets = dict()
@@ -307,13 +301,11 @@ def register_first_time(provider):
 
 
 def save_secrets():
-    secrets_path = pkg_resources.resource_filename(
-        __name__, os.path.join(os.pardir, 'resources', 'secrets.yml'))
-    with open(secrets_path, 'w') as ymlfile:
+    with importlib.resources.path('resources', 'secrets.yml') as secrets_path, open(secrets_path, 'w') as ymlfile:
         yaml.safe_dump(secrets, ymlfile)
 
 
-if __name__ == "__main__":
+def run():
     read_config()
     read_secrets()
     atexit.register(save_secrets)
@@ -327,6 +319,7 @@ if __name__ == "__main__":
                 provider['configuration_url'])
             client_reg = RegistrationResponse(**secrets[name])
             clients[name].store_registration_info(client_reg)
+            clients[name].redirect_uris = secrets[name]['redirect_uris']
         except KeyError:
             (clients[name], response) = register_first_time(provider)
             secrets[name] = response.to_dict()
@@ -350,3 +343,6 @@ if __name__ == "__main__":
         }
     }
     cherrypy.quickstart(None, '/', app_conf)
+
+if __name__ == "__main__":
+    run()
