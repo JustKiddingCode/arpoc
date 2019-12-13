@@ -24,6 +24,7 @@ __all__ = ["conflict_resolution", "common", "parser"]
 
 
 class AC_Entity(ABC):
+    container = None
     def __init__(self, entity_id, target, description):
         self.entity_id = entity_id
         self.target = target
@@ -61,7 +62,7 @@ class Policy_Set(AC_Entity):
             for policy_set_id in self.policy_sets:
                 if policy_set_id not in evaluation_cache:
                     LOGGER.debug("Considering policy set %s", policy_set_id)
-                    result = container.policy_sets.get(policy_set_id).evaluate(
+                    result = self.container.policy_sets.get(policy_set_id).evaluate(
                         context, evaluation_cache)
                     evaluation_cache[policy_set_id] = result
                     cr.update(policy_set_id, result)
@@ -72,7 +73,7 @@ class Policy_Set(AC_Entity):
             for policy_id in self.policies:
                 if policy_id not in evaluation_cache:
                     LOGGER.debug("Considering policy %s", policy_id)
-                    result = container.policies.get(policy_id).evaluate(
+                    result = self.container.policies.get(policy_id).evaluate(
                         context, evaluation_cache)
                     evaluation_cache[policy_id] = result
                 cr.update(policy_id, evaluation_cache[policy_id])
@@ -109,7 +110,7 @@ class Policy(AC_Entity):
             for rules_id in self.rules:
                 if rules_id not in evaluation_cache:
                     LOGGER.debug("Considering rule %s", rules_id)
-                    result = container.rules.get(rules_id).evaluate(
+                    result = self.container.rules.get(rules_id).evaluate(
                         context, evaluation_cache)
                     evaluation_cache[rules_id] = result
                 cr.update(rules_id, evaluation_cache[rules_id])
@@ -186,6 +187,8 @@ class AC_Container:
         return self.policy_sets.get(entity_id, None).evaluate(context)
 
     def add_entity(self, entity_id, definition):
+        if AC_Entity.container == None:
+            AC_Entity.container = self
         switcher = {"Policy": Policy, "PolicySet": Policy_Set, "Rule": Rule}
         switcher_dict = {
             "Policy": self.policies,
