@@ -6,7 +6,7 @@ import copy
 import datetime
 
 import importlib.resources
-import os
+import os, pwd, grp
 
 from http.client import HTTPConnection
 
@@ -22,6 +22,7 @@ import yaml
 import requests
 
 import cherrypy
+from cherrypy.process.plugins import DropPrivileges
 
 import ac
 
@@ -342,6 +343,9 @@ def run():
             'request.dispatch': app.getRoutesDispatcher()
         }
     }
+    uid = pwd.getpwnam(cfg['proxy']['username'])[2]
+    gid = grp.getgrnam(cfg['proxy']['groupname'])[2]
+    DropPrivileges(cherrypy.engine, uid=uid, gid=gid).subscribe()
     cherrypy.quickstart(None, '/', app_conf)
 
 if __name__ == "__main__":

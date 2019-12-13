@@ -10,9 +10,11 @@ openid-providers:
 proxy:
     address: 0.0.0.0
     port: 443
-    keyfile: /etc/ssl/private/python-proxy.example.com.key 
+    keyfile: /etc/ssl/private/python-proxy.example.com.key
     certfile: /etc/ssl/private/python-proxy.example.com.crt
     hostname: https://python-proxy.example.com/
+    username: www-data
+    groupname: www-data
     redirect: /secure/redirect_uris
     redirect_uris:
         - https://python-proxy.example.com/secure/redirect_uris
