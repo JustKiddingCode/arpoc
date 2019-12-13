@@ -114,8 +114,30 @@ class ServiceProxy:
 
 
 class OidcHandler:
-    def __init__(self, oidc_provider):
-        self.__oidc_provider = oidc_provider
+    def __init__(self):
+        self.__oidc_provider = dict()
+
+    def register_first_time(self,name,provider):
+        client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
+        provider_info = client.provider_config(provider['configuration_url'])
+        args = {
+            "redirect_uris": cfg['proxy']['redirect_uris'],
+            "contacts": cfg['proxy']['contacts']
+        }
+        registration_response = client.register(
+            provider_info["registration_endpoint"],
+            registration_token=provider['configuration_token'],
+            **args)
+        self.__oidc_provider[name] = client
+        self.__oidc_provider[name].redirect_uris = args["redirect_uris"]
+        return registration_response.to_dict()
+
+    def create_client_from_secrets(self,name, provider, client_secrets):
+        self.__oidc_provider[name] = Client(client_authn_method=CLIENT_AUTHN_METHOD)
+        provider_info = self.__oidc_provider[name].provider_config(provider['configuration_url'])
+        client_reg = RegistrationResponse(**client_secrets)
+        self.__oidc_provider[name].store_registration_info(client_reg)
+        self.__oidc_provider[name].redirect_uris = client_secrets['redirect_uris']
 
     def get_userinfo(self):
         """ Gets the userinfo from the OIDC Provider.
@@ -286,19 +308,9 @@ def read_secrets():
     except FileNotFoundError:
         secrets = dict()
 
+    if not secrets:
+        secrets = dict()
 
-def register_first_time(provider):
-    client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
-    provider_info = client.provider_config(provider['configuration_url'])
-    args = {
-        "redirect_uris": cfg['proxy']['redirect_uris'],
-        "contacts": cfg['proxy']['contacts']
-    }
-    registration_response = client.register(
-        provider_info["registration_endpoint"],
-        registration_token=provider['configuration_token'],
-        **args)
-    return (client, registration_response)
 
 
 def save_secrets():
@@ -312,18 +324,14 @@ def run():
     atexit.register(save_secrets)
 
     clients = dict()
+    app = OidcHandler()
     for name, provider in cfg['openid-providers'].items():
         # check if the client is/was already registered
         try:
-            clients[name] = Client(client_authn_method=CLIENT_AUTHN_METHOD)
-            provider_info = clients[name].provider_config(
-                provider['configuration_url'])
-            client_reg = RegistrationResponse(**secrets[name])
-            clients[name].store_registration_info(client_reg)
-            clients[name].redirect_uris = secrets[name]['redirect_uris']
+            app.create_client_from_secrets(name, provider, secrets[name])
         except KeyError:
-            (clients[name], response) = register_first_time(provider)
-            secrets[name] = response.to_dict()
+            response = app.register_first_time(name,provider)
+            secrets[name] = response
 
     global_conf = {
         'log.screen': False,
@@ -336,7 +344,6 @@ def run():
     }
     cherrypy.config.update(global_conf)
     logging.config.dictConfig(LOG_CONF)
-    app = OidcHandler(clients)
     app_conf = {
         '/': {
             'tools.sessions.on': True,
