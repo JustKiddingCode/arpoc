@@ -119,6 +119,7 @@ class ServiceProxy:
 class OidcHandler:
     def __init__(self):
         self.__oidc_provider = dict()
+        self.__secrets_file = None
 
     def register_first_time(self,name,provider):
         client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
@@ -133,9 +134,10 @@ class OidcHandler:
             **args)
         self.__oidc_provider[name] = client
         self.__oidc_provider[name].redirect_uris = args["redirect_uris"]
-        return registration_response.to_dict()
+        self._secrets[name] = registration_response.to_dict()
 
-    def create_client_from_secrets(self,name, provider, client_secrets):
+    def create_client_from_secrets(self,name, provider):
+        client_secrets = self._secrets[name]
         self.__oidc_provider[name] = Client(client_authn_method=CLIENT_AUTHN_METHOD)
         provider_info = self.__oidc_provider[name].provider_config(provider['configuration_url'])
         client_reg = RegistrationResponse(**client_secrets)
@@ -296,25 +298,22 @@ class OidcHandler:
 
         return d
 
-def read_secrets():
-    global secrets
-    secrets_path = cfg.proxy['secrets']
-    try:
-        with open(secrets_path, 'r') as ymlfile:
-            secrets = yaml.safe_load(ymlfile)
-    except FileNotFoundError:
-        secrets = dict()
+    def read_secrets(self,filepath):
+        self.secrets_file = filepath
+        try:
+            with open(self.secrets_file, 'r') as ymlfile:
+                self._secrets = yaml.safe_load(ymlfile)
+        except FileNotFoundError:
+            self._secrets = dict()
 
-    if not secrets:
-        secrets = dict()
-
+        if not self._secrets:
+            self._secrets = dict()
 
 
-def save_secrets():
-    global secrets
-    secrets_path = cfg.proxy['secrets']
-    with open(secrets_path, 'w') as ymlfile:
-        yaml.safe_dump(secrets, ymlfile)
+
+    def save_secrets(self):
+        with open(self.secrets_file, 'w') as ymlfile:
+            yaml.safe_dump(self._secrets, ymlfile)
 
 
 def run():
@@ -339,18 +338,18 @@ def run():
     if stat_info.st_uid != uid or stat_info.st_gid != gid:
         os.chown(secrets_dir, uid, gid)
 
-    read_secrets()
-    atexit.register(save_secrets)
-
     clients = dict()
     app = OidcHandler()
+
+    app.read_secrets(cfg.proxy['secrets'])
+    atexit.register(app.save_secrets)
+
     for name, provider in cfg.openid_providers.items():
         # check if the client is/was already registered
         try:
-            app.create_client_from_secrets(name, provider, secrets[name])
+            app.create_client_from_secrets(name, provider)
         except KeyError:
             response = app.register_first_time(name,provider)
-            secrets[name] = response
 
     global_conf = {
         'log.screen': False,
