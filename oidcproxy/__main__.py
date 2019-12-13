@@ -302,8 +302,9 @@ def read_config():
 
 def read_secrets():
     global secrets
+    secrets_path = cfg['proxy']['secrets']
     try:
-        with importlib.resources.path('resources', 'secrets.yml') as secrets_path, open(secrets_path, 'r') as ymlfile:
+        with open(secrets_path, 'r') as ymlfile:
             secrets = yaml.safe_load(ymlfile)
     except FileNotFoundError:
         secrets = dict()
@@ -314,12 +315,23 @@ def read_secrets():
 
 
 def save_secrets():
-    with importlib.resources.path('resources', 'secrets.yml') as secrets_path, open(secrets_path, 'w') as ymlfile:
+    global secrets
+    secrets_path = cfg['proxy']['secrets']
+    with open(secrets_path, 'w') as ymlfile:
         yaml.safe_dump(secrets, ymlfile)
 
 
 def run():
     read_config()
+    # Create secrets dir and change ownership (perm)
+    secrets_dir = os.path.dirname(cfg['proxy']['secrets'])
+    os.makedirs(secrets_dir, exist_ok=True)
+    uid = pwd.getpwnam(cfg['proxy']['username'])[2]
+    gid = grp.getgrnam(cfg['proxy']['groupname'])[2]
+    stat_info = os.stat(secrets_dir)
+    if stat_info.st_uid != uid or stat_info.st_gid != gid:
+        os.chown(secrets_dir, uid, gid)
+
     read_secrets()
     atexit.register(save_secrets)
 
@@ -350,8 +362,6 @@ def run():
             'request.dispatch': app.getRoutesDispatcher()
         }
     }
-    uid = pwd.getpwnam(cfg['proxy']['username'])[2]
-    gid = grp.getgrnam(cfg['proxy']['groupname'])[2]
     DropPrivileges(cherrypy.engine, uid=uid, gid=gid).subscribe()
     cherrypy.quickstart(None, '/', app_conf)
 

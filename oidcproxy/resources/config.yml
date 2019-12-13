@@ -15,6 +15,7 @@ proxy:
     hostname: https://python-proxy.example.com/
     username: www-data
     groupname: www-data
+    secrets: /var/lib/oidc-proxy/secrets.yml
     redirect: /secure/redirect_uris
     redirect_uris:
         - https://python-proxy.example.com/secure/redirect_uris
