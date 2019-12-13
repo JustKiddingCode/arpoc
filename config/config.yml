@@ -1,0 +1,33 @@
+#Test
+openid_providers:
+    default:
+        configuration_url: https://openid-provider.example.com/auth/realms/master/
+        configuration_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJmYTM2N2E0MS0yNDRjLTQwNGUtYjU3NS05MDhhNDM2ZTc2YTMifQ.eyJqdGkiOiJiOWE1ZDUxNC04NDc4LTQ0NzktYmE2OS0wMGM0YjYzYzc4MWEiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTc2MjI4NDgyLCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJJbml0aWFsQWNjZXNzVG9rZW4ifQ.JIxOTxkOjhR0NIDqKYiN5EvdNk1Xtg8vDdV7LVjd0J8
+    second:
+        configuration_url: https://openid-provider2.example.com/auth/realms/master/
+        configuration_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI5MDEzZDRkNS1jYTEwLTQyODItYmRjMy1jNWU5ZGQ3NDI4MWIifQ.eyJqdGkiOiJjNWI5YmY0Zi03ZDI4LTRhNDEtODc5OC04N2Q0M2QzYTlhMDAiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTc2MjI4NTE0LCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlcjIuZXhhbXBsZS5jb20vYXV0aC9yZWFsbXMvbWFzdGVyIiwiYXVkIjoiaHR0cHM6Ly9vcGVuaWQtcHJvdmlkZXIyLmV4YW1wbGUuY29tL2F1dGgvcmVhbG1zL21hc3RlciIsInR5cCI6IkluaXRpYWxBY2Nlc3NUb2tlbiJ9.NWDGljUARkwBl0oLC62H_U7L_4TsXvsVx_TubxpNILk
+
+
+proxy:
+    keyfile: /etc/ssl/private/python-proxy.example.com.key
+    certfile: /etc/ssl/private/python-proxy.example.com.crt
+    hostname: https://python-proxy.example.com/
+    redirect: /secure/redirect_uris
+    redirect_uris:
+        - https://python-proxy.example.com/secure/redirect_uris
+    contacts:
+        - info@konstantinzangerle.de
+
+services:
+    serviceA:
+        origin_URL: http://service-a.example.com
+        proxy_URL: /serviceA
+        AC: com.example.policysets.loggedIn
+    serviceB:
+        origin_URL: http://service-a.example.com
+        proxy_URL: /serviceB
+        AC: com.example.policysets.alwaysDeny
+    serviceC:
+        origin_URL: http://service-a.example.com
+        proxy_URL: /serviceC
+        AC: com.example.policysets.inTestGroup

@@ -25,6 +25,7 @@ import cherrypy
 from cherrypy.process.plugins import DropPrivileges
 
 import ac
+from config import OIDCProxyConfig
 
 from jwkest import jwt
 
@@ -41,7 +42,7 @@ with importlib.resources.path('resources', 'loggers.yml') as loggers_path, open(
 class ServiceProxy:
     def __init__(self, service_name, oidc_handler):
         self.service_name = service_name
-        self.cfg = cfg['services'][self.service_name]
+        self.cfg = cfg.services[self.service_name]
         self._oidc_handler = oidc_handler
 
     def _proxy(self, url):
@@ -61,7 +62,7 @@ class ServiceProxy:
         return url
 
     def _build_proxy_url(self, url='', **kwargs):
-        this_url = "{}{}/{}".format(cfg['proxy']['hostname'],
+        this_url = "{}{}/{}".format(cfg.proxy['hostname'],
                                     self.cfg['proxy_URL'][1:], url)
         if kwargs:
             this_url = "{}?{}".format(this_url, urllib.parse.urlencode(kwargs))
@@ -121,8 +122,8 @@ class OidcHandler:
         client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
         provider_info = client.provider_config(provider['configuration_url'])
         args = {
-            "redirect_uris": cfg['proxy']['redirect_uris'],
-            "contacts": cfg['proxy']['contacts']
+            "redirect_uris": cfg.proxy['redirect_uris'],
+            "contacts": cfg.proxy['contacts']
         }
         registration_response = client.register(
             provider_info["registration_endpoint"],
@@ -268,7 +269,7 @@ class OidcHandler:
     def getRoutesDispatcher(self):
         d = cherrypy.dispatch.RoutesDispatcher()
         # Connect the Proxied Services
-        for name, service in cfg['services'].items():
+        for name, service in cfg.services.items():
             logging.debug(service)
             service_proxy_obj = ServiceProxy(name, self)
             d.connect(name,
@@ -281,9 +282,9 @@ class OidcHandler:
                       action='index')
 
         # Connect the Redirect URI
-        LOGGING.debug(cfg['proxy']['redirect'])
+        LOGGING.debug(cfg.proxy['redirect'])
         d.connect('redirect',
-                  cfg['proxy']['redirect'],
+                  cfg.proxy['redirect'],
                   controller=self,
                   action='redirect')
         d.connect('userinfo', '/userinfo', controller=self, action='userinfo')
@@ -293,16 +294,9 @@ class OidcHandler:
 
         return d
 
-
-def read_config():
-    global cfg
-    with importlib.resources.path('resources','config.yml') as config_path, open(config_path, 'r') as ymlfile:
-        cfg = yaml.safe_load(ymlfile)
-
-
 def read_secrets():
     global secrets
-    secrets_path = cfg['proxy']['secrets']
+    secrets_path = cfg.proxy['secrets']
     try:
         with open(secrets_path, 'r') as ymlfile:
             secrets = yaml.safe_load(ymlfile)
@@ -316,18 +310,19 @@ def read_secrets():
 
 def save_secrets():
     global secrets
-    secrets_path = cfg['proxy']['secrets']
+    secrets_path = cfg.proxy['secrets']
     with open(secrets_path, 'w') as ymlfile:
         yaml.safe_dump(secrets, ymlfile)
 
 
 def run():
-    read_config()
+    global cfg
+    cfg = OIDCProxyConfig()
     # Create secrets dir and change ownership (perm)
-    secrets_dir = os.path.dirname(cfg['proxy']['secrets'])
+    secrets_dir = os.path.dirname(cfg.proxy['secrets'])
     os.makedirs(secrets_dir, exist_ok=True)
-    uid = pwd.getpwnam(cfg['proxy']['username'])[2]
-    gid = grp.getgrnam(cfg['proxy']['groupname'])[2]
+    uid = pwd.getpwnam(cfg.proxy['username'])[2]
+    gid = grp.getgrnam(cfg.proxy['groupname'])[2]
     stat_info = os.stat(secrets_dir)
     if stat_info.st_uid != uid or stat_info.st_gid != gid:
         os.chown(secrets_dir, uid, gid)
@@ -337,7 +332,7 @@ def run():
 
     clients = dict()
     app = OidcHandler()
-    for name, provider in cfg['openid-providers'].items():
+    for name, provider in cfg.openid_providers.items():
         # check if the client is/was already registered
         try:
             app.create_client_from_secrets(name, provider, secrets[name])
@@ -349,10 +344,10 @@ def run():
         'log.screen': False,
         'log.access_file': '',
         'log.error_file': '',
-        'server.socket_host': cfg['proxy']['address'],
-        'server.socket_port': cfg['proxy']['port'],
-        'server.ssl_private_key': cfg['proxy']['keyfile'],
-        'server.ssl_certificate': cfg['proxy']['certfile'],
+        'server.socket_host': cfg.proxy['address'],
+        'server.socket_port': cfg.proxy['port'],
+        'server.ssl_private_key': cfg.proxy['keyfile'],
+        'server.ssl_certificate': cfg.proxy['certfile'],
     }
     cherrypy.config.update(global_conf)
     logging.config.dictConfig(LOG_CONF)
