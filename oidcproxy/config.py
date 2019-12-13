@@ -7,7 +7,7 @@ class ConfigError(Exception):
     pass
 
 class OIDCProxyConfig:
-    def __init__(self):
+    def __init__(self,config_file=None):
         self.__cfg = {"openid_providers" : {}, "proxy" : {}, "services" : {} }
         # read fallback
         with importlib.resources.path('resources','config.yml') as config_path:
@@ -17,6 +17,9 @@ class OIDCProxyConfig:
         if 'OIDC_PROXY_CONFIG' in os.environ:
             default_paths.append(os.environ['OIDC_PROXY_CONFIG'])
 
+        if config_file:
+            default_paths.append(config_file)
+
         for filepath in default_paths:
             try:
                 self.read_file(filepath)
@@ -25,6 +28,11 @@ class OIDCProxyConfig:
 
     def __getattr__(self,name):
         return self.__cfg[name]
+
+    def print_sample_config(self):
+        with importlib.resources.path('resources','config.yml') as config_path:
+            with open(config_path, 'r') as fp:
+                print(fp.read())
 
     def check_config(self):
         # there needs to be three keys in the config

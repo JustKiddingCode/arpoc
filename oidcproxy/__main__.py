@@ -5,6 +5,8 @@ import warnings
 import copy
 import datetime
 
+import argparse
+
 import importlib.resources
 import os, pwd, grp
 
@@ -316,8 +318,18 @@ def save_secrets():
 
 
 def run():
+    parser = argparse.ArgumentParser(description='OIDC Proxy')
+    parser.add_argument('-c', '--config-file')
+    parser.add_argument('--print-sample-config',action='store_true')
+
+    args = parser.parse_args()
+    print(args)
+
     global cfg
-    cfg = OIDCProxyConfig()
+    cfg = OIDCProxyConfig(config_file=args.config_file)
+    if args.print_sample_config:
+        cfg.print_sample_config()
+        return 
     # Create secrets dir and change ownership (perm)
     secrets_dir = os.path.dirname(cfg.proxy['secrets'])
     os.makedirs(secrets_dir, exist_ok=True)
