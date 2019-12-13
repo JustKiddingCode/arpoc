@@ -176,6 +176,11 @@ class AC_Container:
             for entity_id, definition in data.items():
                 self.add_entity(entity_id, definition)
 
+    def load_dir(self,path):
+        import glob
+        for f in glob.glob(path + "/*.json"):
+            self.load_file(f)
+
     def evaluate_by_entity_id(self, entity_id, context):
         LOGGER.debug(context)
         return self.policy_sets.get(entity_id, None).evaluate(context)
@@ -209,15 +214,3 @@ class AC_Container:
                      str(kwargs))
         obj = switcher.get(definition['Type'], None)(entity_id, **kwargs)
         switcher_dict.get(definition['Type'], None)[entity_id] = obj
-
-
-container = AC_Container()
-with importlib.resources.path(
-        'resources.acl',
-        'policies.json') as policies_path, importlib.resources.path(
-            'resources.acl',
-            'rules.json') as rules_path, importlib.resources.path(
-                'resources.acl', 'policysets.json') as ps_path:
-    container.load_file(policies_path)
-    container.load_file(rules_path)
-    container.load_file(ps_path)

@@ -42,6 +42,9 @@ with importlib.resources.path('resources', 'loggers.yml') as loggers_path, open(
 
 
 class ServiceProxy:
+
+    ac = ac.AC_Container()
+
     def __init__(self, service_name, oidc_handler):
         self.service_name = service_name
         self.cfg = cfg.services[self.service_name]
@@ -100,7 +103,7 @@ class ServiceProxy:
             warnings.filterwarnings("ignore")
             warnings.filterwarnings(
                 "always", category=ac.parser.SubjectAttributeMissingWarning)
-            if ac.container.evaluate_by_entity_id(self.cfg['AC'],
+            if self.ac.evaluate_by_entity_id(self.cfg['AC'],
                                                   context) == ac.Effects.GRANT:
                 return self._proxy(proxy_url)
             else:
@@ -368,6 +371,8 @@ def run():
             'request.dispatch': app.getRoutesDispatcher()
         }
     }
+    for acl_dir in cfg.access_control['json_dir']:
+        ServiceProxy.ac.load_dir(acl_dir)
     DropPrivileges(cherrypy.engine, uid=uid, gid=gid).subscribe()
     cherrypy.quickstart(None, '/', app_conf)
 

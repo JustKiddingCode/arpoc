@@ -31,3 +31,7 @@ services:
         origin_URL: http://service-a.example.com
         proxy_URL: /serviceC
         AC: com.example.policysets.inTestGroup
+
+access_control:
+    json_dir:
+       - /etc/oidc-proxy/acl

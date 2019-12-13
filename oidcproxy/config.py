@@ -8,7 +8,7 @@ class ConfigError(Exception):
 
 class OIDCProxyConfig:
     def __init__(self,config_file=None):
-        self.__cfg = {"openid_providers" : {}, "proxy" : {}, "services" : {} }
+        self.__cfg = {"openid_providers" : {}, "proxy" : {}, "services" : {}, 'access_control' : {} }
         # read fallback
         with importlib.resources.path('resources','config.yml') as config_path:
             self.read_file(config_path)
@@ -36,7 +36,7 @@ class OIDCProxyConfig:
 
     def check_config(self):
         # there needs to be three keys in the config
-        cfg_keys = set(['openid_providers','proxy', 'services'])
+        cfg_keys = set(['openid_providers','proxy', 'services', 'access_control'])
         if cfg_keys != set(self.__cfg.keys()):
             raise ConfigError("Only top-level keys allowed are: %s" % cfg_keys)
 

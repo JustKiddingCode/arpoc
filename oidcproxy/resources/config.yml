@@ -2,10 +2,11 @@
 ## Configuration file for oidc-proxy##
 ######################################
 #                                   ##
-# There are three sections:         ##
+# There are four sections:          ##
 # 1. openid_providers               ##
 # 2. proxy                          ##
 # 3. services                       ##
+# 4. access control
 ######################################
 
 
@@ -53,3 +54,10 @@ proxy:
 #        origin_URL: http://service-a.example.com
 #        proxy_URL: /serviceC
 #        AC: com.example.policysets.inTestGroup
+
+
+
+#access_control:
+#    json_dir:
+#       - /etc/oidc-proxy/acl
+
