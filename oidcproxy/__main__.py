@@ -26,6 +26,8 @@ import requests
 import cherrypy
 from cherrypy.process.plugins import DropPrivileges
 
+from jinja2 import Environment, FileSystemLoader
+
 import ac
 from config import OIDCProxyConfig
 
@@ -40,6 +42,8 @@ LOGGING = logging.getLogger()
 with importlib.resources.path('resources', 'loggers.yml') as loggers_path, open(loggers_path) as ymlfile:
     LOG_CONF = yaml.safe_load(ymlfile)
 
+
+env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__),'resources','templates')))
 
 class ServiceProxy:
 
@@ -262,11 +266,12 @@ class OidcHandler:
                     self.__oidc_provider[name])
             else:
                 LOGGING.debug(self.__oidc_provider)
-                auth_page = ""
+                tmpl = env.get_template('auth.html')
+
+                provider = dict()
                 for key in self.__oidc_provider:
-                    auth_page += "<a href='/auth/{}'>Login via {}</a><br/>".format(
-                        key, key)
-                return auth_page
+                    provider[key] = 'TODO human-readable {}'.format(key)
+                return tmpl.render(auth_page='/auth',provider=provider)
 
         self._auth()
 
@@ -338,6 +343,7 @@ def run():
     uid = pwd.getpwnam(cfg.proxy['username'])[2]
     gid = grp.getgrnam(cfg.proxy['groupname'])[2]
     stat_info = os.stat(secrets_dir)
+    LOGGING.debug("secrets_dir %s", stat_info)
     if stat_info.st_uid != uid or stat_info.st_gid != gid:
         os.chown(secrets_dir, uid, gid)
 

@@ -3,3 +3,4 @@ pyyaml
 cherrypy
 routes
 lark-parser
+jinja2
