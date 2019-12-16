@@ -3,8 +3,6 @@ Access Control Module for OIDC Proxy
 
 """
 import os
-import importlib.resources
-
 import json
 
 from abc import ABC

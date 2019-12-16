@@ -1,7 +1,7 @@
 FROM debian:stable
 
 #
-RUN apt-get update && apt-get install -y ca-certificates runit python3-pip
+RUN apt-get update && apt-get install -y ca-certificates runit python3-pip python3-coverage python3-pytest
 #RUN pip3 install oic # will also install requests
 ADD python-oidc/  /opt/python-oidc
 WORKDIR /opt/python-oidc
