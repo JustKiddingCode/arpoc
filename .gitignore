@@ -1,5 +1,6 @@
 access.log
 errors.log
+certs/
 oidcproxy/resources/secrets.yml
 pyoidc
 __pycache__
