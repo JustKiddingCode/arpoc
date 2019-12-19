@@ -26,7 +26,9 @@ def get_env_attr_dict():
 import collections
 
 class EnvironmentDict(collections.UserDict):
-    def __init__(self,initialdata):
+    def __init__(self,initialdata = None):
+        if not initialdata:
+            initialdata = {}
         super().__init__(initialdata)
         self._getter = get_env_attr_dict()
 

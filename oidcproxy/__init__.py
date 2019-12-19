@@ -30,6 +30,7 @@ from jinja2 import Environment, FileSystemLoader
 
 import ac
 from config import OIDCProxyConfig
+from plugins import EnvironmentDict
 
 from jwkest import jwt
 
@@ -99,7 +100,7 @@ class ServiceProxy:
                 "url": url,
                 **kwargs
             },
-            "environment": {}
+            "environment": EnvironmentDict()
         }
 
         proxy_url = self._build_url(url, **kwargs)

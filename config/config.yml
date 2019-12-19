@@ -2,15 +2,15 @@
 openid_providers:
     default:
         configuration_url: https://openid-provider.example.com/auth/realms/master/
-        configuration_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJmYTM2N2E0MS0yNDRjLTQwNGUtYjU3NS05MDhhNDM2ZTc2YTMifQ.eyJqdGkiOiIwNDNmNjUyNC1hZjRkLTQ0MmYtYTM1ZS03YTJmZGM2YzQ2ZTAiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTc2NDg5NDU4LCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJJbml0aWFsQWNjZXNzVG9rZW4ifQ.CEQEU4vqbIxNwuKbn1VvOZdTI7qFmDTE3BEU59lZA3g
+        configuration_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI1ZGYxY2VkMi1jMWY2LTQ5ZmQtYWUxYy00ZDU0MmQ0MWZmNzgifQ.eyJqdGkiOiJiYTA3NjVlZi1jZjQ0LTQ3ZWQtYmRkMC00YzYzMGZiZjljNmEiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTc2NzQ4MDY0LCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJJbml0aWFsQWNjZXNzVG9rZW4ifQ.ZI4DoZF7KCBmLsqKk49C3AqULkUrd2Chf2DEihuLTfE
     second:
         configuration_url: https://openid-provider2.example.com/auth/realms/master/
-        configuration_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI5MDEzZDRkNS1jYTEwLTQyODItYmRjMy1jNWU5ZGQ3NDI4MWIifQ.eyJqdGkiOiIxZWM2NDA3ZC1jMzQ0LTRhOTAtODg2ZS01YjhmYjE4YjA0YmUiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTc2NDg5NTE5LCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlcjIuZXhhbXBsZS5jb20vYXV0aC9yZWFsbXMvbWFzdGVyIiwiYXVkIjoiaHR0cHM6Ly9vcGVuaWQtcHJvdmlkZXIyLmV4YW1wbGUuY29tL2F1dGgvcmVhbG1zL21hc3RlciIsInR5cCI6IkluaXRpYWxBY2Nlc3NUb2tlbiJ9.Fqg0NJGijgNVGrRAz8ppMahPbBZh5vdEr_rmtfMKkP8
+        configuration_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJlZDBjNWY2MS0wNjM5LTRiMDQtOTVjZS1hMzhjNGJlMzczZWIifQ.eyJqdGkiOiI1OWYyZGY4My1mYjQ4LTRiZGYtYTc3NC02ODI5NTJjZDEwYTkiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTc2NzQ4MTc0LCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlcjIuZXhhbXBsZS5jb20vYXV0aC9yZWFsbXMvbWFzdGVyIiwiYXVkIjoiaHR0cHM6Ly9vcGVuaWQtcHJvdmlkZXIyLmV4YW1wbGUuY29tL2F1dGgvcmVhbG1zL21hc3RlciIsInR5cCI6IkluaXRpYWxBY2Nlc3NUb2tlbiJ9.3_57cFYMHl4uEw5mSocIaconUuwKmEn5n4VLRsJyIXI
 
 
 proxy:
-    keyfile: /etc/ssl/private/python-proxy.example.com.key
-    certfile: /etc/ssl/private/python-proxy.example.com.crt
+    keyfile: /etc/ssl/private/key.pem
+    certfile: /etc/ssl/private/cert.crt
     hostname: https://python-proxy.example.com/
     redirect: /secure/redirect_uris
     redirect_uris:
@@ -31,6 +31,10 @@ services:
         origin_URL: http://service-a.example.com
         proxy_URL: /serviceC
         AC: com.example.policysets.inTestGroup
+    serviceD:
+        origin_URL: http://service-a.example.com
+        proxy_URL: /serviceD
+        AC: com.example.policysets.default
 
 access_control:
     json_dir:

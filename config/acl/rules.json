@@ -40,5 +40,12 @@
 		"Description": "Allow access when email starts with admin@",
 		"Condition" : "subject.email startswith 'admin@'",
 		"Effect": "GRANT"
+},
+"com.example.rules.is_workingtime" : {
+		"Type": "Rule",
+		"Target": "True",
+		"Description": "Allow access between 10:20 and 10:30",
+		"Condition" : "environment.time < '10:30' and environment.time > '10:20'",
+		"Effect": "GRANT"
 }
 }

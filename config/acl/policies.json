@@ -11,8 +11,8 @@
 		"Type": "Policy",
 		"Description": "Default Policy",
 		"Target" : "True",
-		"Rules" : [ "com.example.rules.default" ],
-		"Resolver": "ANY"
+		"Rules" : [ "com.example.rules.default", "com.example.rules.is_workingtime" ],
+		"Resolver": "AND"
 },
 "com.example.policies.loggedIn": {
 		"Type": "Policy",

@@ -25,6 +25,12 @@ class BinaryOperator:
         pass
 
 
+class BinarySameTypeOperator(BinaryOperator):
+    @classmethod
+    def eval(cls, op1, op2):
+        if type(op1) != type(op2):
+            raise BadSemantics("op1 '{}' and op2 '{}' need to have the same type, found {}, {}".format(op1,op2,type(op1), type(op2)))
+
 class BinaryStringOperator(BinaryOperator):
     @classmethod
     def eval(cls, op1, op2):
@@ -52,14 +58,14 @@ class BinaryOperatorIn(BinaryOperator):
         return op1 in op2
 
 
-class Lesser(BinaryNumeralOperator):
+class Lesser(BinarySameTypeOperator):
     @classmethod
     def eval(cls, op1, op2):
         super().eval(op1, op2)
         return op1 < op2
 
 
-class Greater(BinaryNumeralOperator):
+class Greater(BinarySameTypeOperator):
     @classmethod
     def eval(cls, op1, op2):
         super().eval(op1, op2)

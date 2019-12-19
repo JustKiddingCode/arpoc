@@ -16,6 +16,10 @@ def test_object_attr():
     with pytest.warns(ObjectAttributeMissingWarning):
         assert not check_condition('exists object.NotExisting', context)
 
+def test_time_comp():
+    context = {"subject": {}, "object": {}, "environment": {"time" : "10:28"}}
+    assert check_condition("environment.time < '10:30' and environment.time > '10:20'", context)
+
 
 def test_subject_attr():
     context = {
