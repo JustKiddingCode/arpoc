@@ -18,10 +18,11 @@ logging.basicConfig(level=logging.DEBUG)
 
 LOGGER = logging.getLogger(__name__)
 
-__all__ = ["conflict_resolution", "common", "parser"]
+#__all__ = ["conflict_resolution", "common", "parser"]
 
 
 class AC_Entity(ABC):
+    """ Class for all access control entities (policy sets, policies, rules"""
     container = None
     def __init__(self, entity_id, target, description):
         self.entity_id = entity_id

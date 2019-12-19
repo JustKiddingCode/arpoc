@@ -1,4 +1,4 @@
-.PHONY: tests
+.PHONY: tests, codelines
 
 tests:
 	cd oidcproxy && \
@@ -7,3 +7,10 @@ tests:
 
 clean:
 	find -type d -name '__pycache__' -exec rm -rf '{}' +
+
+doc:
+	sphinx-apidoc -o docs/api oidcproxy -f
+	sphinx-build -b html . htmldoc
+
+codelines:
+	cloc oidcproxy --exclude-dir=htmlcov,__pycache__

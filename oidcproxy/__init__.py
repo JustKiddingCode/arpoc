@@ -1,3 +1,5 @@
+""" Main module of the OIDC Proxy """
+
 import logging
 import logging.config
 import atexit
@@ -47,6 +49,7 @@ with importlib.resources.path('resources', 'loggers.yml') as loggers_path, open(
 env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__),'resources','templates')))
 
 class ServiceProxy:
+    """ A class to perform the actual proxying """
 
     ac = ac.AC_Container()
 
@@ -125,6 +128,7 @@ class ServiceProxy:
 
 
 class OidcHandler:
+    """ A class to handle the connection to OpenID Connect Providers """
     def __init__(self,cfg):
         self.__oidc_provider = dict()
         self.cfg = cfg
@@ -327,6 +331,7 @@ class OidcHandler:
 
 
 def run():
+    """ Starts the application """
     #### Command Line Argument Parsing
     parser = argparse.ArgumentParser(description='OIDC Proxy')
     parser.add_argument('-c', '--config-file')

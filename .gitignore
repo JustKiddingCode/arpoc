@@ -7,3 +7,5 @@ __pycache__
 *.swp
 .coverage
 oidcproxy/htmlcov
+docs/api/
+htmldoc/
