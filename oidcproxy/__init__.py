@@ -344,10 +344,11 @@ def run():
     os.makedirs(secrets_dir, exist_ok=True)
     uid = pwd.getpwnam(cfg.proxy['username'])[2]
     gid = grp.getgrnam(cfg.proxy['groupname'])[2]
-    stat_info = os.stat(secrets_dir)
-    LOGGING.debug("secrets_dir %s", stat_info)
-    if stat_info.st_uid != uid or stat_info.st_gid != gid:
-        os.chown(secrets_dir, uid, gid)
+    for dirpath, dirnames, filenames in os.walk(secrets_dir):
+        os.chown(dirpath, uid, gid)
+        for filename in filenames:
+            os.chown(os.path.join(dirpath, filename),uid,gid)
+
 
     #### Setup OIDC Provider
     clients = dict()
