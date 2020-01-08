@@ -35,6 +35,10 @@ services:
         origin_URL: http://service-a.example.com
         proxy_URL: /serviceD
         AC: com.example.policysets.default
+    serviceE:
+        origin_URL: http://json-server.example.com
+        proxy_URL: /serviceE
+        AC: com.example.policysets.loggedIn
 
 access_control:
     json_dir:

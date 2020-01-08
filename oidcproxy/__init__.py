@@ -59,7 +59,26 @@ class ServiceProxy:
         self._oidc_handler = oidc_handler
 
     def _proxy(self, url):
-        resp = requests.get(url)
+
+        request_headers = copy.copy(cherrypy.request.headers)
+        request_headers.pop('host', None)
+        request_headers.pop('Authorization', None)
+        request_headers.pop('Content-Length', None)
+        request_headers['connection'] = "close"
+        LOGGING.debug(request_headers)
+
+        request_body = cherrypy.request.body.read()
+
+        LOGGING.debug(cherrypy.request.method)
+        method_switcher = {"GET": requests.get, 
+                "PUT": requests.put,
+                "POST": requests.post,
+                "DELETE": requests.delete }
+        method = method_switcher.get(cherrypy.request.method, None)
+        if not method:
+            raise NotImplementedError
+        resp = method(url,headers=request_headers,data=request_body)
+        LOGGING.debug("here")
         for header in resp.headers.items():
             if header[0].lower() == 'transfer-encoding':
                 continue
