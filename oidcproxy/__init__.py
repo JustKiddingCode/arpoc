@@ -67,7 +67,18 @@ class ServiceProxy:
         request_headers['connection'] = "close"
         LOGGING.debug(request_headers)
 
-        request_body = cherrypy.request.body.read()
+
+        cert = None
+        if 'Authentication' in self.cfg:
+            # bearer?
+            if self.cfg['Authentication']['type'] == "Bearer":
+                request_headers['Authorization'] = "Bearer {}".format(self.cfg['Authentication']['token'])
+            if self.cfg['Authentication']['type'] == "Certificate":
+                cert=(self.cfg['Authentication']['certfile'],self.cfg['Authentication']['keyfile'])
+
+        request_body = ""
+        if cherrypy.request.method in cherrypy.request.methods_with_bodies:
+            request_body = cherrypy.request.body.read()
 
         LOGGING.debug(cherrypy.request.method)
         method_switcher = {"GET": requests.get, 
@@ -77,8 +88,13 @@ class ServiceProxy:
         method = method_switcher.get(cherrypy.request.method, None)
         if not method:
             raise NotImplementedError
-        resp = method(url,headers=request_headers,data=request_body)
-        LOGGING.debug("here")
+
+
+        if cert:
+            resp = method(url,headers=request_headers,data=request_body, cert=cert)
+        else:
+            resp = method(url,headers=request_headers,data=request_body)
+
         for header in resp.headers.items():
             if header[0].lower() == 'transfer-encoding':
                 continue

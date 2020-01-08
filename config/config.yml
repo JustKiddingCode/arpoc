@@ -39,6 +39,21 @@ services:
         origin_URL: http://json-server.example.com
         proxy_URL: /serviceE
         AC: com.example.policysets.loggedIn
+    serviceF:
+        origin_URL: https://fortknox.example.com/bearer
+        proxy_URL: /serviceF
+        AC: com.example.policysets.loggedIn
+        Authentication:
+            type: Bearer
+            token: 1234
+    serviceG:
+        origin_URL: https://fortknox.example.com/cert
+        proxy_URL: /serviceG
+        AC: com.example.policysets.loggedIn
+        Authentication:
+            type: Certificate
+            keyfile: /etc/oidc-proxy/key.pem
+            certfile: /etc/oidc-proxy/client.crt
 
 access_control:
     json_dir:
