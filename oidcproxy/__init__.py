@@ -9,6 +9,11 @@ import datetime
 
 import argparse
 
+# For scheduling auth & registration to providers
+import sched
+import threading
+import time
+
 import importlib.resources
 import os, pwd, grp
 
@@ -215,6 +220,18 @@ class OidcHandler:
         self.__oidc_provider[name] = client
         self.__oidc_provider[name].redirect_uris = args["redirect_uris"]
         self._secrets[name] = registration_response.to_dict()
+
+    def retry_create_client_from_secrets(self, name, provider, scheduler, retries=5):
+        try:
+            self.create_client_from_secrets(name,provider)
+        except requests.exceptions.RequestException as e:
+            if retries > 0:
+                LOGGING.debug("While retrying another exception occured %s",type(e).__name__)
+                LOGGING.debug("Connection to provider %s failed.", provider['human_readable_name'])
+                LOGGING.debug("Delaying client registration for 30 seconds")
+                scheduler.enter(30,1,self.retry_create_client_from_secrets, (name, provider, scheduler, retries - 1))
+            else:
+                LOGGING.info("Connection to provider %s failed too many tries, will not retry", provider['human_readable_name'])
 
     def create_client_from_secrets(self, name, provider):
         client_secrets = self._secrets[name]
@@ -430,13 +447,20 @@ def run():
     app.read_secrets(cfg.proxy['secrets'])
     atexit.register(app.save_secrets)
 
+
+    scheduler = sched.scheduler(time.time, time.sleep)
     for name, provider in cfg.openid_providers.items():
         # check if the client is/was already registered
         try:
             app.create_client_from_secrets(name, provider)
         except KeyError:
             response = app.register_first_time(name, provider)
-
+        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
+            LOGGING.debug("Connection to provider %s failed.", provider['human_readable_name'])
+            LOGGING.debug("Delaying client registration for 30 seconds")
+            scheduler.enter(30,1,app.retry_create_client_from_secrets, (name, provider, scheduler))
+    t = threading.Thread(target=scheduler.run)
+    t.start()
     #### Setup Cherrypy
     global_conf = {
         'log.screen': False,
@@ -473,6 +497,6 @@ def run():
 
     cherrypy.engine.start()
     cherrypy.engine.block()
-
+    t.join()
 
 #    cherrypy.quickstart(None, '/', app_conf)
