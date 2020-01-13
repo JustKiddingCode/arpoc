@@ -1,18 +1,27 @@
 #Test
 openid_providers:
     default:
+        human_readable_name: Keycloak Test Instance 1
         configuration_url: https://openid-provider.example.com/auth/realms/master/
         configuration_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI1ZGYxY2VkMi1jMWY2LTQ5ZmQtYWUxYy00ZDU0MmQ0MWZmNzgifQ.eyJqdGkiOiJiYTA3NjVlZi1jZjQ0LTQ3ZWQtYmRkMC00YzYzMGZiZjljNmEiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTc2NzQ4MDY0LCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJJbml0aWFsQWNjZXNzVG9rZW4ifQ.ZI4DoZF7KCBmLsqKk49C3AqULkUrd2Chf2DEihuLTfE
     second:
+        human_readable_name: Keycloak Test Instance 2
         configuration_url: https://openid-provider2.example.com/auth/realms/master/
         configuration_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJlZDBjNWY2MS0wNjM5LTRiMDQtOTVjZS1hMzhjNGJlMzczZWIifQ.eyJqdGkiOiI1OWYyZGY4My1mYjQ4LTRiZGYtYTc3NC02ODI5NTJjZDEwYTkiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTc2NzQ4MTc0LCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlcjIuZXhhbXBsZS5jb20vYXV0aC9yZWFsbXMvbWFzdGVyIiwiYXVkIjoiaHR0cHM6Ly9vcGVuaWQtcHJvdmlkZXIyLmV4YW1wbGUuY29tL2F1dGgvcmVhbG1zL21hc3RlciIsInR5cCI6IkluaXRpYWxBY2Nlc3NUb2tlbiJ9.3_57cFYMHl4uEw5mSocIaconUuwKmEn5n4VLRsJyIXI
+    iam:
+        human_readable_name: IAM Test Instance
+        configuration_url: https://iam-test.indigo-datacloud.eu/
+        registration_url: https://iam-test.indigo-datacloud.eu/register/5ae48a9d-2bc0-4d0d-a5af-55ea18a2c11f
+        registration_token: eyJraWQiOiJyc2ExIiwiYWxnIjoiUlMyNTYifQ.eyJhdWQiOiI1YWU0OGE5ZC0yYmMwLTRkMGQtYTVhZi01NWVhMThhMmMxMWYiLCJpc3MiOiJodHRwczpcL1wvaWFtLXRlc3QuaW5kaWdvLWRhdGFjbG91ZC5ldVwvIiwiaWF0IjoxNTc4NTY0MDk1LCJqdGkiOiI4OWJhM2EzMi01NGQwLTRhZjItOTBkMy0xYzMyYWFiMGJiY2IifQ.lY3wOwuycdZDSZn8Niqb6egJ4dgp_E8FFhebXOm1QXb467m3NghF7DgNvaQov-d_QNhw8RgWSBYbijL9GBSiboL5BJeEOrQ3by19bQHZZ58Ct1FF6Mi-To3IaAGl3XOFUNxeEk8zL4C8OdkYDf98P1pmHnkRFmeJfF5LjgE_fXc
 
 
 proxy:
     keyfile: /etc/ssl/private/key.pem
     certfile: /etc/ssl/private/cert.crt
     hostname: https://python-proxy.example.com/
-    redirect: /secure/redirect_uris
+    redirect: 
+        - /secure/redirect_uris
+        - /redirect
     redirect_uris:
         - https://python-proxy.example.com/secure/redirect_uris
     contacts:

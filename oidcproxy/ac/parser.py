@@ -9,7 +9,8 @@ import re
 from lark import Lark, tree, Transformer, Tree
 import lark.exceptions
 
-with importlib.resources.path('resources', 'grammar.lark') as grammar_path,open(grammar_path) as fp:
+with importlib.resources.path(
+        'resources', 'grammar.lark') as grammar_path, open(grammar_path) as fp:
     grammar = fp.read()
 
 LOGGER = logging.getLogger(__name__)
@@ -29,7 +30,10 @@ class BinarySameTypeOperator(BinaryOperator):
     @classmethod
     def eval(cls, op1, op2):
         if type(op1) != type(op2):
-            raise BadSemantics("op1 '{}' and op2 '{}' need to have the same type, found {}, {}".format(op1,op2,type(op1), type(op2)))
+            raise BadSemantics(
+                "op1 '{}' and op2 '{}' need to have the same type, found {}, {}"
+                .format(op1, op2, type(op1), type(op2)))
+
 
 class BinaryStringOperator(BinaryOperator):
     @classmethod

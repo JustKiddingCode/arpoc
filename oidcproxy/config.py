@@ -3,14 +3,24 @@ import yaml
 
 import os
 
+
 class ConfigError(Exception):
     pass
 
+
 class OIDCProxyConfig:
-    def __init__(self,config_file=None,std_config='/etc/oidc-proxy/config.yml'):
-        self.__cfg = {"openid_providers" : {}, "proxy" : {}, "services" : {}, 'access_control' : {} }
+    def __init__(self,
+                 config_file=None,
+                 std_config='/etc/oidc-proxy/config.yml'):
+        self.__cfg = {
+            "openid_providers": {},
+            "proxy": {},
+            "services": {},
+            'access_control': {}
+        }
         # read fallback
-        with importlib.resources.path('resources','config.yml') as config_path:
+        with importlib.resources.path('resources',
+                                      'config.yml') as config_path:
             self.read_file(config_path)
 
         default_paths = [std_config]
@@ -27,31 +37,32 @@ class OIDCProxyConfig:
                 except IOError:
                     pass
 
-    def __getattr__(self,name):
+    def __getattr__(self, name):
         if name == "cfg":
             return self.__cfg
         if name in self.__cfg.keys():
             return self.__cfg[name]
 
     def print_sample_config(self):
-        with importlib.resources.path('resources','config.yml') as config_path:
+        with importlib.resources.path('resources',
+                                      'config.yml') as config_path:
             with open(config_path, 'r') as fp:
                 print(fp.read())
 
     def check_config(self):
         # there needs to be three keys in the config
-        cfg_keys = set(['openid_providers','proxy', 'services', 'access_control'])
+        cfg_keys = set(
+            ['openid_providers', 'proxy', 'services', 'access_control'])
         if cfg_keys != set(self.__cfg.keys()):
             raise ConfigError("Only top-level keys allowed are: %s" % cfg_keys)
 
-    def merge_config(self,new_cfg):
+    def merge_config(self, new_cfg):
         # merge new_cfg in self.__cfg
         for key in new_cfg:
             if key in ['services', 'openid_providers', 'access_control']:
                 self.__cfg[key] = new_cfg[key]
             else:
                 self.__cfg[key].update(new_cfg[key])
-
 
     def read_file(self, filepath):
         with open(filepath, 'r') as ymlfile:

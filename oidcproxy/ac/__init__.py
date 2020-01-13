@@ -24,6 +24,7 @@ LOGGER = logging.getLogger(__name__)
 class AC_Entity(ABC):
     """ Class for all access control entities (policy sets, policies, rules"""
     container = None
+
     def __init__(self, entity_id, target, description):
         self.entity_id = entity_id
         self.target = target
@@ -61,8 +62,8 @@ class Policy_Set(AC_Entity):
             for policy_set_id in self.policy_sets:
                 if policy_set_id not in evaluation_cache:
                     LOGGER.debug("Considering policy set %s", policy_set_id)
-                    result = self.container.policy_sets.get(policy_set_id).evaluate(
-                        context, evaluation_cache)
+                    result = self.container.policy_sets.get(
+                        policy_set_id).evaluate(context, evaluation_cache)
                     evaluation_cache[policy_set_id] = result
                     cr.update(policy_set_id, result)
 
@@ -176,7 +177,7 @@ class AC_Container:
             for entity_id, definition in data.items():
                 self.add_entity(entity_id, definition)
 
-    def load_dir(self,path):
+    def load_dir(self, path):
         import glob
         for f in glob.glob(path + "/*.json"):
             self.load_file(f)

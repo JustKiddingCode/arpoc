@@ -13,6 +13,7 @@ import importlib.resources
 import os, pwd, grp
 
 from http.client import HTTPConnection
+#HTTPConnection.debuglevel = 1
 
 from oic.oic import Client
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
@@ -38,15 +39,16 @@ from jwkest import jwt
 
 logging.basicConfig(level=logging.DEBUG)
 
-#HTTPConnection.debuglevel = 1
-
 LOGGING = logging.getLogger()
 
-with importlib.resources.path('resources', 'loggers.yml') as loggers_path, open(loggers_path) as ymlfile:
+with importlib.resources.path(
+        'resources',
+        'loggers.yml') as loggers_path, open(loggers_path) as ymlfile:
     LOG_CONF = yaml.safe_load(ymlfile)
 
+env = Environment(loader=FileSystemLoader(
+    os.path.join(os.path.dirname(__file__), 'resources', 'templates')))
 
-env = Environment(loader=FileSystemLoader(os.path.join(os.path.dirname(__file__),'resources','templates')))
 
 class ServiceProxy:
     """ A class to perform the actual proxying """
@@ -67,33 +69,38 @@ class ServiceProxy:
         request_headers['connection'] = "close"
         LOGGING.debug(request_headers)
 
-
         cert = None
         if 'Authentication' in self.cfg:
             # bearer?
             if self.cfg['Authentication']['type'] == "Bearer":
-                request_headers['Authorization'] = "Bearer {}".format(self.cfg['Authentication']['token'])
+                request_headers['Authorization'] = "Bearer {}".format(
+                    self.cfg['Authentication']['token'])
             if self.cfg['Authentication']['type'] == "Certificate":
-                cert=(self.cfg['Authentication']['certfile'],self.cfg['Authentication']['keyfile'])
+                cert = (self.cfg['Authentication']['certfile'],
+                        self.cfg['Authentication']['keyfile'])
 
         request_body = ""
         if cherrypy.request.method in cherrypy.request.methods_with_bodies:
             request_body = cherrypy.request.body.read()
 
         LOGGING.debug(cherrypy.request.method)
-        method_switcher = {"GET": requests.get, 
-                "PUT": requests.put,
-                "POST": requests.post,
-                "DELETE": requests.delete }
+        method_switcher = {
+            "GET": requests.get,
+            "PUT": requests.put,
+            "POST": requests.post,
+            "DELETE": requests.delete
+        }
         method = method_switcher.get(cherrypy.request.method, None)
         if not method:
             raise NotImplementedError
 
-
         if cert:
-            resp = method(url,headers=request_headers,data=request_body, cert=cert)
+            resp = method(url,
+                          headers=request_headers,
+                          data=request_body,
+                          cert=cert)
         else:
-            resp = method(url,headers=request_headers,data=request_body)
+            resp = method(url, headers=request_headers, data=request_body)
 
         for header in resp.headers.items():
             if header[0].lower() == 'transfer-encoding':
@@ -147,7 +154,7 @@ class ServiceProxy:
             warnings.filterwarnings(
                 "always", category=ac.parser.SubjectAttributeMissingWarning)
             if self.ac.evaluate_by_entity_id(self.cfg['AC'],
-                                                  context) == ac.Effects.GRANT:
+                                             context) == ac.Effects.GRANT:
                 return self._proxy(proxy_url)
             else:
                 if len(w) > 0:
@@ -155,8 +162,9 @@ class ServiceProxy:
                     # -> Are we logged in?
                     # set url in session to current attribute
                     if not userinfo:
-                        cherrypy.session['url'] = self._build_proxy_url(
-                            url, **kwargs)
+                        cherrypy.session["url"] = cherrypy.url()
+                        #                        cherrypy.session['url'] = self._build_proxy_url(
+                        #                            url, **kwargs)
                         raise cherrypy.HTTPRedirect("/auth")
                 warn = "\n".join([str(warning.message) for warning in w])
                 return self._send_403(warn)
@@ -164,33 +172,60 @@ class ServiceProxy:
 
 class OidcHandler:
     """ A class to handle the connection to OpenID Connect Providers """
-    def __init__(self,cfg):
+    def __init__(self, cfg):
         self.__oidc_provider = dict()
         self.cfg = cfg
         self.__secrets_file = None
 
-    def register_first_time(self,name,provider):
+    def register_first_time(self, name, provider):
+        """ Registers a client or reads the configuration from the registration endpoint 
+            
+            If registration_url is present in the configuration file, then it will try
+            to read the configuration using the registration_token.
+            
+            If configuration_url is present in the configuration file, it will try to
+            set the configuration using the registration endpoint dynamically
+            received with the well-known location url (configuration_url)
+
+        """
         client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
-        provider_info = client.provider_config(provider['configuration_url'])
-        args = {
-            "redirect_uris": self.cfg.proxy['redirect_uris'],
-            "contacts": self.cfg.proxy['contacts']
-        }
-        registration_response = client.register(
-            provider_info["registration_endpoint"],
-            registration_token=provider['configuration_token'],
-            **args)
+        registration_response = None
+        if 'registration_url' in provider and 'registration_token' in provider:
+            provider_info = client.provider_config(
+                provider['configuration_url'])
+            # Only read configuration
+            registration_response = client.registration_read(
+                url=provider['registration_url'],
+                registration_access_token=provider['registration_token'])
+            args = dict()
+            args['redirect_uris'] = registration_response['redirect_uris']
+        elif 'configuration_url' in provider and 'configuration_token' in provider:
+            provider_info = client.provider_config(
+                provider['configuration_url'])
+            args = {
+                "redirect_uris": self.cfg.proxy['redirect_uris'],
+                "contacts": self.cfg.proxy['contacts']
+            }
+            registration_response = client.register(
+                provider_info["registration_endpoint"],
+                registration_token=provider['configuration_token'],
+                **args)
+        else:
+            raise Exception("Error in the configuration file")
         self.__oidc_provider[name] = client
         self.__oidc_provider[name].redirect_uris = args["redirect_uris"]
         self._secrets[name] = registration_response.to_dict()
 
-    def create_client_from_secrets(self,name, provider):
+    def create_client_from_secrets(self, name, provider):
         client_secrets = self._secrets[name]
-        self.__oidc_provider[name] = Client(client_authn_method=CLIENT_AUTHN_METHOD)
-        provider_info = self.__oidc_provider[name].provider_config(provider['configuration_url'])
+        self.__oidc_provider[name] = Client(
+            client_authn_method=CLIENT_AUTHN_METHOD)
+        provider_info = self.__oidc_provider[name].provider_config(
+            provider['configuration_url'])
         client_reg = RegistrationResponse(**client_secrets)
         self.__oidc_provider[name].store_registration_info(client_reg)
-        self.__oidc_provider[name].redirect_uris = client_secrets['redirect_uris']
+        self.__oidc_provider[name].redirect_uris = client_secrets[
+            'redirect_uris']
 
     def get_userinfo(self):
         """ Gets the userinfo from the OIDC Provider.
@@ -249,7 +284,8 @@ class OidcHandler:
 
     def redirect(self, **kwargs):
         LOGGING.debug(cherrypy.session)
-        qry = {key: kwargs[key] for key in ['state', 'session_state', 'code']}
+        #        qry = {key: kwargs[key] for key in ['state', 'session_state', 'code']}
+        qry = {key: kwargs[key] for key in ['state', 'code']}
         LOGGING.debug('kwargs is %s' % kwargs)
         client = cherrypy.session['client']
         aresp = client.parse_response(AuthorizationResponse,
@@ -272,7 +308,8 @@ class OidcHandler:
             at_exp = resp["expires_in"] + iat
         cherrypy.session['refresh'] = min(at_exp, exp)
 
-        userinfo = client.do_user_info_request(state=aresp["state"])
+        userinfo = client.do_user_info_request(state=aresp["state"],
+                                               method="GET")
         cherrypy.session["userinfo"] = dict(userinfo)
 
         if "url" in cherrypy.session:
@@ -285,7 +322,7 @@ class OidcHandler:
         args = {
             "client_id": cherrypy.session['client'].client_id,
             "response_type": "code",
-            "scope": ["openid", "roles", "age", "groups"],
+            "scope": ["openid"],
             "nonce": cherrypy.session["nonce"],
             "redirect_uri": cherrypy.session['client'].redirect_uris,
             "state": cherrypy.session['state']
@@ -311,8 +348,9 @@ class OidcHandler:
 
                 provider = dict()
                 for key in self.__oidc_provider:
-                    provider[key] = 'TODO human-readable {}'.format(key)
-                return tmpl.render(auth_page='/auth',provider=provider)
+                    provider[key] = self.cfg.openid_providers[key][
+                        'human_readable_name']
+                return tmpl.render(auth_page='/auth', provider=provider)
 
         self._auth()
 
@@ -336,10 +374,8 @@ class OidcHandler:
 
         # Connect the Redirect URI
         LOGGING.debug(self.cfg.proxy['redirect'])
-        d.connect('redirect',
-                  self.cfg.proxy['redirect'],
-                  controller=self,
-                  action='redirect')
+        for i in self.cfg.proxy['redirect']:
+            d.connect('redirect', i, controller=self, action='redirect')
         d.connect('userinfo', '/userinfo', controller=self, action='userinfo')
         # Test auth required
         d.connect('auth', "/auth", controller=self, action='auth')
@@ -347,7 +383,7 @@ class OidcHandler:
 
         return d
 
-    def read_secrets(self,filepath):
+    def read_secrets(self, filepath):
         self.secrets_file = filepath
         try:
             with open(self.secrets_file, 'r') as ymlfile:
@@ -357,8 +393,6 @@ class OidcHandler:
 
         if not self._secrets:
             self._secrets = dict()
-
-
 
     def save_secrets(self):
         with open(self.secrets_file, 'w') as ymlfile:
@@ -370,7 +404,7 @@ def run():
     #### Command Line Argument Parsing
     parser = argparse.ArgumentParser(description='OIDC Proxy')
     parser.add_argument('-c', '--config-file')
-    parser.add_argument('--print-sample-config',action='store_true')
+    parser.add_argument('--print-sample-config', action='store_true')
 
     args = parser.parse_args()
 
@@ -378,7 +412,7 @@ def run():
     cfg = OIDCProxyConfig(config_file=args.config_file)
     if args.print_sample_config:
         cfg.print_sample_config()
-        return 
+        return
     #### Create secrets dir and change ownership (perm)
     secrets_dir = os.path.dirname(cfg.proxy['secrets'])
     os.makedirs(secrets_dir, exist_ok=True)
@@ -387,8 +421,7 @@ def run():
     for dirpath, dirnames, filenames in os.walk(secrets_dir):
         os.chown(dirpath, uid, gid)
         for filename in filenames:
-            os.chown(os.path.join(dirpath, filename),uid,gid)
-
+            os.chown(os.path.join(dirpath, filename), uid, gid)
 
     #### Setup OIDC Provider
     clients = dict()
@@ -402,9 +435,9 @@ def run():
         try:
             app.create_client_from_secrets(name, provider)
         except KeyError:
-            response = app.register_first_time(name,provider)
+            response = app.register_first_time(name, provider)
 
-    #### Setup Cherrypy 
+    #### Setup Cherrypy
     global_conf = {
         'log.screen': False,
         'log.access_file': '',
@@ -413,7 +446,7 @@ def run():
         'server.socket_port': cfg.proxy['port'],
         'server.ssl_private_key': cfg.proxy['keyfile'],
         'server.ssl_certificate': cfg.proxy['certfile'],
-        'engine.autoreload.on' : False
+        'engine.autoreload.on': False
     }
     cherrypy.config.update(global_conf)
     logging.config.dictConfig(LOG_CONF)
@@ -430,4 +463,16 @@ def run():
         ServiceProxy.ac.load_dir(acl_dir)
 
     #### Start Web Server
-    cherrypy.quickstart(None, '/', app_conf)
+    cherrypy.tree.mount(None, '/', app_conf)
+
+    server2 = cherrypy._cpserver.Server()
+    server2.socket_port = 80
+    server2._socket_host = "0.0.0.0"
+    server2.thread_pool = 30
+    server2.subscribe()
+
+    cherrypy.engine.start()
+    cherrypy.engine.block()
+
+
+#    cherrypy.quickstart(None, '/', app_conf)

@@ -7,10 +7,12 @@
   </head>
   <body>
 		  <h1> Authentication required </h1>
-		  <p> Please choose your provider with the links below: 
+		  <p> Please choose your provider with the links below:<br/> 
+		  <ul>
 {%- for link, name in provider.items() -%}
-				<a href="{{ auth_page }}/{{ link }}"> {{ name }} </a></br>
+				<li><a href="{{ auth_page }}/{{ link }}"> {{ name }} </a><br/><//li>
 {%- endfor -%}
+          </ul>
 		  </p>
   </body>
 </html>
