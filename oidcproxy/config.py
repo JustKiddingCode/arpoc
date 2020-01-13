@@ -73,6 +73,8 @@ class OIDCProxyConfig:
         print(self.__cfg)
 
 
+config = None
+
 if __name__ == "__main__":
     cfg = Config()
     cfg.check_config()

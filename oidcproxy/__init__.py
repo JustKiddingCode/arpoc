@@ -37,7 +37,8 @@ from cherrypy.process.plugins import DropPrivileges
 from jinja2 import Environment, FileSystemLoader
 
 import ac
-from config import OIDCProxyConfig
+
+import config
 from plugins import EnvironmentDict
 
 from jwkest import jwt
@@ -426,15 +427,15 @@ def run():
     args = parser.parse_args()
 
     #### Read Configuration
-    cfg = OIDCProxyConfig(config_file=args.config_file)
+    config.cfg = config.OIDCProxyConfig(config_file=args.config_file)
     if args.print_sample_config:
         cfg.print_sample_config()
         return
     #### Create secrets dir and change ownership (perm)
-    secrets_dir = os.path.dirname(cfg.proxy['secrets'])
+    secrets_dir = os.path.dirname(config.cfg.proxy['secrets'])
     os.makedirs(secrets_dir, exist_ok=True)
-    uid = pwd.getpwnam(cfg.proxy['username'])[2]
-    gid = grp.getgrnam(cfg.proxy['groupname'])[2]
+    uid = pwd.getpwnam(config.cfg.proxy['username'])[2]
+    gid = grp.getgrnam(config.cfg.proxy['groupname'])[2]
     for dirpath, dirnames, filenames in os.walk(secrets_dir):
         os.chown(dirpath, uid, gid)
         for filename in filenames:
@@ -442,14 +443,14 @@ def run():
 
     #### Setup OIDC Provider
     clients = dict()
-    app = OidcHandler(cfg)
+    app = OidcHandler(config.cfg)
 
-    app.read_secrets(cfg.proxy['secrets'])
+    app.read_secrets(config.cfg.proxy['secrets'])
     atexit.register(app.save_secrets)
 
 
     scheduler = sched.scheduler(time.time, time.sleep)
-    for name, provider in cfg.openid_providers.items():
+    for name, provider in config.cfg.openid_providers.items():
         # check if the client is/was already registered
         try:
             app.create_client_from_secrets(name, provider)
@@ -466,10 +467,10 @@ def run():
         'log.screen': False,
         'log.access_file': '',
         'log.error_file': '',
-        'server.socket_host': cfg.proxy['address'],
-        'server.socket_port': cfg.proxy['port'],
-        'server.ssl_private_key': cfg.proxy['keyfile'],
-        'server.ssl_certificate': cfg.proxy['certfile'],
+        'server.socket_host': config.cfg.proxy['address'],
+        'server.socket_port': config.cfg.proxy['port'],
+        'server.ssl_private_key': config.cfg.proxy['keyfile'],
+        'server.ssl_certificate': config.cfg.proxy['certfile'],
         'engine.autoreload.on': False
     }
     cherrypy.config.update(global_conf)
@@ -483,7 +484,7 @@ def run():
     DropPrivileges(cherrypy.engine, uid=uid, gid=gid).subscribe()
 
     #### Read AC Rules
-    for acl_dir in cfg.access_control['json_dir']:
+    for acl_dir in config.cfg.access_control['json_dir']:
         ServiceProxy.ac.load_dir(acl_dir)
 
     #### Start Web Server
