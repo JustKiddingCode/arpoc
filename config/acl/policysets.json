@@ -22,7 +22,7 @@
 		"Target": "True",
 		"Policies": ["com.example.policies.loggedIn", "com.example.policies.adminpages"],
 		"PolicySets": [],
-		"Resolver": "AND"
+		"Resolver": "ANY"
 },
 "com.example.policysets.alwaysGrant": {
 		"Type": "PolicySet",

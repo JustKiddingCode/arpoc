@@ -42,32 +42,35 @@ class PrioritizedItem:
 
 
 class ObjectDict(collections.UserDict):
-    def __init__(self, initialdata=None):
+    def __init__(self, service_name, initialdata=None):
         if not initialdata:
             initialdata = {}
         super().__init__(initialdata)
         self._executed_flag = False
         # sort "plugins" according to priority
         self._queue = PriorityQueue()
-#        for plugin in _lib.ObjectAttribute.__subclasses__():
-#            priority = 100
-#            # we need the configuration here.
-#            if plugin.name in config.cfg['objectsetters']:
-#                # give configuration to the plugin and set priority
-#                if priority in config.cfg['objectsetters']['name']:
-#                    priority = config.cfg['objectsetters']['name']['priority']
-#            item = PrioritizedItem(priority, plugin)
-#            self._queue.put(item)
+        for plugin in _lib.ObjectSetter.__subclasses__():
+            priority = 100
+            if plugin.name in config.cfg.services[service_name]['objectsetters']:
+                plugin_cfg = config.cfg.services[service_name]['objectsetters'][plugin.name]
+                if plugin_cfg['enable']:
+                    # give configuration to the plugin and set priority
+                    if priority in plugin_cfg:
+                        priority = plugin_cfg['priority']
+                    item = PrioritizedItem(priority, plugin(plugin_cfg))
+                    self._queue.put(item)
 
 
 
     def get(self, key, default=None):
-        return None
         if key in self.data:
             return self.data[key]
-        if key in self._getter:
-            self.data[key] = self._getter[key]()
-            return self.data[key]
+
+        if not self._executed_flag:
+            while not self._queue.empty():
+                self._queue.get().item.run(self.data)
+            if key in self.data:
+                return self.data[key]
         return default
 
     def __getitem__(self, key):

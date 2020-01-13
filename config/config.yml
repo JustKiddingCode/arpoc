@@ -32,10 +32,20 @@ services:
         origin_URL: http://service-a.example.com
         proxy_URL: /serviceA
         AC: com.example.policysets.loggedIn
+        objectsetters:
+            jsonsetter:
+                enable: true
+                url: http://json-server.example.com/posts/5/
+                priority: 32
     serviceB:
         origin_URL: http://service-a.example.com
         proxy_URL: /serviceB
         AC: com.example.policysets.alwaysDeny
+        objectsetters:
+            json:
+                enable: true
+                url: http://json-server.example.com/
+                priority: 32
     serviceC:
         origin_URL: http://service-a.example.com
         proxy_URL: /serviceC

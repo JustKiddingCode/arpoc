@@ -39,7 +39,7 @@ from jinja2 import Environment, FileSystemLoader
 import ac
 
 import config
-from plugins import EnvironmentDict
+from plugins import EnvironmentDict, ObjectDict
 
 from jwkest import jwt
 
@@ -147,10 +147,7 @@ class ServiceProxy:
         userinfo = self._oidc_handler.get_userinfo()
         context = {
             "subject": userinfo,
-            "object": {
-                "url": url,
-                **kwargs
-            },
+            "object": ObjectDict(service_name=self.service_name,initialdata={"url": url,**kwargs}),
             "environment": EnvironmentDict()
         }
 

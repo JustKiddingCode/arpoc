@@ -43,6 +43,13 @@ class OIDCProxyConfig:
         if name in self.__cfg.keys():
             return self.__cfg[name]
 
+    def __getitem__(self, key):
+        if key == "cfg":
+            return self.__cfg
+        if key in self.__cfg.keys():
+            return self.__cfg[key]
+
+
     def print_sample_config(self):
         with importlib.resources.path('resources',
                                       'config.yml') as config_path:
@@ -73,7 +80,7 @@ class OIDCProxyConfig:
         print(self.__cfg)
 
 
-config = None
+cfg = None
 
 if __name__ == "__main__":
     cfg = Config()
