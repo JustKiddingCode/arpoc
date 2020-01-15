@@ -14,6 +14,7 @@ import sched
 import threading
 import time
 
+
 import importlib.resources
 import os, pwd, grp
 
@@ -25,6 +26,8 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.oic.message import RegistrationResponse, AuthorizationResponse
 from oic import rndstr
 from oic.utils.http_util import Redirect
+
+import oic.exception
 
 import urllib.parse
 
@@ -67,7 +70,17 @@ class ServiceProxy:
         self._oidc_handler = oidc_handler
 
     def _proxy(self, url):
+        """ Actually perform the proxying. 
 
+            1. Setup request
+               a) Copy request headers
+               b) Copy request body
+            2. Setup authentication
+            3. Get library method to use
+            4. Perform outgoing request
+            5. Answer the request
+        """
+        # Copy request headers
         request_headers = copy.copy(cherrypy.request.headers)
         request_headers.pop('host', None)
         request_headers.pop('Authorization', None)
@@ -75,6 +88,12 @@ class ServiceProxy:
         request_headers['connection'] = "close"
         LOGGING.debug(request_headers)
 
+        # Read request body
+        request_body = ""
+        if cherrypy.request.method in cherrypy.request.methods_with_bodies:
+            request_body = cherrypy.request.body.read()
+
+        # Setup authentication (bearer/cert)
         cert = None
         if 'Authentication' in self.cfg:
             # bearer?
@@ -85,10 +104,8 @@ class ServiceProxy:
                 cert = (self.cfg['Authentication']['certfile'],
                         self.cfg['Authentication']['keyfile'])
 
-        request_body = ""
-        if cherrypy.request.method in cherrypy.request.methods_with_bodies:
-            request_body = cherrypy.request.body.read()
 
+        # Get requests method
         LOGGING.debug(cherrypy.request.method)
         method_switcher = {
             "GET": requests.get,
@@ -100,6 +117,7 @@ class ServiceProxy:
         if not method:
             raise NotImplementedError
 
+        # Outgoing request
         if cert:
             resp = method(url,
                           headers=request_headers,
@@ -108,6 +126,7 @@ class ServiceProxy:
         else:
             resp = method(url, headers=request_headers, data=request_body)
 
+        # Answer the request
         for header in resp.headers.items():
             if header[0].lower() == 'transfer-encoding':
                 continue
@@ -152,6 +171,10 @@ class ServiceProxy:
         }
 
         proxy_url = self._build_url(url, **kwargs)
+        # TODO: Rewrite this?
+        # We use own dictionaries for Object and Environment and override 
+        # the setter. We could do this here and ask for authentication, maybe
+        # with an exception.
         with warnings.catch_warnings(record=True) as w:
             warnings.filterwarnings("ignore")
             warnings.filterwarnings(
@@ -193,36 +216,61 @@ class OidcHandler:
         """
         client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
         registration_response = None
-        if 'registration_url' in provider and 'registration_token' in provider:
-            provider_info = client.provider_config(
-                provider['configuration_url'])
-            # Only read configuration
-            registration_response = client.registration_read(
-                url=provider['registration_url'],
-                registration_access_token=provider['registration_token'])
-            args = dict()
-            args['redirect_uris'] = registration_response['redirect_uris']
-        elif 'configuration_url' in provider and 'configuration_token' in provider:
-            provider_info = client.provider_config(
-                provider['configuration_url'])
-            args = {
-                "redirect_uris": self.cfg.proxy['redirect_uris'],
-                "contacts": self.cfg.proxy['contacts']
-            }
-            registration_response = client.register(
-                provider_info["registration_endpoint"],
-                registration_token=provider['configuration_token'],
-                **args)
-        else:
-            raise Exception("Error in the configuration file")
+        try:
+            if 'registration_url' in provider and 'registration_token' in provider:
+                provider_info = client.provider_config(
+                    provider['configuration_url'])
+                # Only read configuration
+                registration_response = client.registration_read(
+                    url=provider['registration_url'],
+                    registration_access_token=provider['registration_token'])
+                args = dict()
+                args['redirect_uris'] = registration_response['redirect_uris']
+            elif 'configuration_url' in provider and 'configuration_token' in provider:
+                provider_info = client.provider_config(
+                    provider['configuration_url'])
+                args = {
+                    "redirect_uris": self.cfg.proxy['redirect_uris'],
+                    "contacts": self.cfg.proxy['contacts']
+                }
+                registration_response = client.register(
+                    provider_info["registration_endpoint"],
+                    registration_token=provider['configuration_token'],
+                    **args)
+            else:
+                raise Exception("Error in the configuration file")
+        except oic.exception.RegistrationError:
+            LOGGING.debug("Provider %s returned an error on registration", name)
+            LOGGING.debug("Seems to be permament, so not retrying")
+            return
+
         self.__oidc_provider[name] = client
         self.__oidc_provider[name].redirect_uris = args["redirect_uris"]
         self._secrets[name] = registration_response.to_dict()
 
+    def retry_register_first_time(self, name, provider, scheduler, retries=5):
+        try:
+            self.register_first_time(name,provider)
+        except (requests.exceptions.RequestException, oic.exception.CommunicationError) as e:
+            if retries > 0:
+                LOGGING.debug("While retrying another exception occured %s",type(e).__name__)
+                LOGGING.debug("Connection to provider %s failed.", provider['human_readable_name'])
+                LOGGING.debug("Delaying client registration for 30 seconds")
+                scheduler.enter(30,1,self.retry_register_first_time, (name, provider, scheduler, retries - 1))
+            else:
+                LOGGING.info("Connection to provider %s failed too many tries, will not retry", provider['human_readable_name'])
+
+
     def retry_create_client_from_secrets(self, name, provider, scheduler, retries=5):
+        """ Retries to register to an openid provider <provider> and schedule
+            the task <retries> times if it fails using <scheduler>
+
+            If successfull the provider will be added to self.__oidc_provider
+            (in create_client_from_secrets)
+        """
         try:
             self.create_client_from_secrets(name,provider)
-        except requests.exceptions.RequestException as e:
+        except (requests.exceptions.RequestException, oic.exception.CommunicationError) as e:
             if retries > 0:
                 LOGGING.debug("While retrying another exception occured %s",type(e).__name__)
                 LOGGING.debug("Connection to provider %s failed.", provider['human_readable_name'])
@@ -337,7 +385,7 @@ class OidcHandler:
         args = {
             "client_id": cherrypy.session['client'].client_id,
             "response_type": "code",
-            "scope": ["openid"],
+            "scope": ["openid", "email", "profile"],
             "nonce": cherrypy.session["nonce"],
             "redirect_uri": cherrypy.session['client'].redirect_uris,
             "state": cherrypy.session['state']
@@ -450,13 +498,19 @@ def run():
     for name, provider in config.cfg.openid_providers.items():
         # check if the client is/was already registered
         try:
-            app.create_client_from_secrets(name, provider)
+            try:
+                app.create_client_from_secrets(name, provider)
+            except (requests.exceptions.RequestException, oic.exception.CommunicationError):
+                LOGGING.debug("Connection to provider %s failed.", provider['human_readable_name'])
+                LOGGING.debug("Delaying client registration for 30 seconds")
+                scheduler.enter(30,1,app.retry_create_client_from_secrets, (name, provider, scheduler))
         except KeyError:
-            response = app.register_first_time(name, provider)
-        except (requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout):
-            LOGGING.debug("Connection to provider %s failed.", provider['human_readable_name'])
-            LOGGING.debug("Delaying client registration for 30 seconds")
-            scheduler.enter(30,1,app.retry_create_client_from_secrets, (name, provider, scheduler))
+            try:
+                response = app.register_first_time(name, provider)
+            except (requests.exceptions.RequestException, oic.exception.CommunicationError):
+                LOGGING.debug("Connection to provider %s failed.", provider['human_readable_name'])
+                LOGGING.debug("Delaying client registration for 30 seconds")
+                scheduler.enter(30,1,app.retry_register_first_time, (name, provider, scheduler))
     t = threading.Thread(target=scheduler.run)
     t.start()
     #### Setup Cherrypy
