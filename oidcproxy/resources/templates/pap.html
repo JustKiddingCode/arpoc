@@ -1,38 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>OIDC Proxy</title>
-  </head>
-  <body>
-		  <h1> Policy Administration Point </h1>
+<!-- The CSS and the collapsable items are based mainly on: https://www.thecssninja.com/css/css-tree-menu-->
+		<head>
+				<meta charset="utf-8" />
+				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+				<title>OIDC Proxy</title>
+				<style>
+/* Just some base styles not needed for example to function */
+				*, html { font-family: Verdana, Arial, Helvetica, sans-serif; }
+				body, form, ul, li, p, h1, h2, h3, h4, h5
+						{
+						margin: 0;
+/*						padding: 0;*/
+				}
+				p
+						{
+						font-size: 1em;
+						margin: 0 0 1em 0;
+				}
+				html { font-size: 100%; /* IE hack */ }
+				body { font-size: 1em; /* Sets base font size to 16px */ }
+				table { font-size: 100%; /* IE hack */ }
+				input, select, textarea, th, td { font-size: 1em; }
+				/* CSS Tree menu styles */
+				ul.tree
+						{
+						padding: 0 0 0 30px;
+						width: 700px;
+				}
+				li
+						{
+						position: relative;
+						/*		margin-left: -15px;
+						list-style: none;*/
+				}
+				li input
+						{
+						position: absolute;
+						left: 0;
+						margin-left: 0;
+						opacity: 0;
+						z-index: 2;
+						cursor: pointer;
+						height: 1em;
+						width: 1em;
+						top: 0;
+				}
+				li input + ul
+						{
+/*						background: url(toggle-small-expand.png) 40px 0 no-repeat;*/
+						margin: -0.938em 0 0 -44px; /* 15px */
+						height: 1em;
+				}
+				li input + ul > li { display: none; margin-left: -14px !important; padding-left: 1px; }
+				li label
+						{
+/*						background: url(folder-horizontal.png) 15px 1px no-repeat;*/
+						cursor: pointer;
+						display: block;
+/*						padding-left: 37px;*/
+				}
+				li input:checked + ul
+						{
+/*						background: url(toggle-small.png) 40px 5px no-repeat;*/
+						margin: -1.25em 0 0 -44px; /* 20px */
+						padding: 1.563em 0 0 80px;
+						height: auto;
+				}
+				li input:checked + ul > li { display: block; margin: 0 0 0.125em;  /* 2px */}
+				li input:checked + ul > li:last-child { margin: 0 0 0.063em; /* 1px */ }
+				</style>
+		</head>
+		<body>
+				<h1> Policy Administration Point </h1>
+				<ul class="tree">
 {%- for root in pap_nodes recursive -%}
 {% if root.node_type == "policy set" %}
-<ul>
-		<li> Type: {{ root.node_type }} </li>
-		<li> Resolver: {{ root.resolver }} </li>
-		<li> Target: {{ root.target }} </li>
-		<li> Policies:  {{ loop(root.policies) }} </li>
-		<li> Policy Sets:  {{ loop(root.policy_sets) }} </li>
-</ul>
+						<li>
+								<label for="{{root.ID}}"> ID: {{ root.ID }}</label>
+								<input type="checkbox" checked id="{{root.ID}}" />
+								<ul>
+										<li> Type: {{ root.node_type }} </li>
+										<li> Resolver: {{ root.resolver }} </li>
+										<li> Target: {{ root.target }} </li>
+										<li> Policies:  <ul>{{ loop(root.policies) }}</ul> </li>
+										<li> Policy Sets: <ul>{{ loop(root.policy_sets) }}</ul> </li>
+								</ul>
+						</li>
 {% elif root.node_type == "policy" %}
-<li><ul>
-		<li> Type: {{ root.node_type }} </li>
-		<li> Resolver: {{ root.resolver }} </li>
-		<li> Target: {{ root.target }} </li>
-		<li> Rules:  {{ loop(root.rules) }} </li>
-</ul></li>
-
+						<li>
+								<label for="{{root.ID}}"> ID: {{ root.ID }}</label>
+								<input type="checkbox" checked id="{{root.ID}}" />
+								<ul>
+										<li> Type: {{ root.node_type }} </li>
+										<li> Resolver: {{ root.resolver }} </li>
+										<li> Target: {{ root.target }} </li>
+										<li> Rules:  <ul> {{ loop(root.rules) }}</ul> </li>
+								</ul>
+						</li>
 {% else %}
-<li><ul>
-		<li> Type: {{ root.node_type }} </li>
-		<li> Resolver: {{ root.resolver }} </li>
-		<li> Target: {{ root.target }} </li>
-		<li> Effect: {{ root.effect }} </li>
-		<li> Condition: {{ root.condition }} </li>
-</ul></li>
+						<li>
+								<label for="{{root.ID}}"> ID: {{ root.ID }}</label>
+								<input type="checkbox" checked id="{{root.ID}}" />
+								<ul>
+										<li> Type: {{ root.node_type }} </li>
+										<li> Resolver: {{ root.resolver }} </li>
+										<li> Target: {{ root.target }} </li>
+										<li> Effect: {{ root.effect }} </li>
+										<li> Condition: {{ root.condition }} </li>
+								</ul>
+						</li>
 {% endif %}
 {%- endfor -%}
-  </body>
+				</ul>
+		</body>
 </html>
