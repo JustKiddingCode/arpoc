@@ -97,7 +97,7 @@ The resulting access control entities are:
                 "Type": "Rule",
                 "Target": "object.url startswith '/admin'",
                 "Description": "Grant access to /admin folder only to admins",
-                "Condition" : "subject.url startswith 'admin@'",
+                "Condition" : "subject.email startswith 'admin@'",
                 "Effect": "GRANT"
         }
         }
