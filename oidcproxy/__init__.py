@@ -46,6 +46,9 @@ from plugins import EnvironmentDict, ObjectDict
 
 from jwkest import jwt
 
+from dataclasses import dataclass, field
+from typing import List
+
 logging.basicConfig(level=logging.DEBUG)
 
 LOGGING = logging.getLogger()
@@ -58,6 +61,47 @@ with importlib.resources.path(
 env = Environment(loader=FileSystemLoader(
     os.path.join(os.path.dirname(__file__), 'resources', 'templates')))
 
+
+
+@dataclass
+class PAPNode:
+    node_type: str
+    resolver: str
+    target: str
+    effect: str
+    condition: str
+    policy_sets: List[object]
+    policies: List[object]
+    rules: List[object]
+
+def create_PAPNode_Rule(rule : ac.Rule):
+    return PAPNode("rule","",rule.target,rule.effect, rule.condition,None, None, None)
+
+def create_PAPNode_Policy(policy: ac.Policy):
+    rules = [ create_PAPNode_Rule( ServiceProxy.ac.rules[x] ) for x in  policy.rules]
+    return PAPNode("policy", policy.conflict_resolution, policy.target,"","", None, None, rules)
+
+def create_PAPNode_Policy_Set(policy_set: ac.Policy_Set):
+    policies = [ create_PAPNode_Policy( ServiceProxy.ac.policies[x] ) for x in  policy_set.policies]
+    policy_sets = [ create_PAPNode_Policy_Set( ServiceProxy.ac.policy_set[x] ) for x in  policy_set.policy_sets]
+    return PAPNode("policy set", policy_set.conflict_resolution, policy_set.target,"","", policy_sets, policies, None)
+
+
+class PolicyAdministrationPoint:
+    def __init__(self):
+        pass
+
+    def index(self):
+        import pprint
+        tmpl = env.get_template('pap.html')
+        pprint.pprint(ServiceProxy.ac.policies)
+        pprint.pprint(ServiceProxy.ac.policy_sets)
+        pprint.pprint(ServiceProxy.ac.rules)
+        s = []
+        for ps in ServiceProxy.ac.policy_sets:
+           s.append(create_PAPNode_Policy_Set(ServiceProxy.ac.policy_sets[ps]))
+
+        return tmpl.render(pap_nodes = s)
 
 class ServiceProxy:
     """ A class to perform the actual proxying """
@@ -297,10 +341,8 @@ class OidcHandler:
                 2. Otherwise, check the session management if the user is logged in
         """
         if 'authorization' in cherrypy.request.headers:
-            LOGGING.debug(cherrypy.request.headers['authorization'])
             if cherrypy.request.headers['authorization'].lower().startswith(
                     'bearer'):
-                LOGGING.debug(cherrypy.request.headers['authorization'])
                 access_token = cherrypy.request.headers['authorization'][len(
                     'bearer '):]
                 LOGGING.debug(access_token)
@@ -434,7 +476,8 @@ class OidcHandler:
                       service['proxy_URL'] + "/{url:.*?}",
                       controller=service_proxy_obj,
                       action='index')
-
+        pap = PolicyAdministrationPoint()
+        d.connect('pap', "/pap", controller=pap, action='index')
         # Connect the Redirect URI
         LOGGING.debug(self.cfg.proxy['redirect'])
         for i in self.cfg.proxy['redirect']:

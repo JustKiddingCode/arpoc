@@ -1,3 +1,11 @@
+""" Configuration Module of OIDC Proxy 
+
+After importing this file you have access to
+the configuration with the `config.cfg` variable.
+"""
+
+
+
 import importlib.resources
 import yaml
 

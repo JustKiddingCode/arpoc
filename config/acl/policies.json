@@ -14,6 +14,13 @@
 		"Rules" : [ "com.example.rules.default", "com.example.rules.is_workingtime" ],
 		"Resolver": "AND"
 },
+"com.example.policies.default2": {
+		"Type": "Policy",
+		"Description": "Default Policy",
+		"Target" : "True",
+		"Rules" : [ "com.example.rules.default", "com.example.rules.is_workingtime" ],
+		"Resolver": "AND"
+},
 "com.example.policies.loggedIn": {
 		"Type": "Policy",
 		"Description": "Allow for logged in Users",

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OIDC Proxy</title>
+  </head>
+  <body>
+		  <h1> Policy Administration Point </h1>
+{%- for root in pap_nodes recursive -%}
+{% if root.node_type == "policy set" %}
+<ul>
+		<li> Type: {{ root.node_type }} </li>
+		<li> Resolver: {{ root.resolver }} </li>
+		<li> Target: {{ root.target }} </li>
+		<li> Policies:  {{ loop(root.policies) }} </li>
+		<li> Policy Sets:  {{ loop(root.policy_sets) }} </li>
+</ul>
+{% elif root.node_type == "policy" %}
+<li><ul>
+		<li> Type: {{ root.node_type }} </li>
+		<li> Resolver: {{ root.resolver }} </li>
+		<li> Target: {{ root.target }} </li>
+		<li> Rules:  {{ loop(root.rules) }} </li>
+</ul></li>
+
+{% else %}
+<li><ul>
+		<li> Type: {{ root.node_type }} </li>
+		<li> Resolver: {{ root.resolver }} </li>
+		<li> Target: {{ root.target }} </li>
+		<li> Effect: {{ root.effect }} </li>
+		<li> Condition: {{ root.condition }} </li>
+</ul></li>
+{% endif %}
+{%- endfor -%}
+  </body>
+</html>

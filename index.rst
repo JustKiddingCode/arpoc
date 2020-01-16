@@ -10,6 +10,7 @@ Welcome to OIDC Proxy's documentation!
    :maxdepth: 2
    :caption: Contents:
    
+   docs/admin/index.rst
    docs/api/modules.rst
 
 

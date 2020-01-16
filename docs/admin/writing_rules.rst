@@ -1,0 +1,127 @@
+Writing Access Control Rules
+============================
+
+The access control rules are ordered in a hierarchy.
+There are policy sets, policies and rules.
+Every policy sets can contain other policy sets or other policies.
+Every policy can contain multiple rules.
+
+Every entity (policy set, policy, rule) has an unique id, and a target.
+An entity is only evaluated if the target is evaluated to true.
+Policies and policy sets have a resolver to solve conflicts of the rule
+evaluation. Rules have a condition and an effect.
+The effect (GRANT, DENY) is only returned if the rule's condition has
+evaluated to true.
+
+Every service has a policy set assigned that is evaluated and based on the
+outcome the access to the service is either granted or denied.
+
+A simple example:
+-----------------
+
+Consider you just want to proxy a service with no further authentication
+or authorisation.
+Nonetheless you need to specify a policy set, a policy and a rule for the service.
+
+.. code-block:: json
+
+        {
+        "com.example.policysets.default": {
+                "Type": "PolicySet",
+                "Description": "Default Policy Set",
+                "Target": "True",
+                "Policies": ["com.example.policies.default"],
+                "PolicySets": [],
+                "Resolver": "ANY"
+        },
+        "com.example.policies.default": {
+                "Type": "Policy",
+                "Description": "Default Policy",
+                "Target" : "True",
+                "Rules" : [ "com.example.rules.default"],
+                "Resolver": "ANY"
+        },
+        "com.example.rules.default" : {
+                "Type": "Rule",
+                "Target": "True",
+                "Description": "Default Rule",
+                "Condition" : "True",
+                "Effect": "GRANT"
+        }
+        }
+
+Now let's do more complicated stuff.
+Suppose we wan't a public available website, but the subfolder '/admin'
+should be only accessible by an user that has an email that starts with 'admin@'.
+So we add a *rule* with the target specifier `object.url startswith '/admin'`.
+If the path does not start with '/admin' then the rule is not evaluated.
+For the condition we choose analogue `subject.email startswith 'admin@'`
+Now the rule fulfills our requirements, aka it is evaluated to `DENY`.
+But after adding the rule to the `Rules` list of our policy, 
+still every user has access to the
+'/admin' folder.
+This is because the rule 'com.example.rules.default' evaluates to `GRANT`.
+The task of the policy resolver is to turn the results of all evaluated
+rules to a single effect.
+The `ANY` resolver return `GRANT` as soon as any rule evaluated to `GRANT`.
+To achieve the effect the want we can use the `AND` resolver.
+
+The resulting access control entities are:
+
+.. code-block:: json
+
+        {
+        "com.example.policysets.default": {
+                "Type": "PolicySet",
+                "Description": "Default Policy Set",
+                "Target": "True",
+                "Policies": ["com.example.policies.default"],
+                "PolicySets": [],
+                "Resolver": "ANY"
+        },
+        "com.example.policies.default": {
+                "Type": "Policy",
+                "Description": "Default Policy",
+                "Target" : "True",
+                "Rules" : [ "com.example.rules.default", "com.example.rules.admin"],
+                "Resolver": "AND"
+        },
+        "com.example.rules.default" : {
+                "Type": "Rule",
+                "Target": "True",
+                "Description": "Default Rule",
+                "Condition" : "True",
+                "Effect": "GRANT"
+        },
+        "com.example.rules.admin" : {
+                "Type": "Rule",
+                "Target": "object.url startswith '/admin'",
+                "Description": "Grant access to /admin folder only to admins",
+                "Condition" : "subject.url startswith 'admin@'",
+                "Effect": "GRANT"
+        }
+        }
+
+
+By now, you should understand the idea behind the access control entity hierarchy,
+and how they get to the result.
+Let's look more on the details of the condition and target language.
+
+Condition and target language
+-----------------------------
+
+The language is similar to Python.
+You have four dictionaries (subject, object, environment and access) and can
+compare them against constants or each other.
+The subject dictionary is filled with information from the Userinfo
+Endpoint of the OpenID Connect Provider.
+The object dictionary is filled with information of the object, like the url.
+This can be enhanced by plugins.
+The environment dictionary is completely filled with the use of plugins.
+The plugins for the environment dictionary must contain a target variable
+and are only run when the target variable is evaluated, while the object plugins
+are run before the access decision is made.
+The order of the object plugins is based on a priority that has to be submitted
+in the configuration file.
+For every proxied service a different set of object plugins can be enabled and
+different priorities choosen.

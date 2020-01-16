@@ -10,3 +10,4 @@ __pycache__
 oidcproxy/htmlcov
 docs/api/
 htmldoc/
+latexdoc/
