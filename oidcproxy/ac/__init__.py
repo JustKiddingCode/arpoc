@@ -11,8 +11,9 @@ from enum import Enum
 import logging
 
 from .conflict_resolution import *
-from .common import *
 from .parser import check_condition, check_target
+
+import oidcproxy.ac.common
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -131,7 +132,7 @@ class Rule(AC_Entity):
     def __init__(self, entity_id, target, description, condition, effect):
         super().__init__(entity_id, target, description)
         self.condition = condition
-        self.effect = Effects[effect]
+        self.effect = oidcproxy.ac.common.Effects[effect]
 
     def __str__(self):
         basic = super().__str__()
@@ -144,7 +145,7 @@ class Rule(AC_Entity):
             if self._check_condition(context):
                 return self.effect
             else:
-                return Effects(not self.effect)
+                return oidcproxy.ac.common.Effects(not self.effect)
 
     def _check_condition(self, context):
         return check_condition(self.condition, context)
