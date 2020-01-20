@@ -217,3 +217,5 @@ class AC_Container:
                      str(kwargs))
         obj = switcher.get(definition['Type'], None)(entity_id, **kwargs)
         switcher_dict.get(definition['Type'], None)[entity_id] = obj
+
+container = AC_Container()
