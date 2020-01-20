@@ -151,6 +151,16 @@ are supported.
 "'01:02:03' matches '[0-9]{2}:[0-9]{2}:[0-9]{2}'".
 Statements can me connected using "and" and "or".
 
+
+Examples
+***************
+
+.. code-block:: txt
+
+   '/group1' in subject.groups
+   subject.age > 18
+   subject.email in object.allowed
+
 Grammar Reference
 *****************
 
