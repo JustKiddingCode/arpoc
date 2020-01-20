@@ -1,19 +1,19 @@
 import pytest
-import ac
+import oidcproxy.ac
 
-from ac.common import Effects
+from oidcproxy.ac.common import Effects
 
 import importlib.resources
 
 import os
 
-Container = ac.AC_Container()
+Container = oidcproxy.ac.AC_Container()
 with importlib.resources.path(
-        'tests.resources.acl',
+        'oidcproxy.tests.resources.acl',
         'policies.json') as path_p, importlib.resources.path(
-            'tests.resources.acl',
+            'oidcproxy.tests.resources.acl',
             'rules.json') as path_r, importlib.resources.path(
-                'tests.resources.acl', 'policysets.json') as path_ps:
+                'oidcproxy.tests.resources.acl', 'policysets.json') as path_ps:
 
     Container.load_file(path_p)
     Container.load_file(path_r)

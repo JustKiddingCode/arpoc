@@ -1,16 +1,21 @@
-from __init__ import *
+from oidcproxy import *
 
 cfg = config.OIDCProxyConfig()
 oidc_handler = OidcHandler(cfg)
 
 serviceConfig = {
     "proxy": {
-        "hostname": "PROXY/"
+        "hostname": "PROXY/",
+        'keyfile' : "/dev/null",
+        'certfile': "/dev/null", 
+        'contacts': ["info@example.com"],
+        'redirect_uris': ['/secure/redirect']
     },
     "services": {
         "a": {
             "origin_URL": 'foo',
-            "proxy_URL": "/bar"
+            "proxy_URL": "/bar",
+            "AC" : "policyset"
         }
     }
 }

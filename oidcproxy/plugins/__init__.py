@@ -34,11 +34,11 @@ import collections
 from dataclasses import dataclass, field
 from typing import Any
 
+
 @dataclass(order=True)
 class PrioritizedItem:
     priority: int
-    item: Any=field(compare=False)
-
+    item: Any = field(compare=False)
 
 
 class ObjectDict(collections.UserDict):
@@ -51,16 +51,16 @@ class ObjectDict(collections.UserDict):
         self._queue = PriorityQueue()
         for plugin in _lib.ObjectSetter.__subclasses__():
             priority = 100
-            if plugin.name in config.cfg.services[service_name]['objectsetters']:
-                plugin_cfg = config.cfg.services[service_name]['objectsetters'][plugin.name]
+            if plugin.name in config.cfg.services[service_name][
+                    'objectsetters']:
+                plugin_cfg = config.cfg.services[service_name][
+                    'objectsetters'][plugin.name]
                 if plugin_cfg['enable']:
                     # give configuration to the plugin and set priority
                     if priority in plugin_cfg:
                         priority = plugin_cfg['priority']
                     item = PrioritizedItem(priority, plugin(plugin_cfg))
                     self._queue.put(item)
-
-
 
     def get(self, key, default=None):
         if key in self.data:

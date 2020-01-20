@@ -14,7 +14,6 @@ import sched
 import threading
 import time
 
-
 import importlib.resources
 import os, pwd, grp
 
@@ -38,7 +37,6 @@ import cherrypy
 from cherrypy.process.plugins import DropPrivileges
 
 from jinja2 import Environment, FileSystemLoader
-
 
 from jwkest import jwt
 
@@ -64,7 +62,6 @@ env = Environment(loader=FileSystemLoader(
     os.path.join(os.path.dirname(__file__), 'resources', 'templates')))
 
 
-
 @dataclass
 class PAPNode:
     ID: str
@@ -77,17 +74,32 @@ class PAPNode:
     policies: List[object]
     rules: List[object]
 
-def create_PAPNode_Rule(rule : ac.Rule):
-    return PAPNode(rule.entity_id, "rule","",rule.target,rule.effect, rule.condition,None, None, None)
+
+def create_PAPNode_Rule(rule: ac.Rule):
+    return PAPNode(rule.entity_id, "rule", "", rule.target, rule.effect,
+                   rule.condition, None, None, None)
+
 
 def create_PAPNode_Policy(policy: ac.Policy):
-    rules = [ create_PAPNode_Rule( ServiceProxy.ac.rules[x] ) for x in  policy.rules]
-    return PAPNode(policy.entity_id, "policy", policy.conflict_resolution, policy.target,"","", None, None, rules)
+    rules = [
+        create_PAPNode_Rule(ServiceProxy.ac.rules[x]) for x in policy.rules
+    ]
+    return PAPNode(policy.entity_id, "policy", policy.conflict_resolution,
+                   policy.target, "", "", None, None, rules)
+
 
 def create_PAPNode_Policy_Set(policy_set: ac.Policy_Set):
-    policies = [ create_PAPNode_Policy( ServiceProxy.ac.policies[x] ) for x in  policy_set.policies]
-    policy_sets = [ create_PAPNode_Policy_Set( ServiceProxy.ac.policy_set[x] ) for x in  policy_set.policy_sets]
-    return PAPNode(policy_set.entity_id, "policy set", policy_set.conflict_resolution, policy_set.target,"","", policy_sets, policies, None)
+    policies = [
+        create_PAPNode_Policy(ServiceProxy.ac.policies[x])
+        for x in policy_set.policies
+    ]
+    policy_sets = [
+        create_PAPNode_Policy_Set(ServiceProxy.ac.policy_set[x])
+        for x in policy_set.policy_sets
+    ]
+    return PAPNode(policy_set.entity_id, "policy set",
+                   policy_set.conflict_resolution, policy_set.target, "", "",
+                   policy_sets, policies, None)
 
 
 class PolicyAdministrationPoint:
@@ -98,9 +110,11 @@ class PolicyAdministrationPoint:
         tmpl = env.get_template('pap.html')
         s = []
         for ps in ServiceProxy.ac.policy_sets:
-           s.append(create_PAPNode_Policy_Set(ServiceProxy.ac.policy_sets[ps]))
+            s.append(create_PAPNode_Policy_Set(
+                ServiceProxy.ac.policy_sets[ps]))
 
-        return tmpl.render(pap_nodes = s)
+        return tmpl.render(pap_nodes=s)
+
 
 class ServiceProxy:
     """ A class to perform the actual proxying """
@@ -146,7 +160,6 @@ class ServiceProxy:
             if self.cfg['Authentication']['type'] == "Certificate":
                 cert = (self.cfg['Authentication']['certfile'],
                         self.cfg['Authentication']['keyfile'])
-
 
         # Get requests method
         LOGGING.debug(cherrypy.request.method)
@@ -208,14 +221,21 @@ class ServiceProxy:
         LOGGING.debug(kwargs)
         userinfo = self._oidc_handler.get_userinfo()
         context = {
-            "subject": userinfo,
-            "object": ObjectDict(service_name=self.service_name,initialdata={"url": url,**kwargs}),
-            "environment": EnvironmentDict()
+            "subject":
+            userinfo,
+            "object":
+            ObjectDict(service_name=self.service_name,
+                       initialdata={
+                           "url": url,
+                           **kwargs
+                       }),
+            "environment":
+            EnvironmentDict()
         }
 
         proxy_url = self._build_url(url, **kwargs)
         # TODO: Rewrite this?
-        # We use own dictionaries for Object and Environment and override 
+        # We use own dictionaries for Object and Environment and override
         # the setter. We could do this here and ask for authentication, maybe
         # with an exception.
         with warnings.catch_warnings(record=True) as w:
@@ -283,7 +303,8 @@ class OidcHandler:
             else:
                 raise Exception("Error in the configuration file")
         except oic.exception.RegistrationError:
-            LOGGING.debug("Provider %s returned an error on registration", name)
+            LOGGING.debug("Provider %s returned an error on registration",
+                          name)
             LOGGING.debug("Seems to be permament, so not retrying")
             return
 
@@ -293,18 +314,27 @@ class OidcHandler:
 
     def retry_register_first_time(self, name, provider, scheduler, retries=5):
         try:
-            self.register_first_time(name,provider)
-        except (requests.exceptions.RequestException, oic.exception.CommunicationError) as e:
+            self.register_first_time(name, provider)
+        except (requests.exceptions.RequestException,
+                oic.exception.CommunicationError) as e:
             if retries > 0:
-                LOGGING.debug("While retrying another exception occured %s",type(e).__name__)
-                LOGGING.debug("Connection to provider %s failed.", provider['human_readable_name'])
+                LOGGING.debug("While retrying another exception occured %s",
+                              type(e).__name__)
+                LOGGING.debug("Connection to provider %s failed.",
+                              provider['human_readable_name'])
                 LOGGING.debug("Delaying client registration for 30 seconds")
-                scheduler.enter(30,1,self.retry_register_first_time, (name, provider, scheduler, retries - 1))
+                scheduler.enter(30, 1, self.retry_register_first_time,
+                                (name, provider, scheduler, retries - 1))
             else:
-                LOGGING.info("Connection to provider %s failed too many tries, will not retry", provider['human_readable_name'])
+                LOGGING.info(
+                    "Connection to provider %s failed too many tries, will not retry",
+                    provider['human_readable_name'])
 
-
-    def retry_create_client_from_secrets(self, name, provider, scheduler, retries=5):
+    def retry_create_client_from_secrets(self,
+                                         name,
+                                         provider,
+                                         scheduler,
+                                         retries=5):
         """ Retries to register to an openid provider <provider> and schedule
             the task <retries> times if it fails using <scheduler>
 
@@ -312,15 +342,21 @@ class OidcHandler:
             (in create_client_from_secrets)
         """
         try:
-            self.create_client_from_secrets(name,provider)
-        except (requests.exceptions.RequestException, oic.exception.CommunicationError) as e:
+            self.create_client_from_secrets(name, provider)
+        except (requests.exceptions.RequestException,
+                oic.exception.CommunicationError) as e:
             if retries > 0:
-                LOGGING.debug("While retrying another exception occured %s",type(e).__name__)
-                LOGGING.debug("Connection to provider %s failed.", provider['human_readable_name'])
+                LOGGING.debug("While retrying another exception occured %s",
+                              type(e).__name__)
+                LOGGING.debug("Connection to provider %s failed.",
+                              provider['human_readable_name'])
                 LOGGING.debug("Delaying client registration for 30 seconds")
-                scheduler.enter(30,1,self.retry_create_client_from_secrets, (name, provider, scheduler, retries - 1))
+                scheduler.enter(30, 1, self.retry_create_client_from_secrets,
+                                (name, provider, scheduler, retries - 1))
             else:
-                LOGGING.info("Connection to provider %s failed too many tries, will not retry", provider['human_readable_name'])
+                LOGGING.info(
+                    "Connection to provider %s failed too many tries, will not retry",
+                    provider['human_readable_name'])
 
     def create_client_from_secrets(self, name, provider):
         client_secrets = self._secrets[name]
@@ -535,24 +571,29 @@ def run():
     app.read_secrets(config.cfg.proxy['secrets'])
     atexit.register(app.save_secrets)
 
-
     scheduler = sched.scheduler(time.time, time.sleep)
     for name, provider in config.cfg.openid_providers.items():
         # check if the client is/was already registered
         try:
             try:
                 app.create_client_from_secrets(name, provider)
-            except (requests.exceptions.RequestException, oic.exception.CommunicationError):
-                LOGGING.debug("Connection to provider %s failed.", provider['human_readable_name'])
+            except (requests.exceptions.RequestException,
+                    oic.exception.CommunicationError):
+                LOGGING.debug("Connection to provider %s failed.",
+                              provider['human_readable_name'])
                 LOGGING.debug("Delaying client registration for 30 seconds")
-                scheduler.enter(30,1,app.retry_create_client_from_secrets, (name, provider, scheduler))
+                scheduler.enter(30, 1, app.retry_create_client_from_secrets,
+                                (name, provider, scheduler))
         except KeyError:
             try:
                 response = app.register_first_time(name, provider)
-            except (requests.exceptions.RequestException, oic.exception.CommunicationError):
-                LOGGING.debug("Connection to provider %s failed.", provider['human_readable_name'])
+            except (requests.exceptions.RequestException,
+                    oic.exception.CommunicationError):
+                LOGGING.debug("Connection to provider %s failed.",
+                              provider['human_readable_name'])
                 LOGGING.debug("Delaying client registration for 30 seconds")
-                scheduler.enter(30,1,app.retry_register_first_time, (name, provider, scheduler))
+                scheduler.enter(30, 1, app.retry_register_first_time,
+                                (name, provider, scheduler))
     t = threading.Thread(target=scheduler.run)
     t.start()
     #### Setup Cherrypy
@@ -592,5 +633,6 @@ def run():
     cherrypy.engine.start()
     cherrypy.engine.block()
     t.join()
+
 
 #    cherrypy.quickstart(None, '/', app_conf)

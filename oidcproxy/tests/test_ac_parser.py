@@ -1,6 +1,6 @@
 import pytest
 
-from ac.parser import *
+from oidcproxy.ac.parser import *
 from lark.exceptions import *
 
 

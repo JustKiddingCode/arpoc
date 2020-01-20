@@ -10,7 +10,8 @@ from lark import Lark, tree, Transformer, Tree
 import lark.exceptions
 
 with importlib.resources.path(
-        'oidcproxy.resources', 'grammar.lark') as grammar_path, open(grammar_path) as fp:
+        'oidcproxy.resources',
+        'grammar.lark') as grammar_path, open(grammar_path) as fp:
     grammar = fp.read()
 
 LOGGER = logging.getLogger(__name__)

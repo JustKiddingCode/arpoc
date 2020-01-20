@@ -11,17 +11,18 @@ import os
 from dataclasses import dataclass, field, replace, asdict
 from typing import List
 
+
 @dataclass
 class ProviderConfig:
     """ Configuration for a single Open ID Connect Provider"""
     human_readable_name: str
     configuration_url: str = ""
     configuration_token: str = ""
-    registration_token: str = "" 
+    registration_token: str = ""
     registration_url: str = ""
 
     def __getitem__(self, key):
-        return getattr(self,key)
+        return getattr(self, key)
 
 
 @dataclass
@@ -40,7 +41,8 @@ class ProxyConfig:
     redirect: str = "/secure/redirect_uris"
 
     def __getitem__(self, key):
-        return getattr(self,key)
+        return getattr(self, key)
+
 
 @dataclass
 class ServiceConfig:
@@ -52,10 +54,12 @@ class ServiceConfig:
     authentication: dict = field(default_factory=dict)
 
     def __getitem__(self, key):
-        return getattr(self,key)
+        return getattr(self, key)
+
 
 def default_json_dir():
     return ["/etc/oidc-proxy/acl"]
+
 
 @dataclass
 class ACConfig:
@@ -63,7 +67,8 @@ class ACConfig:
     json_dir: List[str] = field(default_factory=default_json_dir)
 
     def __getitem__(self, key):
-        return getattr(self,key)
+        return getattr(self, key)
+
 
 class ConfigError(Exception):
     pass
@@ -106,17 +111,22 @@ class OIDCProxyConfig:
         if key in self.__cfg.keys():
             return self.__cfg[key]
 
-
     def print_sample_config(self):
-        provider = ProviderConfig("","","","","")
-        proxy = ProxyConfig("","","",[""],[""])
-        service = ServiceConfig("","", "", {}, {})
+        provider = ProviderConfig("", "", "", "", "")
+        proxy = ProxyConfig("", "", "", [""], [""])
+        service = ServiceConfig("", "", "", {}, {})
         ac = ACConfig()
-        
-        cfg = { "openid_providers" : {"example" :  asdict(provider)},
-                "proxy" : asdict(proxy),
-                "services" : {"example" : asdict(service) },
-                "access_control" : asdict(ac) }
+
+        cfg = {
+            "openid_providers": {
+                "example": asdict(provider)
+            },
+            "proxy": asdict(proxy),
+            "services": {
+                "example": asdict(service)
+            },
+            "access_control": asdict(ac)
+        }
         print(yaml.dump(cfg))
 
     def check_config(self):
@@ -128,15 +138,16 @@ class OIDCProxyConfig:
 
     def merge_config(self, new_cfg):
         if 'services' in new_cfg:
-            for key,val in new_cfg['services'].items():
+            for key, val in new_cfg['services'].items():
                 service_cfg = ServiceConfig(**val)
                 self.__cfg['services'][key] = service_cfg
         if 'openid_providers' in new_cfg:
-            for key,val in new_cfg['openid_providers'].items():
+            for key, val in new_cfg['openid_providers'].items():
                 provider_cfg = ProviderConfig(**val)
                 self.__cfg['openid_providers'][key] = provider_cfg
         if 'access_control' in new_cfg:
-            self.__cfg['access_control'] = ACConfig(**new_cfg['access_control'])
+            self.__cfg['access_control'] = ACConfig(
+                **new_cfg['access_control'])
 
         if 'proxy' in new_cfg:
             if self.__cfg['proxy']:
@@ -155,9 +166,9 @@ class OIDCProxyConfig:
         cfg['services'] = dict()
         cfg['openid_providers'] = dict()
 
-        for key,val in self.__cfg['services'].items():
+        for key, val in self.__cfg['services'].items():
             cfg['services'][key] = asdict(val)
-        for key,val in self.__cfg['openid_providers'].items():
+        for key, val in self.__cfg['openid_providers'].items():
             cfg['openid_providers'][key] = asdict(val)
         cfg['proxy'] = asdict(self.__cfg['proxy'])
         cfg['access_control'] = asdict(self.__cfg['access_control'])

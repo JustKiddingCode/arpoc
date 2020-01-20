@@ -1,12 +1,13 @@
 .PHONY: tests, codelines, doc, htmldoc, pdfdoc
 
 tests:
-	cd oidcproxy && \
-	python3.7-coverage run --include './*' -m pytest && \
+	python3.7-coverage run --include './oidcproxy/*' -m pytest oidcproxy/tests
 	python3.7-coverage html
 
 clean:
 	find -type d -name '__pycache__' -exec rm -rf '{}' +
+	rm -rf deb_dist _build htmldoc latexdoc oidc_proxy.egg-info _templates _static dist
+	rm oidc-proxy*.tar.gz
 
 doc:
 	python3 oidcproxy/config.py > docs/gen/sample_config.yml

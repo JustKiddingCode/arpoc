@@ -7,7 +7,7 @@ pyoidc
 __pycache__
 *.swp
 .coverage
-oidcproxy/htmlcov
+htmlcov
 docs/api/
 docs/gen/
 docs/uml/
