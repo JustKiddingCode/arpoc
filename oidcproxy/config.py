@@ -11,6 +11,9 @@ import os
 from dataclasses import dataclass, field, replace, asdict
 from typing import List
 
+import logging
+LOGGING = logging.getLogger()
+
 
 @dataclass
 class ProviderConfig:
@@ -98,6 +101,7 @@ class OIDCProxyConfig:
                     self.read_file(filepath)
                 except IOError:
                     pass
+        self.check_config()
 
     def __getattr__(self, name):
         if name == "cfg":
@@ -129,12 +133,18 @@ class OIDCProxyConfig:
         }
         print(yaml.dump(cfg))
 
+    def check_config_proxy_url(self):
+        l = []
+        for key,service in self.__cfg['services'].items():
+            if service.proxy_URL in l:
+                raise ConfigError()
+            l.append(service.proxy_URL) 
+
+
     def check_config(self):
-        # there needs to be three keys in the config
-        cfg_keys = set(
-            ['openid_providers', 'proxy', 'services', 'access_control'])
-        if cfg_keys != set(self.__cfg.keys()):
-            raise ConfigError("Only top-level keys allowed are: %s" % cfg_keys)
+        LOGGING.debug("checking config consistency")
+        self.check_config_proxy_url()
+
 
     def merge_config(self, new_cfg):
         if 'services' in new_cfg:
