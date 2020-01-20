@@ -1,6 +1,6 @@
 from __init__ import *
 
-cfg = OIDCProxyConfig()
+cfg = config.OIDCProxyConfig()
 oidc_handler = OidcHandler(cfg)
 
 serviceConfig = {

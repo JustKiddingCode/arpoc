@@ -125,3 +125,38 @@ The order of the object plugins is based on a priority that has to be submitted
 in the configuration file.
 For every proxied service a different set of object plugins can be enabled and
 different priorities choosen.
+
+
+
+Attributes
+**********
+
+An attribute is either a subject, an object, an environment or a literal
+attribute.
+As literal attributes integers, booleans or lists are supported.
+Booleans are either "True" or "False" including the quotation marks.
+List statements are supported like in Python, but limited to only flat
+lists. So '["elem1", "elem2", "elem3"]' is supported, '["elem1,["elem2","elem3"]]'
+not.
+
+
+Comparison Operators
+********************
+
+The operators ">","<","==","!=" and work as in Python, or in any other C-like
+language.
+For strings the operators "startswith" (literal prefix) and "matches" (regex)
+are supported.
+"abcde" startswith "ab" will evaluate to True as well as
+"'01:02:03' matches '[0-9]{2}:[0-9]{2}:[0-9]{2}'".
+Statements can me connected using "and" and "or".
+
+Grammar Reference
+*****************
+
+This is the actual grammar that is used to parse the condition and target
+statements. The grammar is parsed using lark.
+
+.. literalinclude:: /oidcproxy/resources/grammar.lark
+   :language: jsgf
+

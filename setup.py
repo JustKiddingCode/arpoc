@@ -24,9 +24,6 @@ here = path.abspath(path.dirname(__file__))
 # Arguments marked as "Required" below must be included for upload to PyPI.
 # Fields marked as "Optional" may be commented out.
 
-with open('requirements.txt') as f:
-    requirements = f.read().splitlines()
-
 setup(
     # This is the name of your project. The first time you publish this
     # package, this name will be registered for you. It will determine how
@@ -116,7 +113,6 @@ setup(
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
     ],
 
     # This field adds keywords for your project which will appear on the
@@ -134,7 +130,7 @@ setup(
     #
     #   py_modules=["my_module"],
     #
-    packages=["oidc-proxy"],  # Required
+    packages=find_packages(exclude=['*htmlcov*']),  # Required
     #packages=find_packages(exclude=['contrib', 'docs', 'tests']),  # Required
 
     # Specify which Python versions you support. In contrast to the
@@ -142,7 +138,7 @@ setup(
     # and refuse to install the project if the version does not match. If you
     # do not support Python 2, you can simplify this to '>=3.5' or similar, see
     # https://packaging.python.org/guides/distributing-packages-using-setuptools/#python-requires
-    python_requires='>=3.5',
+    python_requires='==3.7',
 
     # This field lists other packages that your project depends on to run.
     # Any package you put here will be installed by pip when your project is
@@ -150,7 +146,13 @@ setup(
     #
     # For an analysis of "install_requires" vs pip's requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=requirements,  # Optional
+    install_requires=["pyjwkest>=1.4.2",
+            "oic>=1.1.2",
+            "pyyaml",
+            "cherrypy",
+            "routes",
+            "lark-parser",
+            "jinja2"],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). Users will be able to install these using the "extras"
@@ -164,7 +166,7 @@ setup(
 #        'dev': ['check-manifest'],
 #        'test': ['coverage'],
 #    },
-
+    include_package_data=True,
     # If there are data files included in your packages that need to be
     # installed, specify them here.
     #

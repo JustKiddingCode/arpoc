@@ -9,5 +9,7 @@ __pycache__
 .coverage
 oidcproxy/htmlcov
 docs/api/
+docs/gen/
+docs/uml/
 htmldoc/
 latexdoc/

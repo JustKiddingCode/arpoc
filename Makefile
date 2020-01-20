@@ -1,4 +1,4 @@
-.PHONY: tests, codelines
+.PHONY: tests, codelines, doc, htmldoc, pdfdoc
 
 tests:
 	cd oidcproxy && \
@@ -9,11 +9,13 @@ clean:
 	find -type d -name '__pycache__' -exec rm -rf '{}' +
 
 doc:
+	python3 oidcproxy/config.py > docs/gen/sample_config.yml
 	sphinx-apidoc -o docs/api oidcproxy -f
+
+htmldoc: doc
 	sphinx-build -b html . htmldoc
 
-pdfdoc:
-	sphinx-apidoc -o docs/api oidcproxy -f
+pdfdoc: doc
 	sphinx-build -b latex . latexdoc
 	cd latexdoc && latexmk --pdf OIDCProxy.tex
 	cp latexdoc/OIDCProxy.pdf ./doc.pdf

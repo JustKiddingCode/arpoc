@@ -39,22 +39,24 @@ from cherrypy.process.plugins import DropPrivileges
 
 from jinja2 import Environment, FileSystemLoader
 
-import ac
-
-import config
-from plugins import EnvironmentDict, ObjectDict
 
 from jwkest import jwt
 
 from dataclasses import dataclass, field
 from typing import List
 
+#### Own Imports
+
+import oidcproxy.ac as ac
+import oidcproxy.config as config
+from oidcproxy.plugins import EnvironmentDict, ObjectDict
+
 logging.basicConfig(level=logging.DEBUG)
 
 LOGGING = logging.getLogger()
 
 with importlib.resources.path(
-        'resources',
+        'oidcproxy.resources',
         'loggers.yml') as loggers_path, open(loggers_path) as ymlfile:
     LOG_CONF = yaml.safe_load(ymlfile)
 
@@ -258,7 +260,7 @@ class OidcHandler:
         client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
         registration_response = None
         try:
-            if 'registration_url' in provider and 'registration_token' in provider:
+            if provider.registration_url and provider.registration_token:
                 provider_info = client.provider_config(
                     provider['configuration_url'])
                 # Only read configuration
@@ -267,7 +269,7 @@ class OidcHandler:
                     registration_access_token=provider['registration_token'])
                 args = dict()
                 args['redirect_uris'] = registration_response['redirect_uris']
-            elif 'configuration_url' in provider and 'configuration_token' in provider:
+            elif provider.configuration_url and provider.configuration_token:
                 provider_info = client.provider_config(
                     provider['configuration_url'])
                 args = {
@@ -325,7 +327,7 @@ class OidcHandler:
         self.__oidc_provider[name] = Client(
             client_authn_method=CLIENT_AUTHN_METHOD)
         provider_info = self.__oidc_provider[name].provider_config(
-            provider['configuration_url'])
+            provider.configuration_url)
         client_reg = RegistrationResponse(**client_secrets)
         self.__oidc_provider[name].store_registration_info(client_reg)
         self.__oidc_provider[name].redirect_uris = client_secrets[

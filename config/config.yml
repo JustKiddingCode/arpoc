@@ -62,14 +62,14 @@ services:
         origin_URL: https://fortknox.example.com/bearer
         proxy_URL: /serviceF
         AC: com.example.policysets.loggedIn
-        Authentication:
+        authentication:
             type: Bearer
             token: 1234
     serviceG:
         origin_URL: https://fortknox.example.com/cert
         proxy_URL: /serviceG
         AC: com.example.policysets.loggedIn
-        Authentication:
+        authentication:
             type: Certificate
             keyfile: /etc/oidc-proxy/key.pem
             certfile: /etc/oidc-proxy/client.crt

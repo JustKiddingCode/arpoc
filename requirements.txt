@@ -1,4 +1,5 @@
--e file:./pyoidc
+pyjwkest>=1.4.2
+oic>=1.1.2
 pyyaml
 cherrypy
 routes
