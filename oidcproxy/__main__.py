@@ -1,4 +1,3 @@
-from __init__ import *
-
+import oidcproxy
 if __name__ == "__main__":
-    run()
+    oidcproxy.run()

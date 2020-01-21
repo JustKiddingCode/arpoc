@@ -217,10 +217,10 @@ class OidcHandler:
 
     def register_first_time(self, name, provider):
         """ Registers a client or reads the configuration from the registration endpoint 
-            
+
             If registration_url is present in the configuration file, then it will try
             to read the configuration using the registration_token.
-            
+
             If configuration_url is present in the configuration file, it will try to
             set the configuration using the registration endpoint dynamically
             received with the well-known location url (configuration_url)
@@ -318,6 +318,32 @@ class OidcHandler:
         self.__oidc_provider[name].redirect_uris = client_secrets[
             'redirect_uris']
 
+    def get_userinfo_access_token(self,at):
+       LOGGING.debug(at)
+       access_token_obj = jwt.JWT()
+       access_token_obj.unpack(at)
+       LOGGING.debug(access_token_obj.payload())
+       issuer = access_token_obj.payload()['iss']
+       # check if issuer is in provider list
+       client = None
+       for key, obj in self.__oidc_provider.items():
+           LOGGING.debug(obj)
+           if obj.issuer == issuer:
+               client = obj
+       if client:
+           # do userinfo with provided AT
+           userinfo = client.do_user_info_request(
+               access_token=access_token)
+           return userinfo
+
+    def _check_session_refresh(self):
+        if 'refresh' in cherrypy.session:
+            now = int(datetime.datetime.now().timestamp())
+            LOGGING.debug("refresh necessary: %s, now: %s",
+                          cherrypy.session['refresh'],
+                          now)
+            return cherrypy.session['refresh'] < now
+
     def get_userinfo(self):
         """ Gets the userinfo from the OIDC Provider.
             This works in two steps:
@@ -325,36 +351,17 @@ class OidcHandler:
                 2. Otherwise, check the session management if the user is logged in
         """
         if 'authorization' in cherrypy.request.headers:
-            if cherrypy.request.headers['authorization'].lower().startswith(
-                    'bearer'):
-                access_token = cherrypy.request.headers['authorization'][len(
-                    'bearer '):]
-                LOGGING.debug(access_token)
-                access_token_obj = jwt.JWT()
-                access_token_obj.unpack(access_token)
-                LOGGING.debug(access_token_obj.payload())
-                issuer = access_token_obj.payload()['iss']
-                # check if issuer is in provider list
-                for key, obj in self.__oidc_provider.items():
-                    LOGGING.debug(obj)
-                    if obj.issuer == issuer:
-                        client = obj
-                # do userinfo with provided AT
-                userinfo = client.do_user_info_request(
-                    access_token=access_token)
-                LOGGING.debug(userinfo)
-                return userinfo
+            auth_header = cherrypy.request.headers['authorization'].lower()
+            if auth_header.startswith( 'bearer'):
+                    access_token = auth_header[len( 'bearer '):]
+                    return self.get_userinfo_access_token(access_token)
 
         # check if refresh is needed
-        if 'refresh' in cherrypy.session and cherrypy.session['refresh'] < int(
-                datetime.datetime.now().timestamp()):
-            LOGGING.debug("get userinfo, refresh necessary: %s, now: %s",
-                          cherrypy.session['refresh'],
-                          int(datetime.datetime.now().timestamp()))
+        if _check_session_refresh():
             LOGGING.debug("refreshing user information")
             # do a refresh
             client = cherrypy.session['client']
-            state = cherrypy.session['state']
+            state = cherrypy.session['state'] # TODO: shouldn't that be a new one?
             # is requesting a new access token automatically
             try:
                 cherrypy.session['userinfo'] = dict(
@@ -367,9 +374,8 @@ class OidcHandler:
 
             LOGGING.debug(at)
         else:
-            LOGGING.debug("using cached user information")
-
-        return cherrypy.session.get('userinfo', {})
+            LOGGING.debug("using cached user information") 
+            return cherrypy.session.get('userinfo', {})
 
     def redirect(self, **kwargs):
         LOGGING.debug(cherrypy.session)
