@@ -4,14 +4,12 @@ After importing this file you have access to
 the configuration with the `config.cfg` variable.
 """
 
-import yaml
-
 import os
-
-from dataclasses import dataclass, field, replace, asdict
+from dataclasses import dataclass, field, replace, asdict, InitVar
 from typing import List
-
 import logging
+
+import yaml
 LOGGING = logging.getLogger()
 
 
@@ -23,6 +21,34 @@ class ProviderConfig:
     configuration_token: str = ""
     registration_token: str = ""
     registration_url: str = ""
+    special_claim2scope: InitVar[dict] = None
+    claim2scope: dict = field(init=False)
+
+    def __post_init__(self, special_claim2scope):
+        self.claim2scope = {
+            "name": ['profile'],
+            "family_name": ['profile'],
+            "given_name": ['profile'],
+            "middle_name": ['profile'],
+            "nickname": ['profile'],
+            "preferred_username": ['profile'],
+            "profile": ['profile'],
+            "picture": ['profile'],
+            "website": ['profile'],
+            "gender": ['profile'],
+            "birthdate": ['profile'],
+            "zoneinfo": ['profile'],
+            "locale": ['profile'],
+            "updated_at": ['profile'],
+            "email": ["email"],
+            "email_verified": ["email"],
+            "address": ["address"],
+            "phone": ["phone"],
+            "phone_number_verified": ["phone"]
+        }
+        if special_claim2scope:
+            for key, val in special_claim2scope.items():
+                self.claim2scope[key] = val
 
     def __getitem__(self, key):
         return getattr(self, key)
@@ -121,9 +147,13 @@ class OIDCProxyConfig:
         service = ServiceConfig("", "", "", {}, {})
         ac = ACConfig()
 
+        # delete the default values of claim2scope
+        provider_dict = asdict(provider)
+        del provider_dict['claim2scope']
+
         cfg = {
             "openid_providers": {
-                "example": asdict(provider)
+                "example": provider_dict
             },
             "proxy": asdict(proxy),
             "services": {
@@ -135,16 +165,14 @@ class OIDCProxyConfig:
 
     def check_config_proxy_url(self):
         l = []
-        for key,service in self.__cfg['services'].items():
+        for key, service in self.__cfg['services'].items():
             if service.proxy_URL in l:
                 raise ConfigError()
-            l.append(service.proxy_URL) 
-
+            l.append(service.proxy_URL)
 
     def check_config(self):
         LOGGING.debug("checking config consistency")
         self.check_config_proxy_url()
-
 
     def merge_config(self, new_cfg):
         if 'services' in new_cfg:

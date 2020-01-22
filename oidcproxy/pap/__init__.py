@@ -1,4 +1,3 @@
-
 from jinja2 import Environment, FileSystemLoader
 
 from dataclasses import dataclass, field
@@ -10,6 +9,7 @@ import oidcproxy.ac as ac
 
 env = Environment(loader=FileSystemLoader(
     os.path.join(os.path.dirname(__file__), 'resources', 'templates')))
+
 
 @dataclass
 class PAPNode:
@@ -30,9 +30,7 @@ def create_PAPNode_Rule(rule: ac.Rule):
 
 
 def create_PAPNode_Policy(policy: ac.Policy):
-    rules = [
-        create_PAPNode_Rule(ac.container.rules[x]) for x in policy.rules
-    ]
+    rules = [create_PAPNode_Rule(ac.container.rules[x]) for x in policy.rules]
     return PAPNode(policy.entity_id, "policy", policy.conflict_resolution,
                    policy.target, "", "", None, None, rules)
 
@@ -59,7 +57,6 @@ class PolicyAdministrationPoint:
         tmpl = env.get_template('pap.html')
         s = []
         for ps in ac.container.policy_sets:
-            s.append(create_PAPNode_Policy_Set(
-                ac.container.policy_sets[ps]))
+            s.append(create_PAPNode_Policy_Set(ac.container.policy_sets[ps]))
 
         return tmpl.render(pap_nodes=s)

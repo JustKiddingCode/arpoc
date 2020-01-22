@@ -7,7 +7,7 @@ from . import _lib
 
 from queue import PriorityQueue
 
-import oidcproxy.config
+import oidcproxy.config as config
 
 __all__ = [
     import_module(f".{f.stem}", __package__)

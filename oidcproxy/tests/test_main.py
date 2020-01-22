@@ -6,8 +6,8 @@ oidc_handler = OidcHandler(cfg)
 serviceConfig = {
     "proxy": {
         "hostname": "PROXY/",
-        'keyfile' : "/dev/null",
-        'certfile': "/dev/null", 
+        'keyfile': "/dev/null",
+        'certfile': "/dev/null",
         'contacts': ["info@example.com"],
         'redirect_uris': ['/secure/redirect']
     },
@@ -15,7 +15,7 @@ serviceConfig = {
         "a": {
             "origin_URL": 'foo',
             "proxy_URL": "/bar",
-            "AC" : "policyset"
+            "AC": "policyset"
         }
     }
 }

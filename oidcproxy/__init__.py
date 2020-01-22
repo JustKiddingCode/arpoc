@@ -1,5 +1,6 @@
 """ Main module of the OIDC Proxy """
 
+# Python imports
 import logging
 import logging.config
 import atexit
@@ -15,11 +16,20 @@ import threading
 import time
 
 import importlib.resources
-import os, pwd, grp
+import os
+import pwd
+import grp
+
+import urllib.parse
 
 from http.client import HTTPConnection
 #HTTPConnection.debuglevel = 1
+from dataclasses import dataclass, field
+from typing import List
 
+# side packages
+
+##oic
 from oic.oic import Client
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.oic.message import RegistrationResponse, AuthorizationResponse
@@ -27,8 +37,6 @@ from oic import rndstr
 from oic.utils.http_util import Redirect
 
 import oic.exception
-
-import urllib.parse
 
 import yaml
 import requests
@@ -39,9 +47,6 @@ from cherrypy.process.plugins import DropPrivileges
 from jinja2 import Environment, FileSystemLoader
 
 from jwkest import jwt
-
-from dataclasses import dataclass, field
-from typing import List
 
 #### Own Imports
 
@@ -63,8 +68,6 @@ env = Environment(loader=FileSystemLoader(
     os.path.join(os.path.dirname(__file__), 'resources', 'templates')))
 
 
-
-
 class ServiceProxy:
     """ A class to perform the actual proxying """
 
@@ -76,7 +79,7 @@ class ServiceProxy:
         self._oidc_handler = oidc_handler
 
     def _proxy(self, url):
-        """ Actually perform the proxying. 
+        """ Actually perform the proxying.
 
             1. Setup request
                a) Copy request headers
@@ -101,7 +104,7 @@ class ServiceProxy:
 
         # Setup authentication (bearer/cert)
         cert = None
-        if 'Authentication' in self.cfg:
+        if self.cfg.authentication:
             # bearer?
             if self.cfg['Authentication']['type'] == "Bearer":
                 request_headers['Authorization'] = "Bearer {}".format(
@@ -187,25 +190,18 @@ class ServiceProxy:
         # We use own dictionaries for Object and Environment and override
         # the setter. We could do this here and ask for authentication, maybe
         # with an exception.
-        with warnings.catch_warnings(record=True) as w:
-            warnings.filterwarnings("ignore")
-            warnings.filterwarnings(
-                "always", category=ac.parser.SubjectAttributeMissingWarning)
-            if self.ac.evaluate_by_entity_id(self.cfg['AC'],
-                                             context) == ac.Effects.GRANT:
-                return self._proxy(proxy_url)
-            else:
-                if len(w) > 0:
-                    # At least one SubjectAttributeMissingWarning was issued
-                    # -> Are we logged in?
-                    # set url in session to current attribute
-                    if not userinfo:
-                        cherrypy.session["url"] = cherrypy.url()
-                        #                        cherrypy.session['url'] = self._build_proxy_url(
-                        #                            url, **kwargs)
-                        raise cherrypy.HTTPRedirect("/auth")
-                warn = "\n".join([str(warning.message) for warning in w])
-                return self._send_403(warn)
+        effect, missing = self.ac.evaluate_by_entity_id(
+            self.cfg['AC'], context)
+        if effect == ac.Effects.GRANT:
+            return self._proxy(proxy_url)
+        if len(missing) > 0:
+            # -> Are we logged in?
+            attr = set(missing)
+            self._oidc_handler.need_claims(attr)
+            warn = "Failed to get the claims even we requested the right scopes.<br>Missing claims are:<br>"
+            warn += "<br>".join(attr)
+            return self._send_403(warn)
+        return self._send_403("")
 
 
 class OidcHandler:
@@ -216,7 +212,7 @@ class OidcHandler:
         self.__secrets_file = None
 
     def register_first_time(self, name, provider):
-        """ Registers a client or reads the configuration from the registration endpoint 
+        """ Registers a client or reads the configuration from the registration endpoint
 
             If registration_url is present in the configuration file, then it will try
             to read the configuration using the registration_token.
@@ -262,13 +258,14 @@ class OidcHandler:
         self._secrets[name] = registration_response.to_dict()
 
     def retry_register_first_time(self, name, provider, scheduler, retries=5):
+        """ Retry register_first_time function every 30 seconds <retries> times. """
         try:
             self.register_first_time(name, provider)
         except (requests.exceptions.RequestException,
-                oic.exception.CommunicationError) as e:
+                oic.exception.CommunicationError) as excep:
             if retries > 0:
                 LOGGING.debug("While retrying another exception occured %s",
-                              type(e).__name__)
+                              type(excep).__name__)
                 LOGGING.debug("Connection to provider %s failed.",
                               provider['human_readable_name'])
                 LOGGING.debug("Delaying client registration for 30 seconds")
@@ -293,10 +290,10 @@ class OidcHandler:
         try:
             self.create_client_from_secrets(name, provider)
         except (requests.exceptions.RequestException,
-                oic.exception.CommunicationError) as e:
+                oic.exception.CommunicationError) as excep:
             if retries > 0:
                 LOGGING.debug("While retrying another exception occured %s",
-                              type(e).__name__)
+                              type(excep).__name__)
                 LOGGING.debug("Connection to provider %s failed.",
                               provider['human_readable_name'])
                 LOGGING.debug("Delaying client registration for 30 seconds")
@@ -308,41 +305,59 @@ class OidcHandler:
                     provider['human_readable_name'])
 
     def create_client_from_secrets(self, name, provider):
+        """ Try to create an openid connect client from the secrets that are
+            saved in the secrets file"""
         client_secrets = self._secrets[name]
         self.__oidc_provider[name] = Client(
             client_authn_method=CLIENT_AUTHN_METHOD)
-        provider_info = self.__oidc_provider[name].provider_config(
-            provider.configuration_url)
+        self.__oidc_provider[name].provider_config(provider.configuration_url)
         client_reg = RegistrationResponse(**client_secrets)
         self.__oidc_provider[name].store_registration_info(client_reg)
         self.__oidc_provider[name].redirect_uris = client_secrets[
             'redirect_uris']
 
-    def get_userinfo_access_token(self,at):
-       LOGGING.debug(at)
-       access_token_obj = jwt.JWT()
-       access_token_obj.unpack(at)
-       LOGGING.debug(access_token_obj.payload())
-       issuer = access_token_obj.payload()['iss']
-       # check if issuer is in provider list
-       client = None
-       for key, obj in self.__oidc_provider.items():
-           LOGGING.debug(obj)
-           if obj.issuer == issuer:
-               client = obj
-       if client:
-           # do userinfo with provided AT
-           userinfo = client.do_user_info_request(
-               access_token=access_token)
-           return userinfo
+    def get_userinfo_access_token(self, access_token):
+        """ Get the user info if the user supplied an access token"""
+        userinfo = {}
+        LOGGING.debug(access_token)
+        access_token_obj = jwt.JWT()
+        access_token_obj.unpack(access_token)
+        LOGGING.debug(access_token_obj.payload())
+        issuer = access_token_obj.payload()['iss']
+        # check if issuer is in provider list
+        client = None
+        for _, obj in self.__oidc_provider.items():
+            LOGGING.debug(obj)
+            if obj.issuer == issuer:
+                client = obj
+        if client:
+            # do userinfo with provided AT
+            userinfo = client.do_user_info_request(access_token=access_token)
+        return userinfo
 
     def _check_session_refresh(self):
+        """ checks if the session must be refreshed. If there is no session,
+            then False is returned"""
         if 'refresh' in cherrypy.session:
             now = int(datetime.datetime.now().timestamp())
             LOGGING.debug("refresh necessary: %s, now: %s",
-                          cherrypy.session['refresh'],
-                          now)
+                          cherrypy.session['refresh'], now)
             return cherrypy.session['refresh'] < now
+        return False
+
+    def need_claims(self, claims):
+        if 'provider' in cherrypy.session:
+            provider = cherrypy.session['provider']
+            scopes = set(["openid"])
+            for claim in claims:
+                LOGGING.debug("Need claim %s", claim)
+                scopes |= set(
+                    self.cfg.openid_providers[provider].claim2scope[claim])
+            LOGGING.debug("Need scopes %s", scopes)
+            self._auth(scopes)
+        else:
+            cherrypy.session["url"] = cherrypy.url()
+            raise cherrypy.HTTPRedirect("/auth")
 
     def get_userinfo(self):
         """ Gets the userinfo from the OIDC Provider.
@@ -352,47 +367,73 @@ class OidcHandler:
         """
         if 'authorization' in cherrypy.request.headers:
             auth_header = cherrypy.request.headers['authorization'].lower()
-            if auth_header.startswith( 'bearer'):
-                    access_token = auth_header[len( 'bearer '):]
-                    return self.get_userinfo_access_token(access_token)
+            if auth_header.startswith('bearer'):
+                access_token = auth_header[len('bearer '):]
+                return self.get_userinfo_access_token(access_token)
 
         # check if refresh is needed
-        if _check_session_refresh():
+        if self._check_session_refresh():
             LOGGING.debug("refreshing user information")
             # do a refresh
             client = cherrypy.session['client']
-            state = cherrypy.session['state'] # TODO: shouldn't that be a new one?
+            # TODO: shouldn't that be a new one?
+            state = cherrypy.session['state']
             # is requesting a new access token automatically
             try:
+                LOGGING.debug(client.grant)
                 cherrypy.session['userinfo'] = dict(
                     client.do_user_info_request(state=state))
-                at = client.get_token(state=state)
-                cherrypy.session['refresh'] = int(
-                    datetime.datetime.now().timestamp()) + at.expires_in
-            except TokenError:
-                raise cherrypy.HTTPRedirect("/auth")
+                access_token = client.get_token(state=state)
+                cherrypy.session['refresh'] = int(datetime.datetime.now(
+                ).timestamp()) + access_token.expires_in
+                return cherrypy.session['userinfo']
+            except Exception as e:
+                LOGGING.debug(e.__class__)
+                raise
 
-            LOGGING.debug(at)
+
+#                raise cherrypy.HTTPRedirect("/auth")
+
         else:
-            LOGGING.debug("using cached user information") 
+            LOGGING.debug("using cached user information")
             return cherrypy.session.get('userinfo', {})
 
     def redirect(self, **kwargs):
         LOGGING.debug(cherrypy.session)
+        LOGGING.debug('kwargs is %s' % kwargs)
+        if 'error' in kwargs:
+            tmpl = env.get_template('500.html')
+            return tmpl.render(info=kwargs)
         #        qry = {key: kwargs[key] for key in ['state', 'session_state', 'code']}
         qry = {key: kwargs[key] for key in ['state', 'code']}
-        LOGGING.debug('kwargs is %s' % kwargs)
         client = cherrypy.session['client']
         aresp = client.parse_response(AuthorizationResponse,
                                       info=qry,
                                       sformat="dict")
-        LOGGING.debug(dict(aresp))
+        LOGGING.debug("Authorization Response %s",
+                      dict(aresp))  # just code and state
         args = {"code": aresp["code"]}
         resp = client.do_access_token_request(
             state=aresp["state"],
             request_args=args,
             authn_method="client_secret_basic")
-        LOGGING.debug(resp)
+        LOGGING.debug("Access Token Request %s", resp)
+
+        # check for scopes:
+        requested_scopes = set(cherrypy.session["scopes"])
+        response_scopes = set(resp['scope'])
+        if not requested_scopes.issubset(response_scopes):
+            tmpl = env.get_template('500.html')
+            info = {
+                "error":
+                "The openid provider did not respond with the requested scopes",
+                "requested scopes": cherrypy.session["scopes"],
+                "scopes in answer": resp['scope']
+            }
+            return tmpl.render(info=info)
+        cherrypy.session["scopes"] = resp['scope']
+        cherrypy.session["state"] = aresp['state']
+
         # how long is the information valid?
         # oauth has the expires_in (but only RECOMMENDED)
         # oidc has exp and iat required.
@@ -410,31 +451,51 @@ class OidcHandler:
         if "url" in cherrypy.session:
             raise cherrypy.HTTPRedirect(cherrypy.session["url"])
 
-    def _auth(self):
+    def _auth(self, scopes=None):
+        if not scopes:
+            scopes = ["openid"]
+        if "scopes" in cherrypy.session:
+            # do we have already the requested scopes?
+            scopes_set = set(scopes)
+            scopes_set_session = set(cherrypy.session["scopes"])
+            if scopes_set.issubset(scopes_set_session):
+                return None
+
+        if "state" in cherrypy.session:
+            LOGGING.debug("state is already present")
         cherrypy.session["state"] = rndstr()
         cherrypy.session["nonce"] = rndstr()
-        LOGGING.debug(cherrypy.session['client'].redirect_uris)
+
+        cherrypy.session["scopes"] = list(scopes)
+        LOGGING.debug("Before redirect_uris %s",
+                      cherrypy.session['client'].redirect_uris)
         args = {
             "client_id": cherrypy.session['client'].client_id,
             "response_type": "code",
-            "scope": ["openid", "email", "profile"],
+            "scope": cherrypy.session["scopes"],
             "nonce": cherrypy.session["nonce"],
-            "redirect_uri": cherrypy.session['client'].redirect_uris,
+            "redirect_uri": cherrypy.session['client'].redirect_uris[0],
             "state": cherrypy.session['state']
         }
         auth_req = cherrypy.session['client'].construct_AuthorizationRequest(
             request_args=args)
         login_url = auth_req.request(
             cherrypy.session['client'].authorization_endpoint)
+        LOGGING.debug("After redirect_uris %s",
+                      cherrypy.session['client'].redirect_uris)
+
         raise cherrypy.HTTPRedirect(login_url)
 
     def auth(self, name='', **kwargs):
         # Do we have only one openid provider? -> use this
         if len(self.__oidc_provider) == 1:
+            cherrypy.session['provider'] = self.__oidc_provider.keys(
+            ).__iter__().__next__()
             cherrypy.session['client'] = copy.copy(
                 self.__oidc_provider.values().__iter__().__next__())
         else:
             if name and name in self.__oidc_provider:
+                cherrypy.session['provider'] = name
                 cherrypy.session['client'] = copy.copy(
                     self.__oidc_provider[name])
             else:
@@ -452,7 +513,7 @@ class OidcHandler:
     def userinfo(self, **kwargs):
         return cherrypy.session['userinfo']
 
-    def getRoutesDispatcher(self):
+    def get_routes_dispatcher(self):
         d = cherrypy.dispatch.RoutesDispatcher()
         # Connect the Proxied Services
         for name, service in self.cfg.services.items():
@@ -541,7 +602,7 @@ def run():
                                 (name, provider, scheduler))
         except KeyError:
             try:
-                response = app.register_first_time(name, provider)
+                app.register_first_time(name, provider)
             except (requests.exceptions.RequestException,
                     oic.exception.CommunicationError):
                 LOGGING.debug("Connection to provider %s failed.",
@@ -567,7 +628,7 @@ def run():
     app_conf = {
         '/': {
             'tools.sessions.on': True,
-            'request.dispatch': app.getRoutesDispatcher()
+            'request.dispatch': app.get_routes_dispatcher()
         }
     }
     DropPrivileges(cherrypy.engine, uid=uid, gid=gid).subscribe()

@@ -114,19 +114,25 @@ binary_operators = {
 }
 
 
-class AttributeMissingWarning(Warning):
+class OIDCProxyException(Exception):
     pass
 
 
-class SubjectAttributeMissingWarning(AttributeMissingWarning):
+class AttributeMissing(OIDCProxyException):
     pass
 
 
-class ObjectAttributeMissingWarning(AttributeMissingWarning):
+class SubjectAttributeMissing(AttributeMissing):
+    def __init__(self, message, attr):
+        super().__init__(self, message)
+        self.attr = attr
+
+
+class ObjectAttributeMissing(AttributeMissing):
     pass
 
 
-class EnvironmentAttributeMissingWarning(AttributeMissingWarning):
+class EnvironmentAttributeMissing(AttributeMissing):
     pass
 
 
@@ -147,23 +153,27 @@ class TransformAttr(Transformer):
     def subject_attr(self, args):
         attr = self.data["subject"].get(str(args[0]), None)
         if attr == None:
-            warnings.warn("No subject_attr %s" % str(args[0]),
-                          SubjectAttributeMissingWarning)
+            raise SubjectAttributeMissing("No subject_attr %s" % str(args[0]),
+                                          args[0])
         return attr
 
     def object_attr(self, args):
         attr = self.data["object"].get(str(args[0]), None)
         if attr == None:
-            warnings.warn("No object_attr %s" % str(args[0]),
-                          ObjectAttributeMissingWarning)
+            pass
+
+
+#            warnings.warn("No object_attr %s" % str(args[0]),
+#                          ObjectAttributeMissingWarning)
 
         return attr
 
     def environment_attr(self, args):
         attr = self.data["environment"].get(str(args[0]), None)
         if attr == None:
-            warnings.warn("No environment_attr %s" % str(args[0]),
-                          EnvironmentAttributeMissingWarning)
+            pass
+            #           warnings.warn("No environment_attr %s" % str(args[0]),
+            #              EnvironmentAttributeMissingWarning)
 
         return attr
 
@@ -171,34 +181,30 @@ class TransformAttr(Transformer):
         # either we have two children (one list, one literal) or one child (literal)
         if len(args) == 1:
             return [args[0]]
-        else:
-            return [args[0]] + args[1]
+        return [args[0]] + args[1]
 
     def lit(self, args):
         if isinstance(args[0], (list, )):
             return args[0]
         if args[0].type == "SINGLE_QUOTED_STRING":
             return str(args[0][1:-1])
-        elif args[0].type == "DOUBLE_QUOTED_STRING":
+        if args[0].type == "DOUBLE_QUOTED_STRING":
             return str(args[0][1:-1])
-        elif args[0].type == "BOOL":
+        if args[0].type == "BOOL":
             return args[0] == "True"
-        else:
-            return int(args[0])
+        return int(args[0])
 
 
 class EvalComplete(Transformer):
     def condition(self, args):
         if len(args) == 1:
             return args[0]
-        else:
-            return Tree("condition", args)
+        return Tree("condition", args)
 
     def target(self, args):
         if len(args) == 1:
             return args[0]
-        else:
-            return Tree("target", args)
+        return Tree("target", args)
 
 
 class EvalTree(Transformer):
@@ -211,8 +217,7 @@ class EvalTree(Transformer):
     def statement(self, args):
         if len(args) == 1:
             return args[0]
-        else:
-            return Tree("statement", args)
+        return Tree("statement", args)
 
     def comparison(self, args):
         # xor check for none attributes
@@ -226,10 +231,9 @@ class EvalTree(Transformer):
 
     def linked(self, args):
         if isinstance(args[0], bool) and isinstance(args[2], bool):
-            print("{} {} {}".format(args[0], args[1], args[2]))
+            LOGGER.debug("{} {} {}".format(args[0], args[1], args[2]))
             return eval("{} {} {}".format(args[0], args[1], args[2]))
-        else:
-            return Tree("linked", args)
+        return Tree("linked", args)
 
     def uop(self, args):
         return getattr(UOP, str(args[0]))
@@ -237,7 +241,7 @@ class EvalTree(Transformer):
     def single(self, args):
         if len(args) == 2:
             return args[0](args[1])
-        elif len(args) == 1:
+        if len(args) == 1:
             return args[0]
         assert False
         return None

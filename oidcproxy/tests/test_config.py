@@ -1,8 +1,6 @@
 import oidcproxy.config
 
-
 cfg = oidcproxy.config.OIDCProxyConfig(std_config=None)
-
 
 #def test_merge_config():
 #    new_cfg = {'services': {'bla': {}}, 'openid_providers': {}}
@@ -17,8 +15,8 @@ cfg = oidcproxy.config.OIDCProxyConfig(std_config=None)
 #            'redirect': '/secure/redirect_uris'
 #        },
 #        'services': {
-#            'bla': { 
-#             'origin_URL' : "https://example.com/", 
+#            'bla': {
+#             'origin_URL' : "https://example.com/",
 #             'proxy_URL' : "/bla",
 #             'AC' : "policyset"
 #                }

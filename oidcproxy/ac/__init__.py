@@ -10,10 +10,12 @@ from enum import Enum
 
 import logging
 
+import lark.exceptions
+
 from .conflict_resolution import *
-from .parser import check_condition, check_target
 
 import oidcproxy.ac.common
+import oidcproxy.ac.parser as parser
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -57,14 +59,16 @@ class Policy_Set(AC_Entity):
 
     def evaluate(self, context, evaluation_cache=None):
         """ Evaluate Policy Set"""
+        missing_attr = []
         evaluation_cache = evaluation_cache or dict()
         cr = cr_switcher.get(self.conflict_resolution, None)()
         if self._check_match(context):
             for policy_set_id in self.policy_sets:
                 if policy_set_id not in evaluation_cache:
                     LOGGER.debug("Considering policy set %s", policy_set_id)
-                    result = self.container.policy_sets.get(
+                    result, missing = self.container.policy_sets.get(
                         policy_set_id).evaluate(context, evaluation_cache)
+                    missing_attr += missing
                     evaluation_cache[policy_set_id] = result
                     cr.update(policy_set_id, result)
 
@@ -74,8 +78,9 @@ class Policy_Set(AC_Entity):
             for policy_id in self.policies:
                 if policy_id not in evaluation_cache:
                     LOGGER.debug("Considering policy %s", policy_id)
-                    result = self.container.policies.get(policy_id).evaluate(
-                        context, evaluation_cache)
+                    result, missing = self.container.policies.get(
+                        policy_id).evaluate(context, evaluation_cache)
+                    missing_attr += missing
                     evaluation_cache[policy_id] = result
                 cr.update(policy_id, evaluation_cache[policy_id])
 
@@ -83,10 +88,10 @@ class Policy_Set(AC_Entity):
                     break
             LOGGER.debug(evaluation_cache)
             LOGGER.debug(cr.get_effect())
-        return cr.get_effect()
+        return cr.get_effect(), missing_attr
 
     def _check_match(self, context):
-        return check_target(self.target, context)
+        return parser.check_target(self.target, context)
 
 
 class Policy(AC_Entity):
@@ -107,13 +112,18 @@ class Policy(AC_Entity):
         cr = cr_switcher.get(self.conflict_resolution, None)()
         LOGGER.debug("policy %s before evaluation: %s", self.entity_id,
                      cr.get_effect())
+
+        missing_attr = []
+
         if self._check_match(context):
             for rules_id in self.rules:
                 if rules_id not in evaluation_cache:
                     LOGGER.debug("Considering rule %s", rules_id)
-                    result = self.container.rules.get(rules_id).evaluate(
-                        context, evaluation_cache)
-                    evaluation_cache[rules_id] = result
+                    effect, missing = self.container.rules.get(
+                        rules_id).evaluate(context, evaluation_cache)
+                    missing_attr += missing
+                    evaluation_cache[rules_id] = effect
+                    LOGGER.debug(evaluation_cache[rules_id])
                 cr.update(rules_id, evaluation_cache[rules_id])
 
                 if cr.check_break():
@@ -122,10 +132,10 @@ class Policy(AC_Entity):
                      evaluation_cache)
         LOGGER.debug("policy %s evaluated to %s", self.entity_id,
                      cr.get_effect())
-        return cr.get_effect()
+        return (cr.get_effect(), missing_attr)
 
     def _check_match(self, context):
-        return check_target(self.target, context)
+        return parser.check_target(self.target, context)
 
 
 class Rule(AC_Entity):
@@ -141,17 +151,25 @@ class Rule(AC_Entity):
 
     def evaluate(self, context, evaluation_cache=None):
         evaluation_cache = evaluation_cache or dict()
-        if self._check_match(context):
-            if self._check_condition(context):
-                return self.effect
-            else:
+        try:
+            if self._check_match(context):
+                if self._check_condition(context):
+                    return self.effect
                 return oidcproxy.ac.common.Effects(not self.effect)
+        except lark.exceptions.VisitError as e:
+            if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
+                print(e.orig_exc.attr)
+                print(e.__class__)
+                print(e.__traceback__)
+                return (None, [e.orig_exc.attr])
+            raise
+        return None, []
 
     def _check_condition(self, context):
-        return check_condition(self.condition, context)
+        return parser.check_condition(self.condition, context)
 
     def _check_match(self, context):
-        return check_target(self.target, context)
+        return parser.check_target(self.target, context)
 
 
 class AC_Container:
@@ -185,7 +203,14 @@ class AC_Container:
 
     def evaluate_by_entity_id(self, entity_id, context):
         LOGGER.debug(context)
-        return self.policy_sets.get(entity_id, None).evaluate(context)
+        # Effect, Missing
+        effect, missing = self.policy_sets.get(entity_id,
+                                               None).evaluate(context)
+        assert isinstance(
+            effect, oidcproxy.ac.common.Effects
+        ) or effect == None, "effect is %s" % effect.__class__
+        assert isinstance(missing, list)
+        return (effect, missing)
 
     def add_entity(self, entity_id, definition):
         if AC_Entity.container == None:
@@ -218,5 +243,6 @@ class AC_Container:
                      str(kwargs))
         obj = switcher.get(definition['Type'], None)(entity_id, **kwargs)
         switcher_dict.get(definition['Type'], None)[entity_id] = obj
+
 
 container = AC_Container()

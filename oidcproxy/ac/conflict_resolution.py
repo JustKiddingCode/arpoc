@@ -26,6 +26,10 @@ class ConflictResolution:
             self._results, self._break, self._effect)
 
     def update(self, entity_id, result):
+        assert isinstance(
+            result, Effects
+        ) or result == None, "type was: %s, expected: None, Effects" % type(
+            result)
         self._results[entity_id] = result
 
     def check_break(self):
