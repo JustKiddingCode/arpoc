@@ -13,8 +13,7 @@ def test_plain():
 def test_object_attr():
     context = {"subject": {}, "object": {'test': True}, "environment": {}}
     assert check_condition('object.test == True', context)
-    with pytest.warns(ObjectAttributeMissingWarning):
-        assert not check_condition('exists object.NotExisting', context)
+    assert not check_condition('exists object.NotExisting', context)
 
 
 def test_time_comp():
@@ -34,15 +33,15 @@ def test_subject_attr():
         }
     }
     assert check_condition('exists subject.email', context)
-    with pytest.warns(SubjectAttributeMissingWarning):
+    with pytest.raises(VisitError) as e:
         assert not check_condition('exists subject.NotExisting', context)
+        assert isinstance(e.orig_exec, SubjectAttributeMissing)
 
 
 def test_environment_attr():
     context = {"subject": {}, "object": {}, "environment": {'time': 123}}
     assert check_condition('environment.time < 1000', context)
-    with pytest.warns(EnvironmentAttributeMissingWarning):
-        assert not check_condition('exists environment.NotExisting', context)
+    assert not check_condition('exists environment.NotExisting', context)
 
 
 def test_regex():
@@ -83,10 +82,11 @@ def test_in_list():
     assert check_condition('"admin" in subject.groups', context)
     assert not check_condition('"root" in subject.groups', context)
     context = {"subject": {}, "object": {}, "environment": {}}
-    with pytest.warns(SubjectAttributeMissingWarning):
+    with pytest.raises(VisitError) as e:
         assert not check_condition("'root' in subject.groups", context)
-        assert isinstance(check_condition("'root' in subject.groups", context),
-                          bool)
+        assert isinstance(e.orig_exec, SubjectAttributeMissing)
+    #assert isinstance(check_condition("'root' in subject.groups", context),
+    #                      bool)
 
 
 def test_combination():
@@ -145,8 +145,7 @@ def test_None_mixed():
         "object": {},
         "environment": {}
     }
-    with pytest.warns(ObjectAttributeMissingWarning):
-        assert not check_condition("subject.email == object.email", context)
+    assert not check_condition("subject.email == object.email", context)
 
 
 def test_lists():

@@ -22,8 +22,8 @@ with importlib.resources.path(
 
 def test_alwaysGrant():
     context = {"subject": {}, "object": {}, "environment": {}}
-    assert Container.evaluate_by_entity_id(
-        "com.example.policysets.alwaysGrant", context) == Effects.GRANT
+    effect, _ = Container.evaluate_by_entity_id("com.example.policysets.alwaysGrant", context) 
+    assert effect == Effects.GRANT
 
 
 def test_loggedIn():
@@ -36,8 +36,8 @@ def test_loggedIn():
         },
         "environment": {}
     }
-    assert Container.evaluate_by_entity_id("com.example.policysets.loggedIn",
-                                           context) == Effects.GRANT
+    effect, _ =  Container.evaluate_by_entity_id("com.example.policysets.loggedIn", context) 
+    assert effect == Effects.GRANT
     context = {
         "subject": {
             'email': 'admin@example.com'
@@ -47,8 +47,8 @@ def test_loggedIn():
         },
         "environment": {}
     }
-    assert Container.evaluate_by_entity_id("com.example.policysets.loggedIn",
-                                           context) == Effects.GRANT
+    effect, _ = Container.evaluate_by_entity_id("com.example.policysets.loggedIn", context)
+    assert effect == Effects.GRANT
 
 
 def test_normalUser_wants_admin():
@@ -61,5 +61,5 @@ def test_normalUser_wants_admin():
         },
         "environment": {}
     }
-    assert Container.evaluate_by_entity_id("com.example.policysets.loggedIn",
-                                           context) == Effects.DENY
+    effect, _ = Container.evaluate_by_entity_id("com.example.policysets.loggedIn", context)
+    assert effect == Effects.DENY

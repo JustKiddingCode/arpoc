@@ -154,8 +154,8 @@ class Rule(AC_Entity):
         try:
             if self._check_match(context):
                 if self._check_condition(context):
-                    return self.effect
-                return oidcproxy.ac.common.Effects(not self.effect)
+                    return self.effect, []
+                return oidcproxy.ac.common.Effects(not self.effect), []
         except lark.exceptions.VisitError as e:
             if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
                 print(e.orig_exc.attr)
