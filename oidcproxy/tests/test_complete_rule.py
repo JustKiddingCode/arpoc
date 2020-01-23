@@ -1,11 +1,15 @@
 import pytest
-import oidcproxy.ac
 
-from oidcproxy.ac.common import Effects
 
 import importlib.resources
 
 import os
+
+
+import lark
+
+import oidcproxy.ac
+from oidcproxy.ac.common import Effects
 
 Container = oidcproxy.ac.AC_Container()
 with importlib.resources.path(
@@ -20,13 +24,17 @@ with importlib.resources.path(
     Container.load_file(path_ps)
 
 
-def test_alwaysGrant():
+def test_only_init_lark(benchmark):
+    benchmark(lark.Lark,oidcproxy.ac.parser.grammar,start="condition")
+
+def test_alwaysGrant(benchmark):
     context = {"subject": {}, "object": {}, "environment": {}}
-    effect, _ = Container.evaluate_by_entity_id("com.example.policysets.alwaysGrant", context) 
+    effect, _ = benchmark(Container.evaluate_by_entity_id,
+        "com.example.policysets.alwaysGrant", context)
     assert effect == Effects.GRANT
 
 
-def test_loggedIn():
+def test_loggedIn(benchmark):
     context = {
         "subject": {
             'email': 'admin@example.com'
@@ -36,8 +44,11 @@ def test_loggedIn():
         },
         "environment": {}
     }
-    effect, _ =  Container.evaluate_by_entity_id("com.example.policysets.loggedIn", context) 
+    effect, _ = benchmark(Container.evaluate_by_entity_id,
+        "com.example.policysets.loggedIn", context)
     assert effect == Effects.GRANT
+
+def test_loggedInAdmin(benchmark):
     context = {
         "subject": {
             'email': 'admin@example.com'
@@ -47,11 +58,12 @@ def test_loggedIn():
         },
         "environment": {}
     }
-    effect, _ = Container.evaluate_by_entity_id("com.example.policysets.loggedIn", context)
+    effect, _ = benchmark(Container.evaluate_by_entity_id,
+        "com.example.policysets.loggedIn", context)
     assert effect == Effects.GRANT
 
 
-def test_normalUser_wants_admin():
+def test_normalUser_wants_admin(benchmark):
     context = {
         "subject": {
             'email': 'normaluser@example.com'
@@ -61,5 +73,5 @@ def test_normalUser_wants_admin():
         },
         "environment": {}
     }
-    effect, _ = Container.evaluate_by_entity_id("com.example.policysets.loggedIn", context)
+    effect, _ = benchmark(Container.evaluate_by_entity_id,"com.example.policysets.loggedIn", context)
     assert effect == Effects.DENY

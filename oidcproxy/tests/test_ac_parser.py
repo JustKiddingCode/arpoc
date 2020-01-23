@@ -16,6 +16,30 @@ def test_object_attr():
     assert not check_condition('exists object.NotExisting', context)
 
 
+def test_access_attr():
+    context = {
+        "subject": {},
+        "object": {},
+        "environment": {},
+        "access": {
+            'method': 'GET',
+            'headers': {
+                'Authorization': 'bla'
+            },
+            'n1' : {
+                'n2' : {
+                    'n3' : {
+                        'n4' : "bla"
+                    }
+                }
+            }
+        }
+    }
+    assert check_condition('access.method == "GET"', context)
+    assert check_condition('access.headers.Authorization == "bla"', context)
+    assert check_condition('access.n1.n2.n3.n4 == "bla"', context)
+
+
 def test_time_comp():
     context = {"subject": {}, "object": {}, "environment": {"time": "10:28"}}
     assert check_condition(
@@ -35,7 +59,7 @@ def test_subject_attr():
     assert check_condition('exists subject.email', context)
     with pytest.raises(VisitError) as e:
         assert not check_condition('exists subject.NotExisting', context)
-        assert isinstance(e.orig_exec, SubjectAttributeMissing)
+    assert isinstance(e.value.orig_exc, SubjectAttributeMissing)
 
 
 def test_environment_attr():
@@ -84,7 +108,7 @@ def test_in_list():
     context = {"subject": {}, "object": {}, "environment": {}}
     with pytest.raises(VisitError) as e:
         assert not check_condition("'root' in subject.groups", context)
-        assert isinstance(e.orig_exec, SubjectAttributeMissing)
+    assert isinstance(e.value.orig_exc, SubjectAttributeMissing)
     #assert isinstance(check_condition("'root' in subject.groups", context),
     #                      bool)
 

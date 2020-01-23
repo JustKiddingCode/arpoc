@@ -138,6 +138,11 @@ Booleans are either "True" or "False" including the quotation marks.
 List statements are supported like in Python, but limited to only flat
 lists. So '["elem1", "elem2", "elem3"]' is supported, '["elem1,["elem2","elem3"]]'
 not.
+Dictionaries are supported, but keys are limited to word characters (a-z, A-Z, 0-9,_).
+Access to dictionaries looks like this: `access.headers.authorization`.
+Here the first dot is the usual attribute getter (access, subject, object, environment),
+the second goes one level deeper in the dictionary. The statement gets translated
+into `access['headers']['authorization']`.
 
 
 Comparison Operators

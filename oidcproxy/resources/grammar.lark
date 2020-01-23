@@ -6,12 +6,13 @@ linked: statement lbop statement
 comparison: attr cbop attr
 single: uop attr | attr
 
-?attr : subject_attr | object_attr | environment_attr | lit
+?attr : subject_attr | object_attr | environment_attr | access_attr | lit
 subject_attr : "subject." word
 object_attr : "object." word
 environment_attr : "environment." word
+access_attr: "access." word
 ?word : LETTER
-LETTER : /\w+/
+LETTER : /[\w\.]+/
 
 bop : cbop
 

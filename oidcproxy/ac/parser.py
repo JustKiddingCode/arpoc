@@ -4,6 +4,8 @@ import os
 import logging
 import warnings
 
+from functools import reduce
+
 import re
 
 from lark import Lark, tree, Transformer, Tree
@@ -13,6 +15,8 @@ with importlib.resources.path(
         'oidcproxy.resources',
         'grammar.lark') as grammar_path, open(grammar_path) as fp:
     grammar = fp.read()
+lark_condition = Lark(grammar, start="condition")
+lark_target = Lark(grammar, start="target")
 
 LOGGER = logging.getLogger(__name__)
 
@@ -59,7 +63,9 @@ class BinaryOperatorIn(BinaryOperator):
     @classmethod
     def eval(cls, op1, op2):
         if not isinstance(op2, list):
-            raise BadSemantics("op1 '{}' is not a string".format(op2))
+            if isinstance(op2, dict):
+                return op1 in op2.keys()
+            raise BadSemantics("op2 '{}' is not a list".format(op2))
         return op1 in op2
 
 
@@ -151,14 +157,26 @@ class TransformAttr(Transformer):
         self.data = data
 
     def subject_attr(self, args):
-        attr = self.data["subject"].get(str(args[0]), None)
+        attr =  reduce(
+            lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
+            args[0].split("."), self.data["subject"])
         if attr == None:
             raise SubjectAttributeMissing("No subject_attr %s" % str(args[0]),
                                           args[0])
         return attr
 
+    def access_attr(self, args):
+        attr =  reduce(
+            lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
+            args[0].split("."), self.data["access"])
+
+#        attr = self.data["access"].get(str(args[0]), None)
+        return attr
+
     def object_attr(self, args):
-        attr = self.data["object"].get(str(args[0]), None)
+        attr =  reduce(
+            lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
+            args[0].split("."), self.data["object"])
         if attr == None:
             pass
 
@@ -169,7 +187,9 @@ class TransformAttr(Transformer):
         return attr
 
     def environment_attr(self, args):
-        attr = self.data["environment"].get(str(args[0]), None)
+        attr =  reduce(
+            lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
+            args[0].split("."), self.data["environment"])
         if attr == None:
             pass
             #           warnings.warn("No environment_attr %s" % str(args[0]),
@@ -248,10 +268,11 @@ class EvalTree(Transformer):
 
 
 def check_condition(condition, data):
+    global lark_condition
     LOGGER.debug("Check condition %s with data %s", condition, data)
     l = Lark(grammar, start="condition")
     try:
-        ast = l.parse(condition)
+        ast = lark_condition.parse(condition)
     except (lark.exceptions.UnexpectedCharacters,
             lark.exceptions.UnexpectedEOF):
         raise BadRuleSyntax('Rule has a bad syntax %s' % condition)
@@ -263,10 +284,10 @@ def check_condition(condition, data):
 
 
 def check_target(rule, data):
+    global lark_target
     LOGGER.debug("Check target rule %s with data %s", rule, data)
-    l = Lark(grammar, start="target")
     try:
-        ast = l.parse(rule)
+        ast = lark_target.parse(rule)
     except (lark.exceptions.UnexpectedCharacters,
             lark.exceptions.UnexpectedEOF):
         raise BadRuleSyntax('Rule has a bad syntax %s' % target)

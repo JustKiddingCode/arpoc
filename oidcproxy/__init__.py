@@ -78,61 +78,45 @@ class ServiceProxy:
         self.cfg = oidc_handler.cfg.services[self.service_name]
         self._oidc_handler = oidc_handler
 
-    def _proxy(self, url):
+    def _proxy(self, url, access):
         """ Actually perform the proxying.
 
             1. Setup request
-               a) Copy request headers
-               b) Copy request body
             2. Setup authentication
             3. Get library method to use
             4. Perform outgoing request
             5. Answer the request
         """
         # Copy request headers
-        request_headers = copy.copy(cherrypy.request.headers)
-        request_headers.pop('host', None)
-        request_headers.pop('Authorization', None)
-        request_headers.pop('Content-Length', None)
-        request_headers['connection'] = "close"
-        LOGGING.debug(request_headers)
-
-        # Read request body
-        request_body = ""
-        if cherrypy.request.method in cherrypy.request.methods_with_bodies:
-            request_body = cherrypy.request.body.read()
+        access['headers'].pop('Authorization', None)
 
         # Setup authentication (bearer/cert)
         cert = None
         if self.cfg.authentication:
             # bearer?
-            if self.cfg['Authentication']['type'] == "Bearer":
-                request_headers['Authorization'] = "Bearer {}".format(
-                    self.cfg['Authentication']['token'])
-            if self.cfg['Authentication']['type'] == "Certificate":
-                cert = (self.cfg['Authentication']['certfile'],
-                        self.cfg['Authentication']['keyfile'])
+            if self.cfg['authentication']['type'] == "Bearer":
+                access['headers']['Authorization'] = "Bearer {}".format(
+                    self.cfg['authentication']['token'])
+            if self.cfg['authentication']['type'] == "Certificate":
+                cert = (self.cfg['authentication']['certfile'],
+                        self.cfg['authentication']['keyfile'])
 
         # Get requests method
-        LOGGING.debug(cherrypy.request.method)
         method_switcher = {
             "GET": requests.get,
             "PUT": requests.put,
             "POST": requests.post,
             "DELETE": requests.delete
         }
-        method = method_switcher.get(cherrypy.request.method, None)
+        method = method_switcher.get(access['method'], None)
         if not method:
             raise NotImplementedError
 
         # Outgoing request
+        kwargs = {"headers": access['headers'], "data": access['body']}
         if cert:
-            resp = method(url,
-                          headers=request_headers,
-                          data=request_body,
-                          cert=cert)
-        else:
-            resp = method(url, headers=request_headers, data=request_body)
+            kwargs['cert'] = cert
+        resp = method(url, **kwargs)
 
         # Answer the request
         for header in resp.headers.items():
@@ -160,6 +144,20 @@ class ServiceProxy:
         cherrypy.response.status = 403
         return "<h1>Forbidden</h1><br>%s" % message
 
+    def build_access_dict(self):
+        method = cherrypy.request.method
+        headers = copy.copy(cherrypy.request.headers)
+        headers.pop('host', None)
+        headers.pop('Content-Length', None)
+        headers['connection'] = "close"
+
+        # Read request body
+        body = ""
+        if cherrypy.request.method in cherrypy.request.methods_with_bodies:
+            request_body = cherrypy.request.body.read()
+
+        return {"method": method, "body": body, "headers": headers}
+
     @cherrypy.expose
     def index(self, *args, url='', **kwargs):
         """
@@ -172,28 +170,24 @@ class ServiceProxy:
         LOGGING.debug(url)
         LOGGING.debug(kwargs)
         userinfo = self._oidc_handler.get_userinfo()
+        object_dict = ObjectDict(service_name=self.service_name,
+                                 initialdata={
+                                     "url": url,
+                                     **kwargs
+                                 })
+        access = self.build_access_dict()
         context = {
-            "subject":
-            userinfo,
-            "object":
-            ObjectDict(service_name=self.service_name,
-                       initialdata={
-                           "url": url,
-                           **kwargs
-                       }),
-            "environment":
-            EnvironmentDict()
+            "subject": userinfo,
+            "object": object_dict,
+            "environment": EnvironmentDict(),
+            "access": access
         }
 
         proxy_url = self._build_url(url, **kwargs)
-        # TODO: Rewrite this?
-        # We use own dictionaries for Object and Environment and override
-        # the setter. We could do this here and ask for authentication, maybe
-        # with an exception.
         effect, missing = self.ac.evaluate_by_entity_id(
             self.cfg['AC'], context)
         if effect == ac.Effects.GRANT:
-            return self._proxy(proxy_url)
+            return self._proxy(proxy_url, access)
         if len(missing) > 0:
             # -> Are we logged in?
             attr = set(missing)
@@ -443,9 +437,12 @@ class OidcHandler:
         if "expires_in" in resp and resp["expires_in"]:
             at_exp = resp["expires_in"] + iat
         cherrypy.session['refresh'] = min(at_exp, exp)
+        try:
+            userinfo = client.do_user_info_request(state=aresp["state"])
+        except oic.exception.RequestError as excep:
+            LOGGING.debug(excep.args)
+            raise
 
-        userinfo = client.do_user_info_request(state=aresp["state"],
-                                               method="GET")
         cherrypy.session["userinfo"] = dict(userinfo)
 
         if "url" in cherrypy.session:
