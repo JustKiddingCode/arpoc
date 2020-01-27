@@ -13,28 +13,34 @@ import pytest
 @pytest.fixture
 def setup_proxy():
     cfg = oidcproxy.config.OIDCProxyConfig(None, None)
-    service_cfg = oidcproxy.config.ServiceConfig("", "", "")
-    cfg.services = {"test": service_cfg}
+    cfg.proxy = oidcproxy.config.ProxyConfig("", "", "testhost.example.com",
+                                             ["test@example.com"],
+                                             ["testhost.example.com/redirect"])
+    cfg.services['default'] = oidcproxy.config.ServiceConfig(
+        "url_orig", "pathproxied", "policyset")
     oidc_handler = oidcproxy.OidcHandler(cfg)
-    proxy = oidcproxy.ServiceProxy("test", oidc_handler)
-    return proxy
+    service_a = oidcproxy.ServiceProxy("default", oidc_handler)
+    return (oidc_handler, service_a)
 
 
 @pytest.fixture
 def setup_proxy_bearer():
     cfg = oidcproxy.config.OIDCProxyConfig(None, None)
-    service_cfg = oidcproxy.config.ServiceConfig("", "", "", {}, {
-        "type": "Bearer",
-        "token": 1234
-    })
-    cfg.services = {"test": service_cfg}
+    cfg.proxy = oidcproxy.config.ProxyConfig("", "", "testhost.example.com",
+                                             ["test@example.com"],
+                                             ["testhost.example.com/redirect"])
+    cfg.services['default'] = oidcproxy.config.ServiceConfig(
+        "url_orig", "pathproxied", "policyset", {}, {
+            "type": "Bearer",
+            "token": 1234
+        })
     oidc_handler = oidcproxy.OidcHandler(cfg)
-    proxy = oidcproxy.ServiceProxy("test", oidc_handler)
-    return proxy
+    service_a = oidcproxy.ServiceProxy("default", oidc_handler)
+    return service_a
 
 
 def test_proxy_get(setup_proxy):
-    proxy = setup_proxy
+    _, proxy = setup_proxy
     oidcproxy.cherrypy.request.method = "GET"
     with requests_mock.mock() as m:
         m.get("http://proxyme.example.com", text='get')
@@ -45,7 +51,7 @@ def test_proxy_get(setup_proxy):
 
 
 def test_proxy_post(setup_proxy):
-    proxy = setup_proxy
+    _, proxy = setup_proxy
     oidcproxy.cherrypy.request.method = "POST"
     with requests_mock.mock() as m:
         m.post("http://proxyme.example.com", text='post')
@@ -70,5 +76,6 @@ def test_bearer(setup_proxy_bearer):
 
 
 def test_send_403(setup_proxy):
-    mock = setup_proxy._send_403("test")
+    _, proxy = setup_proxy
+    mock = proxy._send_403("test")
     assert "test" in mock

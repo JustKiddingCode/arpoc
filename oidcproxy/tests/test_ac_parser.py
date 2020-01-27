@@ -26,10 +26,10 @@ def test_access_attr():
             'headers': {
                 'Authorization': 'bla'
             },
-            'n1' : {
-                'n2' : {
-                    'n3' : {
-                        'n4' : "bla"
+            'n1': {
+                'n2': {
+                    'n3': {
+                        'n4': "bla"
                     }
                 }
             }

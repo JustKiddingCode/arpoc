@@ -157,7 +157,7 @@ class TransformAttr(Transformer):
         self.data = data
 
     def subject_attr(self, args):
-        attr =  reduce(
+        attr = reduce(
             lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
             args[0].split("."), self.data["subject"])
         if attr == None:
@@ -166,15 +166,15 @@ class TransformAttr(Transformer):
         return attr
 
     def access_attr(self, args):
-        attr =  reduce(
+        attr = reduce(
             lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
             args[0].split("."), self.data["access"])
 
-#        attr = self.data["access"].get(str(args[0]), None)
+        #        attr = self.data["access"].get(str(args[0]), None)
         return attr
 
     def object_attr(self, args):
-        attr =  reduce(
+        attr = reduce(
             lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
             args[0].split("."), self.data["object"])
         if attr == None:
@@ -187,7 +187,7 @@ class TransformAttr(Transformer):
         return attr
 
     def environment_attr(self, args):
-        attr =  reduce(
+        attr = reduce(
             lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
             args[0].split("."), self.data["environment"])
         if attr == None:

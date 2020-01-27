@@ -20,6 +20,8 @@ import os
 import pwd
 import grp
 
+import hashlib
+
 import urllib.parse
 
 from http.client import HTTPConnection
@@ -35,6 +37,7 @@ from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.oic.message import RegistrationResponse, AuthorizationResponse
 from oic import rndstr
 from oic.utils.http_util import Redirect
+import oic.extension.client
 
 import oic.exception
 
@@ -53,6 +56,7 @@ from jwkest import jwt
 import oidcproxy.ac as ac
 import oidcproxy.config as config
 import oidcproxy.pap
+import oidcproxy.cache
 from oidcproxy.plugins import EnvironmentDict, ObjectDict
 
 logging.basicConfig(level=logging.DEBUG)
@@ -122,7 +126,7 @@ class ServiceProxy:
         for header in resp.headers.items():
             if header[0].lower() == 'transfer-encoding':
                 continue
-            logging.debug(header)
+            logging.debug("Proxy Request Header: %s", header)
             cherrypy.response.headers[header[0]] = header[1]
         cherrypy.response.status = resp.status_code
         return resp
@@ -167,9 +171,12 @@ class ServiceProxy:
             /serviceA/urlinformation?url=test will translate to:
             <ServiceA>/test
         """
-        LOGGING.debug(url)
-        LOGGING.debug(kwargs)
-        userinfo = self._oidc_handler.get_userinfo()
+        LOGGING.debug("Incoming Request %s", url)
+        LOGGING.debug("Kwargs are %s", kwargs)
+        hash_access_token, userinfo = self._oidc_handler.get_userinfo()
+        evaluation_cache = self._oidc_handler.get_evaluation_cache(
+            hash_access_token)
+
         object_dict = ObjectDict(service_name=self.service_name,
                                  initialdata={
                                      "url": url,
@@ -185,7 +192,7 @@ class ServiceProxy:
 
         proxy_url = self._build_url(url, **kwargs)
         effect, missing = self.ac.evaluate_by_entity_id(
-            self.cfg['AC'], context)
+            self.cfg['AC'], context, evaluation_cache)
         if effect == ac.Effects.GRANT:
             return self._proxy(proxy_url, access)
         if len(missing) > 0:
@@ -203,7 +210,18 @@ class OidcHandler:
     def __init__(self, cfg):
         self.__oidc_provider = dict()
         self.cfg = cfg
-        self.__secrets_file = None
+        self.secrets_file = cfg.proxy['secrets']
+        self.read_secrets()
+        self._cache = oidcproxy.cache.Cache()
+
+    def get_evaluation_cache(self, hash_access_token):
+        if not hash_access_token:
+            return None
+        try:
+            cache_entry = self._cache[hash_access_token]
+            return cache_entry['evaluation_cache']
+        except KeyError:
+            return None
 
     def register_first_time(self, name, provider):
         """ Registers a client or reads the configuration from the registration endpoint
@@ -324,10 +342,36 @@ class OidcHandler:
             LOGGING.debug(obj)
             if obj.issuer == issuer:
                 client = obj
+
+        valid_until = 0
         if client:
             # do userinfo with provided AT
+            # we need here the oauth extension client
+            args = ["client_id", "client_authn_method", "keyjar", "config"]
+            kwargs = {x: client.__getattribute__(x) for x in args}
+            oauth_client = oic.extension.client.Client(**kwargs)
+            for key, val in client.__dict__.items():
+                if key.endswith("_endpoint"):
+                    oauth_client.__setattr__(key, client.__getattribute__(key))
+            oauth_client.client_secret = client.client_secret
+            introspection_res = oauth_client.do_token_introspection(
+                request_args={
+                    'token': access_token,
+                    'state': rndstr()
+                },
+                authn_method='client_secret_basic')
+            if introspection_res['active']:
+                if 'exp' in introspection_res:
+                    valid_until = introspection_res['exp']
+                else:
+                    valid_until = datetime.datetime.now().timestamp() + 30
             userinfo = client.do_user_info_request(access_token=access_token)
-        return userinfo
+        else:
+            LOGGING.info(
+                "Access token received, but no suitable provider in configuration"
+            )
+            LOGGING.info("Access token issuer %s", issuer)
+        return valid_until, dict(userinfo)
 
     def _check_session_refresh(self):
         """ checks if the session must be refreshed. If there is no session,
@@ -353,44 +397,110 @@ class OidcHandler:
             cherrypy.session["url"] = cherrypy.url()
             raise cherrypy.HTTPRedirect("/auth")
 
+    def get_access_token_from_headers(self):
+        if 'authorization' in cherrypy.request.headers:
+            auth_header = cherrypy.request.headers['authorization']
+            len_bearer = len("bearer")
+            if len(auth_header) > len_bearer:
+                auth_header_start = auth_header[0:len_bearer]
+
+                if auth_header_start.lower() == 'bearer':
+                    access_token = auth_header[len_bearer + 1:]
+                    return access_token
+
+        return None
+
     def get_userinfo(self):
         """ Gets the userinfo from the OIDC Provider.
             This works in two steps:
                 1. Check if the user supplied an Access Token
                 2. Otherwise, check the session management if the user is logged in
         """
-        if 'authorization' in cherrypy.request.headers:
-            auth_header = cherrypy.request.headers['authorization'].lower()
-            if auth_header.startswith('bearer'):
-                access_token = auth_header[len('bearer '):]
-                return self.get_userinfo_access_token(access_token)
+        access_token_header = self.get_access_token_from_headers()
+        if access_token_header:
+            hash_access_token = hashlib.sha256(
+                access_token_header.encode()).hexdigest()
+            try:
+                return hash_access_token, self._cache[hash_access_token][
+                    'userinfo']
+            except KeyError:
+                pass
+            # how long is the token valid?
+
+            valid_until, userinfo = self.get_userinfo_access_token(
+                access_token_header)
+
+            self._cache.put(hash_access_token, {
+                "userinfo": userinfo,
+                "evaluation_cache": {}
+            }, valid_until)
+
+            return hash_access_token, userinfo
 
         # check if refresh is needed
-        if self._check_session_refresh():
+        if 'hash_at' in cherrypy.session:
+            hash_access_token = cherrypy.session['hash_at']
+            now = datetime.datetime.now().timestamp()
+            # is the access token still valid?
+            try:
+                cache_entry = self._cache[hash_access_token]
+            except KeyError:
+                # hash_at is not in cache!
+                LOGGING.debug('Hash at not in cache!')
+                LOGGING.debug("Cache %s", self._cache.keys())
+                return (None, {})
+
+            # the entry valid_until is the validity of the refresh token, not of the cache entry
+            if cache_entry['valid_until'] > now:
+                return hash_access_token, cache_entry['userinfo']
+
             LOGGING.debug("refreshing user information")
             # do a refresh
             client = cherrypy.session['client']
-            # TODO: shouldn't that be a new one?
-            state = cherrypy.session['state']
+            state = cache_entry['state']
+            #            token = client.get_token(state=state)
+            #            if token.refresh_token:
+            #                LOGGING.debug("Original refresh token %s", token.refresh_token)
+            #            valid_until = cache_entry.timestamp
             # is requesting a new access token automatically
             try:
-                LOGGING.debug(client.grant)
-                cherrypy.session['userinfo'] = dict(
-                    client.do_user_info_request(state=state))
-                access_token = client.get_token(state=state)
-                cherrypy.session['refresh'] = int(datetime.datetime.now(
-                ).timestamp()) + access_token.expires_in
-                return cherrypy.session['userinfo']
+                del self._cache[hash_access_token]
+
+                userinfo = dict(client.do_user_info_request(state=state))
+                new_token = client.get_token(state=state)
+                LOGGING.debug("New token: %s", new_token)
+
+                hash_access_token = hashlib.sha256(
+                    str(new_token.access_token).encode()).hexdigest()
+                cherrypy.session['hash_at'] = hash_access_token
+                valid_until = datetime.datetime.now().timestamp() + 30
+
+                if 'expires_in' in new_token.keys():
+                    valid_until = int(datetime.datetime.now().timestamp()
+                                      ) + new_token.expires_in
+
+                if "refresh_expires_in" in new_token.keys():
+                    refresh_valid = datetime.datetime.now().timestamp(
+                    ) + new_token.refresh_expires_in
+                elif "refresh_token" in new_token.keys():
+                    raise NotImplementedError
+                else:
+                    refresh_valid = valid_until
+
+                self._cache.put(
+                    hash_access_token, {
+                        "state": state,
+                        "valid_until": valid_until,
+                        "userinfo": userinfo,
+                        "evaluation_cache": {}
+                    }, refresh_valid)
+                return hash_access_token, userinfo
             except Exception as e:
                 LOGGING.debug(e.__class__)
                 raise
-
+        return None, {}
 
 #                raise cherrypy.HTTPRedirect("/auth")
-
-        else:
-            LOGGING.debug("using cached user information")
-            return cherrypy.session.get('userinfo', {})
 
     def redirect(self, **kwargs):
         LOGGING.debug(cherrypy.session)
@@ -398,7 +508,7 @@ class OidcHandler:
         if 'error' in kwargs:
             tmpl = env.get_template('500.html')
             return tmpl.render(info=kwargs)
-        #        qry = {key: kwargs[key] for key in ['state', 'session_state', 'code']}
+
         qry = {key: kwargs[key] for key in ['state', 'code']}
         client = cherrypy.session['client']
         aresp = client.parse_response(AuthorizationResponse,
@@ -413,9 +523,13 @@ class OidcHandler:
             authn_method="client_secret_basic")
         LOGGING.debug("Access Token Request %s", resp)
 
+        hash_at = hashlib.sha256(str(resp).encode()).hexdigest()
+        cherrypy.session['hash_at'] = hash_at
+
         # check for scopes:
         requested_scopes = set(cherrypy.session["scopes"])
         response_scopes = set(resp['scope'])
+
         if not requested_scopes.issubset(response_scopes):
             tmpl = env.get_template('500.html')
             info = {
@@ -426,7 +540,6 @@ class OidcHandler:
             }
             return tmpl.render(info=info)
         cherrypy.session["scopes"] = resp['scope']
-        cherrypy.session["state"] = aresp['state']
 
         # how long is the information valid?
         # oauth has the expires_in (but only RECOMMENDED)
@@ -436,15 +549,42 @@ class OidcHandler:
         at_exp = exp
         if "expires_in" in resp and resp["expires_in"]:
             at_exp = resp["expires_in"] + iat
-        cherrypy.session['refresh'] = min(at_exp, exp)
+
+        valid_until = min(at_exp, exp)
+
+        if "refresh_expires_in" in resp:
+            refresh_valid = datetime.datetime.now().timestamp(
+            ) + resp['refresh_expires_in']
+        elif "refresh_token" in resp:
+            raise NotImplementedError
+        else:
+            refresh_valid = valid_until
+
         try:
             userinfo = client.do_user_info_request(state=aresp["state"])
+        except oic.exception.CommunicationError as excep:
+            exception_args = excep.args
+            LOGGING.debug(exception_args)
+            if exception_args[
+                    0] == "Server responded with HTTP Error Code 405":
+                # allowed methods in [1]
+                if exception_args[1][0] in ["GET", "POST"]:
+                    userinfo = client.do_user_info_request(
+                        state=aresp["state"], method=exception_args[1][0])
+                else:
+                    raise
         except oic.exception.RequestError as excep:
             LOGGING.debug(excep.args)
             raise
+        self._cache.put(
+            hash_at, {
+                "state": aresp['state'],
+                "valid_until": valid_until,
+                "userinfo": dict(userinfo),
+                "evaluation_cache": {}
+            }, refresh_valid)
 
-        cherrypy.session["userinfo"] = dict(userinfo)
-
+        LOGGING.debug(cherrypy.session['client'].__dict__)
         if "url" in cherrypy.session:
             raise cherrypy.HTTPRedirect(cherrypy.session["url"])
 
@@ -460,6 +600,7 @@ class OidcHandler:
 
         if "state" in cherrypy.session:
             LOGGING.debug("state is already present")
+
         cherrypy.session["state"] = rndstr()
         cherrypy.session["nonce"] = rndstr()
 
@@ -507,8 +648,9 @@ class OidcHandler:
 
         self._auth()
 
-    def userinfo(self, **kwargs):
-        return cherrypy.session['userinfo']
+
+#    def userinfo(self, **kwargs):
+#        return cherrypy.session['userinfo']
 
     def get_routes_dispatcher(self):
         d = cherrypy.dispatch.RoutesDispatcher()
@@ -537,8 +679,8 @@ class OidcHandler:
 
         return d
 
-    def read_secrets(self, filepath):
-        self.secrets_file = filepath
+    def read_secrets(self):
+        #self.secrets_file = filepath
         try:
             with open(self.secrets_file, 'r') as ymlfile:
                 self._secrets = yaml.safe_load(ymlfile)
@@ -581,7 +723,6 @@ def run():
     clients = dict()
     app = OidcHandler(config.cfg)
 
-    app.read_secrets(config.cfg.proxy['secrets'])
     atexit.register(app.save_secrets)
 
     scheduler = sched.scheduler(time.time, time.sleep)

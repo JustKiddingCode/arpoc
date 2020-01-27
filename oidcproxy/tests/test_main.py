@@ -1,26 +1,14 @@
-from oidcproxy import *
+import oidcproxy
 
-cfg = config.OIDCProxyConfig()
-oidc_handler = OidcHandler(cfg)
+cfg = oidcproxy.config.OIDCProxyConfig(None, None)
+cfg.proxy = oidcproxy.config.ProxyConfig("", "", "testhost.example.com/",
+                                         ["test@example.com"],
+                                         ["testhost.example.com/redirect"])
+cfg.services['default'] = oidcproxy.config.ServiceConfig(
+    "foo", "/bar", "policyset")
 
-serviceConfig = {
-    "proxy": {
-        "hostname": "PROXY/",
-        'keyfile': "/dev/null",
-        'certfile': "/dev/null",
-        'contacts': ["info@example.com"],
-        'redirect_uris': ['/secure/redirect']
-    },
-    "services": {
-        "a": {
-            "origin_URL": 'foo',
-            "proxy_URL": "/bar",
-            "AC": "policyset"
-        }
-    }
-}
-cfg.merge_config(serviceConfig)
-service_a = ServiceProxy("a", oidc_handler)
+oidc_handler = oidcproxy.OidcHandler(cfg)
+service_a = oidcproxy.ServiceProxy("default", oidc_handler)
 
 
 def test_build_url():
@@ -31,10 +19,10 @@ def test_build_url():
 
 
 def test_build_proxy_url():
-    assert service_a._build_proxy_url("") == "PROXY/bar/"
+    assert service_a._build_proxy_url("") == "testhost.example.com/bar/"
     kwargs = {'foo': 'bar', 'bar': 'foo'}
     url = service_a._build_proxy_url("", **kwargs)
-    assert url == "PROXY/bar/?foo=bar&bar=foo" or url == "PROXY/bar/?bar=foo&foo=bar"
+    assert url == "testhost.example.com/bar/?foo=bar&bar=foo" or url == "testhost.example.com/bar/?bar=foo&foo=bar"
 
 
 def test_true():

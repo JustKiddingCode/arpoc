@@ -60,7 +60,8 @@ class Policy_Set(AC_Entity):
     def evaluate(self, context, evaluation_cache=None):
         """ Evaluate Policy Set"""
         missing_attr = []
-        evaluation_cache = evaluation_cache or dict()
+        evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
+        )
         cr = cr_switcher.get(self.conflict_resolution, None)()
         if self._check_match(context):
             for policy_set_id in self.policy_sets:
@@ -108,7 +109,8 @@ class Policy(AC_Entity):
             basic, self.conflict_resolution, self.rules)
 
     def evaluate(self, context, evaluation_cache=None):
-        evaluation_cache = evaluation_cache or dict()
+        evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
+        )
         cr = cr_switcher.get(self.conflict_resolution, None)()
         LOGGER.debug("policy %s before evaluation: %s", self.entity_id,
                      cr.get_effect())
@@ -150,7 +152,8 @@ class Rule(AC_Entity):
                                                     self.effect)
 
     def evaluate(self, context, evaluation_cache=None):
-        evaluation_cache = evaluation_cache or dict()
+        evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
+        )
         try:
             if self._check_match(context):
                 if self._check_condition(context):
@@ -201,11 +204,17 @@ class AC_Container:
         for f in glob.glob(path + "/*.json"):
             self.load_file(f)
 
-    def evaluate_by_entity_id(self, entity_id, context):
-        LOGGER.debug(context)
+    def evaluate_by_entity_id(self, entity_id, context, evaluation_cache=None):
+        evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
+        )
+
+        if entity_id in evaluation_cache:
+            return evaluation_cache[entity_id], []
         # Effect, Missing
-        effect, missing = self.policy_sets.get(entity_id,
-                                               None).evaluate(context)
+        effect, missing = self.policy_sets.get(entity_id, None).evaluate(
+            context, evaluation_cache)
+
+        evaluation_cache[entity_id] = effect
         assert isinstance(
             effect, oidcproxy.ac.common.Effects
         ) or effect == None, "effect is %s" % effect.__class__

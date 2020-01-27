@@ -1,10 +1,8 @@
 import pytest
 
-
 import importlib.resources
 
 import os
-
 
 import lark
 
@@ -25,12 +23,13 @@ with importlib.resources.path(
 
 
 def test_only_init_lark(benchmark):
-    benchmark(lark.Lark,oidcproxy.ac.parser.grammar,start="condition")
+    benchmark(lark.Lark, oidcproxy.ac.parser.grammar, start="condition")
+
 
 def test_alwaysGrant(benchmark):
     context = {"subject": {}, "object": {}, "environment": {}}
     effect, _ = benchmark(Container.evaluate_by_entity_id,
-        "com.example.policysets.alwaysGrant", context)
+                          "com.example.policysets.alwaysGrant", context)
     assert effect == Effects.GRANT
 
 
@@ -45,8 +44,9 @@ def test_loggedIn(benchmark):
         "environment": {}
     }
     effect, _ = benchmark(Container.evaluate_by_entity_id,
-        "com.example.policysets.loggedIn", context)
+                          "com.example.policysets.loggedIn", context)
     assert effect == Effects.GRANT
+
 
 def test_loggedInAdmin(benchmark):
     context = {
@@ -59,7 +59,7 @@ def test_loggedInAdmin(benchmark):
         "environment": {}
     }
     effect, _ = benchmark(Container.evaluate_by_entity_id,
-        "com.example.policysets.loggedIn", context)
+                          "com.example.policysets.loggedIn", context)
     assert effect == Effects.GRANT
 
 
@@ -73,5 +73,6 @@ def test_normalUser_wants_admin(benchmark):
         },
         "environment": {}
     }
-    effect, _ = benchmark(Container.evaluate_by_entity_id,"com.example.policysets.loggedIn", context)
+    effect, _ = benchmark(Container.evaluate_by_entity_id,
+                          "com.example.policysets.loggedIn", context)
     assert effect == Effects.DENY
