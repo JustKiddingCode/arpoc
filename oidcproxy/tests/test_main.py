@@ -8,7 +8,8 @@ cfg.services['default'] = oidcproxy.config.ServiceConfig(
     "foo", "/bar", "policyset")
 
 oidc_handler = oidcproxy.OidcHandler(cfg)
-service_a = oidcproxy.ServiceProxy("default", oidc_handler)
+service_a = oidcproxy.ServiceProxy("default", oidc_handler,
+                                   cfg.services['default'])
 
 
 def test_build_url():
@@ -25,5 +26,15 @@ def test_build_proxy_url():
     assert url == "testhost.example.com/bar/?foo=bar&bar=foo" or url == "testhost.example.com/bar/?bar=foo&foo=bar"
 
 
-def test_true():
-    assert True
+def test_retry():
+    def retry_me(l: list):
+        l.append(1)
+        if len(l) < 5:
+            raise Exception
+
+    l = []
+    app = oidcproxy.App()
+    app.retry(retry_me, (Exception), l, retry_delay=2)
+    app._scheduler.run()
+
+    assert l == [1, 1, 1, 1, 1]

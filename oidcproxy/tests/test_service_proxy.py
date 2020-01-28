@@ -19,7 +19,8 @@ def setup_proxy():
     cfg.services['default'] = oidcproxy.config.ServiceConfig(
         "url_orig", "pathproxied", "policyset")
     oidc_handler = oidcproxy.OidcHandler(cfg)
-    service_a = oidcproxy.ServiceProxy("default", oidc_handler)
+    service_a = oidcproxy.ServiceProxy("default", oidc_handler,
+                                       cfg.services['default'])
     return (oidc_handler, service_a)
 
 
@@ -35,7 +36,8 @@ def setup_proxy_bearer():
             "token": 1234
         })
     oidc_handler = oidcproxy.OidcHandler(cfg)
-    service_a = oidcproxy.ServiceProxy("default", oidc_handler)
+    service_a = oidcproxy.ServiceProxy("default", oidc_handler,
+                                       cfg.services['default'])
     return service_a
 
 

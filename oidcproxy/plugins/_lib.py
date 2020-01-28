@@ -2,14 +2,15 @@ from abc import ABC
 
 
 class EnvironmentAttribute(ABC):
-    target = None
+    target = ""
 
+    @staticmethod
     def run():
         return None
 
 
 class ObjectSetter(ABC):
-    name = None
+    name = ""
 
     def __init__(self, cfg):
         pass

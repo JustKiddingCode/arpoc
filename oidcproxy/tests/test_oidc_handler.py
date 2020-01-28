@@ -1,4 +1,5 @@
 import oidcproxy
+import oidcproxy.cache
 
 import requests
 import requests_mock
@@ -15,10 +16,35 @@ import time
 import re
 
 import json
+import yaml
 
 
 def provider_config():
     return """{"issuer":"https://openid-provider.example.com/auth/realms/master","authorization_endpoint":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/auth","token_endpoint":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/token","token_introspection_endpoint":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/token/introspect","userinfo_endpoint":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/userinfo","end_session_endpoint":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/logout","jwks_uri":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/certs","check_session_iframe":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/login-status-iframe.html","grant_types_supported":["authorization_code","implicit","refresh_token","password","client_credentials"],"response_types_supported":["code","none","id_token","token","id_token token","code id_token","code token","code id_token token"],"subject_types_supported":["public","pairwise"],"id_token_signing_alg_values_supported":["PS384","ES384","RS384","HS256","HS512","ES256","RS256","HS384","ES512","PS256","PS512","RS512"],"id_token_encryption_alg_values_supported":["RSA-OAEP","RSA1_5"],"id_token_encryption_enc_values_supported":["A128GCM","A128CBC-HS256"],"userinfo_signing_alg_values_supported":["PS384","ES384","RS384","HS256","HS512","ES256","RS256","HS384","ES512","PS256","PS512","RS512","none"],"request_object_signing_alg_values_supported":["PS384","ES384","RS384","ES256","RS256","ES512","PS256","PS512","RS512","none"],"response_modes_supported":["query","fragment","form_post"],"registration_endpoint":"https://openid-provider.example.com/auth/realms/master/clients-registrations/openid-connect","token_endpoint_auth_methods_supported":["private_key_jwt","client_secret_basic","client_secret_post","client_secret_jwt"],"token_endpoint_auth_signing_alg_values_supported":["RS256"],"claims_supported":["aud","sub","iss","auth_time","name","given_name","family_name","preferred_username","email"],"claim_types_supported":["normal"],"claims_parameter_supported":false,"scopes_supported":["openid","address","email","microprofile-jwt","offline_access","phone","profile","roles","test","web-origins"],"request_parameter_supported":true,"request_uri_parameter_supported":true,"code_challenge_methods_supported":["plain","S256"],"tls_client_certificate_bound_access_tokens":true,"introspection_endpoint":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/token/introspect"}"""
+
+
+@pytest.fixture
+def client_secrets():
+    secrets_string = """default:
+  client_id: e506b29d-e92c-4db9-974f-0d8e8a1406c5
+  client_id_issued_at: 1578579842
+  client_secret: 723d86e0-5388-4bb1-a286-c964e2187586
+  client_secret_expires_at: 0
+  grant_types:
+  - authorization_code
+  - refresh_token
+  redirect_uris:
+  - https://python-proxy.example.com/secure/redirect_uris
+  registration_access_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI1ZGYxY2VkMi1jMWY2LTQ5ZmQtYWUxYy00ZDU0MmQ0MWZmNzgifQ.eyJqdGkiOiJiMWE2ODExOC0zODE3LTQ4ZTYtOGQwZC01MWJlOTVlOGY4ZDgiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTc4NTc5ODQyLCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJSZWdpc3RyYXRpb25BY2Nlc3NUb2tlbiIsInJlZ2lzdHJhdGlvbl9hdXRoIjoiYXV0aGVudGljYXRlZCJ9.ewxU3fUGReGqOA7RVwWHyQzITDOMeQeGA9DDoF_EMYk
+  registration_client_uri: https://openid-provider.example.com/auth/realms/master/clients-registrations/openid-connect/e506b29d-e92c-4db9-974f-0d8e8a1406c5
+  response_types:
+  - code
+  - none
+  subject_type: public
+  tls_client_certificate_bound_access_tokens: false
+  token_endpoint_auth_method: client_secret_basic
+"""
+    return yaml.safe_load(secrets_string)
 
 
 @pytest.fixture
@@ -66,12 +92,12 @@ def setup_oidc_handler():
     cfg.proxy = proxyconfig
     service_cfg = oidcproxy.config.ServiceConfig("", "", "")
     oidc_handler = oidcproxy.OidcHandler(cfg)
-    return oidc_handler
+    return cfg, oidc_handler
 
 
 @patch('oidcproxy.cherrypy.session', {'refresh': 1579702851}, create=True)
 def test_check_session_refresh(setup_oidc_handler):
-    oidc_handler = setup_oidc_handler
+    _, oidc_handler = setup_oidc_handler
     #    oidcproxy.cherrypy.session['refresh'] = 1579702851 # Mi 22. Jan 15:21 2020
     assert oidc_handler._check_session_refresh()
 
@@ -79,7 +105,7 @@ def test_check_session_refresh(setup_oidc_handler):
 @patch('oidcproxy.cherrypy.session', {'refresh': time.time() + 30},
        create=True)
 def test_check_session_refresh_in_future(setup_oidc_handler):
-    oidc_handler = setup_oidc_handler
+    _, oidc_handler = setup_oidc_handler
     #    oidcproxy.cherrypy.session['refresh'] = 1579702851 # Mi 22. Jan 15:21 2020
     assert not oidc_handler._check_session_refresh()
 
@@ -87,14 +113,14 @@ def test_check_session_refresh_in_future(setup_oidc_handler):
 @patch('oidcproxy.cherrypy.session', {'refresh': time.time() + 100},
        create=True)
 def test_check_session_refresh_no_time(setup_oidc_handler):
-    oidc_handler = setup_oidc_handler
+    _, oidc_handler = setup_oidc_handler
     #    oidcproxy.cherrypy.session['refresh'] = 1579702851 # Mi 22. Jan 15:21 2020
     assert not oidc_handler._check_session_refresh()
 
 
 @pytest.fixture
 def setup_oidchandler_provider(setup_oidc_handler):
-    oidchandler = setup_oidc_handler
+    cfg, oidchandler = setup_oidc_handler
     provider_config_obj = oidcproxy.config.ProviderConfig(
         "test", "https://openid-provider.example.com/auth/realms/master",
         "abcdef")
@@ -106,13 +132,14 @@ def setup_oidchandler_provider(setup_oidc_handler):
             "https://openid-provider.example.com/auth/realms/master/clients-registrations/openid-connect",
             text=registration_response())
         oidchandler.register_first_time("test", provider_config_obj)
+    cfg.add_provider("test", provider_config_obj)
 
-    return oidchandler
+    return cfg, oidchandler
 
 
 @pytest.fixture
 def setup_oidchandler_provider_registration(setup_oidc_handler):
-    oidchandler = setup_oidc_handler
+    cfg, oidchandler = setup_oidc_handler
     provider_config_obj = oidcproxy.config.ProviderConfig(
         "test", "https://openid-provider.example.com/auth/realms/master", "",
         "abcdef",
@@ -126,12 +153,30 @@ def setup_oidchandler_provider_registration(setup_oidc_handler):
             text=registration_response())
         oidchandler.register_first_time("test", provider_config_obj)
 
-    return oidchandler
+    cfg.add_provider("test", provider_config_obj)
+
+    return cfg, oidchandler
+
+
+def test_get_evaluation_cache(setup_oidc_handler):
+    _, oidchandler = setup_oidc_handler
+    assert oidchandler.get_evaluation_cache("") == None
+    cache = oidcproxy.cache.Cache()
+    oidchandler._cache = cache
+
+    cache.put("testkey", {'evaluation_cache': {
+        'foo': 'bar'
+    }},
+              time.time() + 30)
+
+    assert oidchandler.get_evaluation_cache("testkey")['foo'] == "bar"
+
+    assert oidchandler.get_evaluation_cache("nonexisting") == None
 
 
 def test_userinfo_from_at_registration(setup_oidchandler_provider_registration,
                                        setup_jwt):
-    oidc_handler = setup_oidchandler_provider_registration
+    _, oidc_handler = setup_oidchandler_provider_registration
     access_token = setup_jwt
 
     token_introspection = {"active": True, "exp": 100}
@@ -158,7 +203,7 @@ def test_userinfo_from_at_registration(setup_oidchandler_provider_registration,
 
 
 def test_userinfo_from_at(setup_oidchandler_provider, setup_jwt):
-    oidc_handler = setup_oidchandler_provider
+    _, oidc_handler = setup_oidchandler_provider
     access_token = setup_jwt
 
     #    oidcproxy.oic.oauth2.base.requests = requests
@@ -183,29 +228,52 @@ def test_userinfo_from_at(setup_oidchandler_provider, setup_jwt):
         assert m.call_count > 0
 
 
-#
-#
-#def test_proxy_post(setup_proxy):
-#    proxy = setup_proxy
-#    oidcproxy.cherrypy.request.method = "POST"
-#    with requests_mock.mock() as m:
-#        m.post("http://proxyme.example.com", text='post')
-#
-#        oidcproxy.cherrypy.request.body = io.StringIO("some mocked up data")
-#        resp = proxy._proxy("http://proxyme.example.com/")
-#        assert resp.text == "post"
-#        assert m.call_count == 1
-#
-#def test_bearer(setup_proxy_bearer):
-#    proxy = setup_proxy_bearer
-#    oidcproxy.cherrypy.request.method = "GET"
-#    with requests_mock.mock() as m:
-#        m.get("http://proxyme.example.com", text='get',request_headers={'Authorization': 'Bearer 1234'})
-#        resp = proxy._proxy("http://proxyme.example.com/")
-#        assert resp.text == "get"
-#        assert m.call_count == 1
-#
-#def test_send_403(setup_proxy):
-#    mock = setup_proxy._send_403("test")
-#    assert "test" in mock
-#
+@patch('oidcproxy.cherrypy.session', {}, create=True)
+def test_need_claims_without_provider(setup_oidchandler_provider):
+    claims = []
+    _, provider = setup_oidchandler_provider
+    with pytest.raises(oidcproxy.cherrypy._cperror.HTTPRedirect):
+        provider.need_claims(claims)
+
+
+@patch('oidcproxy.cherrypy.session', {"provider": "test"}, create=True)
+def test_need_claims_with_provider(setup_oidchandler_provider):
+    claims = ["email", "profile"]
+    _, provider = setup_oidchandler_provider
+    with pytest.raises(oidcproxy.cherrypy._cperror.HTTPRedirect):
+        provider.need_claims(claims)
+
+
+def test_create_client_from_secrets(setup_oidchandler_provider,
+                                    client_secrets):
+    cfg, provider = setup_oidchandler_provider
+
+    with requests_mock.mock() as m:
+        m.get(
+            "https://openid-provider.example.com/auth/realms/master/.well-known/openid-configuration",
+            text=provider_config())
+        provider.create_client_from_secrets("test",
+                                            cfg.openid_providers['test'],
+                                            client_secrets['default'])
+
+
+@patch('oidcproxy.cherrypy.request.headers', {"authorization": "hello"},
+       create=True)
+def test_get_access_token_from_headers(setup_oidc_handler):
+    _, oidc_handler = setup_oidc_handler
+    assert oidc_handler.get_access_token_from_headers() == None
+
+
+@patch('oidcproxy.cherrypy.request.headers', {"authorization": "bearer 123"},
+       create=True)
+def test_get_access_token_from_headers_small(setup_oidc_handler):
+    _, oidc_handler = setup_oidc_handler
+    assert oidc_handler.get_access_token_from_headers() == "123"
+
+
+@patch('oidcproxy.cherrypy.request.headers',
+       {"authorization": "BeArEr teststring"},
+       create=True)
+def test_get_access_token_from_headers_mixed(setup_oidc_handler):
+    _, oidc_handler = setup_oidc_handler
+    assert oidc_handler.get_access_token_from_headers() == "teststring"

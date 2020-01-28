@@ -1,7 +1,7 @@
 from jinja2 import Environment, FileSystemLoader
 
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Tuple, Union
 
 import os
 
@@ -19,9 +19,9 @@ class PAPNode:
     target: str
     effect: str
     condition: str
-    policy_sets: List[object]
-    policies: List[object]
-    rules: List[object]
+    policy_sets: Union[List[object], None]
+    policies: Union[List[object], None]
+    rules: Union[List[object], None]
 
 
 def create_PAPNode_Rule(rule: ac.Rule):
@@ -41,7 +41,7 @@ def create_PAPNode_Policy_Set(policy_set: ac.Policy_Set):
         for x in policy_set.policies
     ]
     policy_sets = [
-        create_PAPNode_Policy_Set(ac.container.policy_set[x])
+        create_PAPNode_Policy_Set(ac.container.policy_sets[x])
         for x in policy_set.policy_sets
     ]
     return PAPNode(policy_set.entity_id, "policy set",

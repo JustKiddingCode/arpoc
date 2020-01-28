@@ -297,15 +297,15 @@ def check_target(rule, data):
     return ret_value
 
 
-if __name__ == "__main__":
-
-    l = Lark(grammar, start="condition")
-
-    ast = l.parse("[5, '4', True]")
-    print(ast)
-    data = {}
-    ast = TransformAttr(data).transform(ast)
-    tree.pydot__tree_to_png(ast, "graph.png")
+#if __name__ == "__main__":
+#
+#    l = Lark(grammar, start="condition")
+#
+#    ast = l.parse("[5, '4', True]")
+#    print(ast)
+#    #data = {}
+#    ast = TransformAttr(data).transform(ast)
+#    tree.pydot__tree_to_png(ast, "graph.png")
 #    ast = l.parse("subject.email != object.email")
 #    #print(ast)
 #

@@ -7,6 +7,7 @@ the configuration with the `config.cfg` variable.
 import os
 from dataclasses import dataclass, field, replace, asdict, InitVar
 from typing import List
+from types import *
 import logging
 
 import yaml
@@ -107,12 +108,11 @@ class OIDCProxyConfig:
     def __init__(self,
                  config_file=None,
                  std_config='/etc/oidc-proxy/config.yml'):
-        self.__cfg = {
-            "openid_providers": {},
-            "proxy": None,
-            "services": {},
-            'access_control': ACConfig()
-        }
+
+        self.openid_providers: Dict[str, ProviderConfig] = {}
+        self.proxy: ProxyConfig = None
+        self.services: Dict[str, ServiceConfig] = {}
+        self.access_control = ACConfig()
 
         default_paths = [std_config]
         if 'OIDC_PROXY_CONFIG' in os.environ:
@@ -129,17 +129,8 @@ class OIDCProxyConfig:
                     pass
         self.check_config()
 
-    def __getattr__(self, name):
-        if name == "cfg":
-            return self.__cfg
-        if name in self.__cfg.keys():
-            return self.__cfg[name]
-
-    def __getitem__(self, key):
-        if key == "cfg":
-            return self.__cfg
-        if key in self.__cfg.keys():
-            return self.__cfg[key]
+    def add_provider(self, name: str, cfg: ProviderConfig):
+        self.openid_providers[name] = cfg
 
     def print_sample_config(self):
         provider = ProviderConfig("", "", "", "", "")
@@ -165,7 +156,7 @@ class OIDCProxyConfig:
 
     def check_config_proxy_url(self):
         l = []
-        for key, service in self.__cfg['services'].items():
+        for key, service in self.services.items():
             if service.proxy_URL in l:
                 raise ConfigError()
             l.append(service.proxy_URL)
@@ -178,20 +169,19 @@ class OIDCProxyConfig:
         if 'services' in new_cfg:
             for key, val in new_cfg['services'].items():
                 service_cfg = ServiceConfig(**val)
-                self.__cfg['services'][key] = service_cfg
+                self.services[key] = service_cfg
         if 'openid_providers' in new_cfg:
             for key, val in new_cfg['openid_providers'].items():
                 provider_cfg = ProviderConfig(**val)
-                self.__cfg['openid_providers'][key] = provider_cfg
+                self.openid_providers[key] = provider_cfg
         if 'access_control' in new_cfg:
-            self.__cfg['access_control'] = ACConfig(
-                **new_cfg['access_control'])
+            self.access_control = ACConfig(**new_cfg['access_control'])
 
         if 'proxy' in new_cfg:
-            if self.__cfg['proxy']:
-                replace(self.__cfg['proxy'], **new_cfg['proxy'])
+            if self.proxy:
+                replace(self.proxy, **new_cfg['proxy'])
             else:
-                self.__cfg['proxy'] = ProxyConfig(**new_cfg['proxy'])
+                self.proxy = ProxyConfig(**new_cfg['proxy'])
 
     def read_file(self, filepath):
         with open(filepath, 'r') as ymlfile:
@@ -204,12 +194,12 @@ class OIDCProxyConfig:
         cfg['services'] = dict()
         cfg['openid_providers'] = dict()
 
-        for key, val in self.__cfg['services'].items():
+        for key, val in self.services.items():
             cfg['services'][key] = asdict(val)
-        for key, val in self.__cfg['openid_providers'].items():
+        for key, val in self.openid_providers.items():
             cfg['openid_providers'][key] = asdict(val)
-        cfg['proxy'] = asdict(self.__cfg['proxy'])
-        cfg['access_control'] = asdict(self.__cfg['access_control'])
+        cfg['proxy'] = asdict(self.proxy)
+        cfg['access_control'] = asdict(self.access_control)
         print(yaml.dump(cfg))
 
 
