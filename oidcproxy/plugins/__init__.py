@@ -2,6 +2,7 @@
 # from user ted @ https://stackoverflow.com/a/59054776
 from importlib import import_module
 from pathlib import Path
+from typing import Dict, Callable
 
 from . import _lib
 
@@ -20,7 +21,7 @@ class DuplicateKeyError(Exception):
 
 
 def get_env_attr_dict():
-    d = dict()
+    d : Dict[str, Callable]  = dict()
     for plugin in _lib.EnvironmentAttribute.__subclasses__():
         if plugin.target in d.keys():
             DuplicateKeyError("key {} is already in target in a plugin".format(
@@ -48,7 +49,9 @@ class ObjectDict(collections.UserDict):
         super().__init__(initialdata)
         self._executed_flag = False
         # sort "plugins" according to priority
-        self._queue = PriorityQueue()
+        self._queue : PriorityQueue = PriorityQueue()
+        assert config.cfg is not None
+        assert isinstance(config.cfg.services,config.ServiceConfig)
         for plugin in _lib.ObjectSetter.__subclasses__():
             priority = 100
             if plugin.name in config.cfg.services[service_name][

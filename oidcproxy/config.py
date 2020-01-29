@@ -8,7 +8,7 @@ import logging
 import os
 from dataclasses import InitVar, asdict, dataclass, field, replace
 from types import *
-from typing import List
+from typing import List, Dict
 
 import yaml
 
@@ -111,7 +111,7 @@ class OIDCProxyConfig:
                  std_config='/etc/oidc-proxy/config.yml'):
 
         self.openid_providers: Dict[str, ProviderConfig] = {}
-        self.proxy: ProxyConfig = None
+        self.proxy: ProxyConfig
         self.services: Dict[str, ServiceConfig] = {}
         self.access_control = ACConfig()
 
@@ -156,7 +156,7 @@ class OIDCProxyConfig:
         print(yaml.dump(cfg))
 
     def check_config_proxy_url(self):
-        l = []
+        l : List[str]  = []
         for key, service in self.services.items():
             if service.proxy_URL in l:
                 raise ConfigError()
@@ -191,14 +191,14 @@ class OIDCProxyConfig:
         self.merge_config(new_cfg)
 
     def print_config(self):
-        cfg = dict()
+        cfg : Dict[str, Dict] = dict()
         cfg['services'] = dict()
         cfg['openid_providers'] = dict()
 
-        for key, val in self.services.items():
-            cfg['services'][key] = asdict(val)
-        for key, val in self.openid_providers.items():
-            cfg['openid_providers'][key] = asdict(val)
+        for services_key, services_obj in self.services.items():
+            cfg['services'][services_key] = asdict(services_obj)
+        for providers_key, providers_obj in self.openid_providers.items():
+            cfg['openid_providers'][providers_key] = asdict(providers_obj)
         cfg['proxy'] = asdict(self.proxy)
         cfg['access_control'] = asdict(self.access_control)
         print(yaml.dump(cfg))

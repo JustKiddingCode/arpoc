@@ -243,6 +243,7 @@ class EvalTree(Transformer):
         op = binary_operators.get(args[1], None)
         if op == None:
             raise NotImplementedError()
+        assert op is not None # for mypy
         LOGGER.debug("{} {} {}".format(args[0], args[1], args[2]))
         return op.eval(args[0], args[2])
 
@@ -287,7 +288,7 @@ def check_target(rule, data):
         ast = lark_target.parse(rule)
     except (lark.exceptions.UnexpectedCharacters,
             lark.exceptions.UnexpectedEOF):
-        raise BadRuleSyntax('Rule has a bad syntax %s' % target)
+        raise BadRuleSyntax('Rule has a bad syntax %s' % rule)
     T = TransformAttr(data) * EvalTree() * EvalComplete()
     ret_value = T.transform(ast)
     LOGGER.debug("Target Rule %s evaluated to %s", rule, ret_value)

@@ -25,7 +25,7 @@ class PAPNode:
 
 
 def create_PAPNode_Rule(rule: ac.Rule):
-    return PAPNode(rule.entity_id, "rule", "", rule.target, rule.effect,
+    return PAPNode(rule.entity_id, "rule", "", rule.target, str(rule.effect),
                    rule.condition, None, None, None)
 
 

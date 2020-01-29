@@ -80,6 +80,9 @@ class OidcHandler:
         self._secrets: Dict[str, dict] = dict()
         self._cache = oidcproxy.cache.Cache()
 
+    def get_secrets(self):
+        return self._secrets
+
     def get_evaluation_cache(self,
                              hash_access_token: str) -> Union[None, Dict]:
         if not hash_access_token:
@@ -296,7 +299,7 @@ class OidcHandler:
                 hash_access_token = hashlib.sha256(
                     str(new_token.access_token).encode()).hexdigest()
                 cherrypy.session['hash_at'] = hash_access_token
-                valid_until = datetime.datetime.now().timestamp() + 30
+                valid_until = int(datetime.datetime.now().timestamp()) + 30
 
                 if 'expires_in' in new_token.keys():
                     valid_until = int(datetime.datetime.now().timestamp()
@@ -501,7 +504,7 @@ class ServiceProxy:
                         self.cfg['authentication']['keyfile'])
 
         # Get requests method
-        method_switcher = {
+        method_switcher : Dict[str, Callable] = {
             "GET": requests.get,
             "PUT": requests.put,
             "POST": requests.post,
@@ -510,7 +513,6 @@ class ServiceProxy:
         method = method_switcher.get(access['method'], None)
         if not method:
             raise NotImplementedError
-
         # Outgoing request
         kwargs = {"headers": access['headers'], "data": access['body']}
         if cert:
@@ -593,7 +595,7 @@ class ServiceProxy:
         if len(missing) > 0:
             # -> Are we logged in?
             attr = set(missing)
-            self._oidc_handler.need_claims(attr)
+            self._oidc_handler.need_claims(list(attr))
             warn = "Failed to get the claims even we requested the right scopes.<br>Missing claims are:<br>"
             warn += "<br>".join(attr)
             return self._send_403(warn)
@@ -603,6 +605,8 @@ class ServiceProxy:
 class App:
     def __init__(self):
         self._scheduler = sched.scheduler(time.time, time.sleep)
+        self.oidc_handler : OidcHandler
+        self.config : config.OIDCProxyConfig
 
     def retry(self,
               function: Callable,
@@ -667,7 +671,6 @@ class App:
         return d
 
     def read_secrets(self, filepath):
-        #self.secrets_file = filepath
         try:
             with open(filepath, 'r') as ymlfile:
                 secrets = yaml.safe_load(ymlfile)
@@ -677,11 +680,12 @@ class App:
         return secrets
 
     def save_secrets(self):
-        with open(self.secrets_file, 'w') as ymlfile:
-            yaml.safe_dump(self._secrets, ymlfile)
+        with open(self.config.proxy['secrets'], 'w') as ymlfile:
+            yaml.safe_dump(self.oidc_handler.get_secrets(), ymlfile)
 
     def create_secrets_dir(self):
-        secrets_dir = os.path.dirname(config.cfg.proxy['secrets'])
+        assert isinstance(self.config.proxy, config.ProxyConfig)
+        secrets_dir = os.path.dirname(self.config.proxy['secrets'])
         os.makedirs(secrets_dir, exist_ok=True)
         uid = pwd.getpwnam(self.config.proxy['username'])[2]
         gid = grp.getgrnam(self.config.proxy['groupname'])[2]
@@ -693,7 +697,8 @@ class App:
 
     def setup_oidc_provider(self):
         clients = dict()
-        self.oidc_handler = OidcHandler(config.cfg)
+        assert isinstance(self.config, config.OIDCProxyConfig)
+        self.oidc_handler = OidcHandler(self.config)
 
         #        atexit.register(app.save_secrets) TODO
         # Read secrets
@@ -725,7 +730,7 @@ class App:
         #### Read Configuration
         config.cfg = config.OIDCProxyConfig(config_file=args.config_file)
         if args.print_sample_config:
-            cfg.print_sample_config()
+            self.config.print_sample_config()
             return
 
         self.config = config.cfg

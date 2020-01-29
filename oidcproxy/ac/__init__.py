@@ -7,6 +7,7 @@ import json
 
 from abc import ABC
 from enum import Enum
+from typing import List, Union, Dict
 
 import logging
 
@@ -26,7 +27,7 @@ LOGGER = logging.getLogger(__name__)
 
 class AC_Entity(ABC):
     """ Class for all access control entities (policy sets, policies, rules"""
-    container = None
+    container : AC_Container
 
     def __init__(self, entity_id, target, description):
         self.entity_id = entity_id
@@ -59,16 +60,24 @@ class Policy_Set(AC_Entity):
 
     def evaluate(self, context, evaluation_cache=None):
         """ Evaluate Policy Set"""
-        missing_attr = []
+        missing_attr : List[str] = []
         evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
         )
-        cr = cr_switcher.get(self.conflict_resolution, None)()
+        try:
+            cr = cr_switcher[self.conflict_resolution]()
+        except KeyError:
+            raise NotImplementedError("Conflict Resolution %s is not implemented" % self.conflict_resolution)
+
         if self._check_match(context):
+            assert self.container is not None
             for policy_set_id in self.policy_sets:
                 if policy_set_id not in evaluation_cache:
                     LOGGER.debug("Considering policy set %s", policy_set_id)
-                    result, missing = self.container.policy_sets.get(
-                        policy_set_id).evaluate(context, evaluation_cache)
+                    try:
+                        result, missing = self.container.policy_sets[policy_set_id].evaluate(context, evaluation_cache)
+                    except KeyError:
+                        LOGGER.debug("{} requested ps {}, but was not found in container", self.entity_id, policy_set_id)
+                        raise 
                     missing_attr += missing
                     evaluation_cache[policy_set_id] = result
                     cr.update(policy_set_id, result)
@@ -79,8 +88,12 @@ class Policy_Set(AC_Entity):
             for policy_id in self.policies:
                 if policy_id not in evaluation_cache:
                     LOGGER.debug("Considering policy %s", policy_id)
-                    result, missing = self.container.policies.get(
-                        policy_id).evaluate(context, evaluation_cache)
+                    try:
+                        result, missing = self.container.policies[policy_id].evaluate(context, evaluation_cache)
+                    except KeyError:
+                        LOGGER.debug("{} requested p {}, but was not found in container", self.entity_id, policy_id)
+                        raise
+
                     missing_attr += missing
                     evaluation_cache[policy_id] = result
                 cr.update(policy_id, evaluation_cache[policy_id])
@@ -111,18 +124,26 @@ class Policy(AC_Entity):
     def evaluate(self, context, evaluation_cache=None):
         evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
         )
-        cr = cr_switcher.get(self.conflict_resolution, None)()
+        try:
+            cr = cr_switcher[self.conflict_resolution]()
+        except KeyError:
+            raise NotImplementedError("Conflict Resolution %s is not implemented" % self.conflict_resolution)
         LOGGER.debug("policy %s before evaluation: %s", self.entity_id,
                      cr.get_effect())
 
-        missing_attr = []
+        missing_attr : List[str] = []
 
         if self._check_match(context):
+            assert self.container is not None
             for rules_id in self.rules:
                 if rules_id not in evaluation_cache:
                     LOGGER.debug("Considering rule %s", rules_id)
-                    effect, missing = self.container.rules.get(
-                        rules_id).evaluate(context, evaluation_cache)
+                    try:
+                        effect, missing = self.container.rules[rules_id].evaluate(context, evaluation_cache)
+                    except KeyError:
+                        LOGGER.debug("{} requested r {}, but was not found in container", self.entity_id, rules_id)
+                        raise
+
                     missing_attr += missing
                     evaluation_cache[rules_id] = effect
                     LOGGER.debug(evaluation_cache[rules_id])
@@ -221,7 +242,7 @@ class AC_Container:
         assert isinstance(missing, list)
         return (effect, missing)
 
-    def add_entity(self, entity_id, definition):
+    def add_entity(self, entity_id, definition : Dict[str, str]):
         if AC_Entity.container == None:
             AC_Entity.container = self
         switcher = {"Policy": Policy, "PolicySet": Policy_Set, "Rule": Rule}
@@ -243,15 +264,19 @@ class AC_Container:
             "Type": "--filter--"
         }
         kwargs = {
-            cleaner.get(key): value
+            cleaner[key]: value
             for (key, value) in definition.items()
             if cleaner.get(key) != "--filter--"
         }
         #        print(kwargs)
         LOGGER.debug('Creating %s with parameters %s', definition['Type'],
                      str(kwargs))
-        obj = switcher.get(definition['Type'], None)(entity_id, **kwargs)
-        switcher_dict.get(definition['Type'], None)[entity_id] = obj
+        try:
+            obj = switcher[definition['Type']] (entity_id, **kwargs)
+            switcher_dict[definition['Type']][entity_id] = obj
+        except KeyError:
+            LOGGER.debug("Cannot find ac entity type or cannot initialize")
+            raise
 
 
 container = AC_Container()
