@@ -1,10 +1,8 @@
-from dataclasses import dataclass, field
-from typing import Any
-
 import collections
 import heapq
-
 import time
+from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass(order=True)

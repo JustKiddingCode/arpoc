@@ -1,10 +1,8 @@
-import pytest
-
 import importlib.resources
-
 import os
 
 import lark
+import pytest
 
 import oidcproxy.ac
 from oidcproxy.ac.common import Effects

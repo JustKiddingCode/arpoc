@@ -8,6 +8,7 @@ Every resolver should inherit from ConflictResolution.
 
 """
 from enum import Enum
+
 from .common import Effects
 
 

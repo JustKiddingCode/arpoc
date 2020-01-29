@@ -1,13 +1,11 @@
-import oidcproxy
-
-import requests_mock
-
+import io
 from unittest.mock import mock_open, patch
 
-import io
-
-import oidcproxy.config
 import pytest
+import requests_mock
+
+import oidcproxy
+import oidcproxy.config
 
 
 @pytest.fixture

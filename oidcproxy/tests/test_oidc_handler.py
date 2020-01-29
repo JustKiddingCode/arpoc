@@ -1,22 +1,17 @@
-import oidcproxy
-import oidcproxy.cache
+import io
+import json
+import re
+import time
+from unittest.mock import Mock, PropertyMock, mock_open, patch
 
+import pytest
 import requests
 import requests_mock
-
-from unittest.mock import mock_open, patch, PropertyMock, Mock
-
-import io
-
-import oidcproxy.config
-import pytest
-
-import time
-
-import re
-
-import json
 import yaml
+
+import oidcproxy
+import oidcproxy.cache
+import oidcproxy.config
 
 
 def provider_config():

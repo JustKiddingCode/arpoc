@@ -4,13 +4,14 @@ After importing this file you have access to
 the configuration with the `config.cfg` variable.
 """
 
-import os
-from dataclasses import dataclass, field, replace, asdict, InitVar
-from typing import List
-from types import *
 import logging
+import os
+from dataclasses import InitVar, asdict, dataclass, field, replace
+from types import *
+from typing import List
 
 import yaml
+
 LOGGING = logging.getLogger()
 
 

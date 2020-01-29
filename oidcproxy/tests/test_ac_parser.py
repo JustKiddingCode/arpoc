@@ -1,7 +1,7 @@
 import pytest
+from lark.exceptions import *
 
 from oidcproxy.ac.parser import *
-from lark.exceptions import *
 
 
 def test_plain():

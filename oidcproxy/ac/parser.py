@@ -1,15 +1,12 @@
 import importlib.resources
-import os
-
 import logging
+import os
+import re
 import warnings
-
 from functools import reduce
 
-import re
-
-from lark import Lark, tree, Transformer, Tree
 import lark.exceptions
+from lark import Lark, Transformer, Tree, tree
 
 with importlib.resources.path(
         'oidcproxy.resources',

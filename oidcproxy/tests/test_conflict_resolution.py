@@ -1,7 +1,7 @@
 import pytest
 
-from oidcproxy.ac.conflict_resolution import *
 from oidcproxy.ac.common import Effects
+from oidcproxy.ac.conflict_resolution import *
 
 
 def test_any_of_any_0_rules():

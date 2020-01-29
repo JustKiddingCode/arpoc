@@ -1,6 +1,6 @@
-from . import _lib
-
 import datetime
+
+from . import _lib
 
 
 class EnvAttrTime(_lib.EnvironmentAttribute):
