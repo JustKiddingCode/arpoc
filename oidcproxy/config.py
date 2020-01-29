@@ -7,8 +7,7 @@ the configuration with the `config.cfg` variable.
 import logging
 import os
 from dataclasses import InitVar, asdict, dataclass, field, replace
-from types import *
-from typing import List, Dict
+from typing import List, Dict, Union
 
 import yaml
 
@@ -107,8 +106,8 @@ class ConfigError(Exception):
 
 class OIDCProxyConfig:
     def __init__(self,
-                 config_file=None,
-                 std_config='/etc/oidc-proxy/config.yml'):
+                 config_file: Union[None, str] = None,
+                 std_config: Union[None, str] = '/etc/oidc-proxy/config.yml'):
 
         self.openid_providers: Dict[str, ProviderConfig] = {}
         self.proxy: ProxyConfig
@@ -133,7 +132,7 @@ class OIDCProxyConfig:
     def add_provider(self, name: str, cfg: ProviderConfig):
         self.openid_providers[name] = cfg
 
-    def print_sample_config(self):
+    def print_sample_config(self) -> None:
         provider = ProviderConfig("", "", "", "", "")
         proxy = ProxyConfig("", "", "", [""], [""])
         service = ServiceConfig("", "", "", {}, {})
@@ -155,18 +154,18 @@ class OIDCProxyConfig:
         }
         print(yaml.dump(cfg))
 
-    def check_config_proxy_url(self):
-        l : List[str]  = []
+    def check_config_proxy_url(self) -> None:
+        l: List[str] = []
         for key, service in self.services.items():
             if service.proxy_URL in l:
                 raise ConfigError()
             l.append(service.proxy_URL)
 
-    def check_config(self):
+    def check_config(self) -> None:
         LOGGING.debug("checking config consistency")
         self.check_config_proxy_url()
 
-    def merge_config(self, new_cfg):
+    def merge_config(self, new_cfg: Dict) -> None:
         if 'services' in new_cfg:
             for key, val in new_cfg['services'].items():
                 service_cfg = ServiceConfig(**val)
@@ -184,14 +183,14 @@ class OIDCProxyConfig:
             else:
                 self.proxy = ProxyConfig(**new_cfg['proxy'])
 
-    def read_file(self, filepath):
+    def read_file(self, filepath: str):
         with open(filepath, 'r') as ymlfile:
             new_cfg = yaml.safe_load(ymlfile)
 
         self.merge_config(new_cfg)
 
-    def print_config(self):
-        cfg : Dict[str, Dict] = dict()
+    def print_config(self) -> None:
+        cfg: Dict[str, Dict] = dict()
         cfg['services'] = dict()
         cfg['openid_providers'] = dict()
 
@@ -204,7 +203,7 @@ class OIDCProxyConfig:
         print(yaml.dump(cfg))
 
 
-cfg = None
+cfg: Union[None, OIDCProxyConfig] = None
 
 if __name__ == "__main__":
     cfg = OIDCProxyConfig()

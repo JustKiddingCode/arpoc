@@ -243,14 +243,18 @@ class EvalTree(Transformer):
         op = binary_operators.get(args[1], None)
         if op == None:
             raise NotImplementedError()
-        assert op is not None # for mypy
+        assert op is not None  # for mypy
         LOGGER.debug("{} {} {}".format(args[0], args[1], args[2]))
         return op.eval(args[0], args[2])
 
     def linked(self, args):
         if isinstance(args[0], bool) and isinstance(args[2], bool):
-            LOGGER.debug("{} {} {}".format(args[0], args[1], args[2]))
-            return eval("{} {} {}".format(args[0], args[1], args[2]))
+            if args[1] == "and":
+                return args[0] and args[2]
+            elif args[1] == "or":
+                return args[0] or args[2]
+            else:
+                raise NotImplementedError
         return Tree("linked", args)
 
     def uop(self, args):

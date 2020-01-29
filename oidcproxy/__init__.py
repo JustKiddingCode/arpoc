@@ -27,14 +27,15 @@ import urllib.parse
 from http.client import HTTPConnection
 #HTTPConnection.debuglevel = 1
 from dataclasses import dataclass, field
-from typing import List, Dict, Union, Tuple, Callable
+from typing import List, Dict, Union, Tuple, Callable, Iterable
 
 # side packages
 
 ##oic
-from oic.oic import Client
+import oic.oic
 from oic.utils.authn.client import CLIENT_AUTHN_METHOD
 from oic.oic.message import RegistrationResponse, AuthorizationResponse
+
 from oic import rndstr
 from oic.utils.http_util import Redirect
 import oic.extension.client
@@ -75,7 +76,7 @@ env = Environment(loader=FileSystemLoader(
 class OidcHandler:
     """ A class to handle the connection to OpenID Connect Providers """
     def __init__(self, cfg: config.OIDCProxyConfig):
-        self.__oidc_provider: Dict[str, Client] = dict()
+        self.__oidc_provider: Dict[str, oic.oic.Client] = dict()
         self.cfg = cfg
         self._secrets: Dict[str, dict] = dict()
         self._cache = oidcproxy.cache.Cache()
@@ -105,8 +106,8 @@ class OidcHandler:
             received with the well-known location url (configuration_url)
 
         """
-        client = Client(client_authn_method=CLIENT_AUTHN_METHOD)
-        registration_response = None
+        client = oic.oic.Client(client_authn_method=CLIENT_AUTHN_METHOD)
+        registration_response: Union[None, RegistrationResponse]
         try:
             if provider.registration_url and provider.registration_token:
                 provider_info = client.provider_config(
@@ -145,7 +146,7 @@ class OidcHandler:
                                    client_secrets: Dict) -> None:
         """ Try to create an openid connect client from the secrets that are
             saved in the secrets file"""
-        self.__oidc_provider[name] = Client(
+        self.__oidc_provider[name] = oic.oic.Client(
             client_authn_method=CLIENT_AUTHN_METHOD)
         self.__oidc_provider[name].provider_config(provider.configuration_url)
         client_reg = RegistrationResponse(**client_secrets)
@@ -329,7 +330,7 @@ class OidcHandler:
 
 #                raise cherrypy.HTTPRedirect("/auth")
 
-    def _get_oidc_client(self, name):
+    def _get_oidc_client(self, name: str) -> oic.oic.Client:
         return self.__oidc_provider[name]
 
     def redirect(self, **kwargs):
@@ -417,7 +418,7 @@ class OidcHandler:
         if "url" in cherrypy.session:
             raise cherrypy.HTTPRedirect(cherrypy.session["url"])
 
-    def _auth(self, scopes=None):
+    def _auth(self, scopes: Union[None, Iterable[str]] = None) -> None:
         if not scopes:
             scopes = ["openid"]
         if "scopes" in cherrypy.session:
@@ -504,7 +505,7 @@ class ServiceProxy:
                         self.cfg['authentication']['keyfile'])
 
         # Get requests method
-        method_switcher : Dict[str, Callable] = {
+        method_switcher: Dict[str, Callable] = {
             "GET": requests.get,
             "PUT": requests.put,
             "POST": requests.post,
@@ -603,10 +604,10 @@ class ServiceProxy:
 
 
 class App:
-    def __init__(self):
+    def __init__(self) -> None:
         self._scheduler = sched.scheduler(time.time, time.sleep)
-        self.oidc_handler : OidcHandler
-        self.config : config.OIDCProxyConfig
+        self.oidc_handler: OidcHandler
+        self.config: config.OIDCProxyConfig
 
     def retry(self,
               function: Callable,
@@ -718,7 +719,7 @@ class App:
         self.t = threading.Thread(target=self._scheduler.run)
         self.t.start()
 
-    def run(self):
+    def run(self) -> None:
         """ Starts the application """
         #### Command Line Argument Parsing
         parser = argparse.ArgumentParser(description='OIDC Proxy')
