@@ -7,15 +7,19 @@ import json
 
 from abc import ABC
 from enum import Enum
-from typing import List, Union, Dict, Type, Any, Tuple
+from typing import List, Union, Dict, Type, Any, Tuple, Callable, Optional, ClassVar, MutableMapping
 
 import logging
+
+from dataclasses import dataclass, InitVar
 
 import lark.exceptions
 
 from .conflict_resolution import *
 
-import oidcproxy.ac.common
+#import oidcproxy
+#import oidcproxy.ac
+import oidcproxy.ac.common as common
 import oidcproxy.ac.parser as parser
 
 logging.basicConfig(level=logging.DEBUG)
@@ -25,44 +29,40 @@ LOGGER = logging.getLogger(__name__)
 #__all__ = ["conflict_resolution", "common", "parser"]
 
 
+@dataclass
 class AC_Entity(ABC):
     """ Class for all access control entities (policy sets, policies, rules"""
-    container: AC_Container
+    container: ClassVar[Optional['AC_Container']]
 
-    def __init__(self, entity_id: str, target: str, description: str) -> None:
-        self.entity_id = entity_id
-        self.target = target
-        self.description = description
+    entity_id: str
+    target: str
+    description: str
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "Entity: {}\nTarget: {}\nDescription: {}\n".format(
             self.entity_id, self.target, self.description)
 
-    def evaluate(
-            self, context: Dict, evaluation_cache: Dict
-    ) -> Tuple[Union[None, oidcproxy.ac.common.Effects], List[str]]:
+    def evaluate(self, context: Dict, evaluation_cache: Dict
+                 ) -> Tuple[Union[None, common.Effects], List[str]]:
         pass
 
-    def _check_match(self, context):
+    def _check_match(self, context: Dict[str, Dict]) -> bool:
         pass
 
 
+@dataclass
 class Policy_Set(AC_Entity):
-    def __init__(self, entity_id, target, description, conflict_resolution,
-                 policy_sets, policies):
-        super().__init__(entity_id, target, description)
-        self.conflict_resolution = conflict_resolution
-        self.policy_sets = policy_sets
-        self.policies = policies
+    conflict_resolution: str
+    policy_sets: List[str]
+    policies: List[str]
 
-    def __str__(self):
+    def __str__(self) -> str:
         basic = super().__str__()
         return "{}Conflict Resolution: {}\nPolicy Sets:{}\nPolicies: {}".format(
             basic, self.conflict_resolution, self.policy_sets, self.policies)
 
-    def evaluate(
-            self, context: Dict, evaluation_cache: Dict
-    ) -> Tuple[Union[None, oidcproxy.ac.common.Effects], List[str]]:
+    def evaluate(self, context: Dict, evaluation_cache: Dict
+                 ) -> Tuple[Union[None, common.Effects], List[str]]:
         """ Evaluate Policy Set"""
         missing_attr: List[str] = []
         evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
@@ -116,26 +116,22 @@ class Policy_Set(AC_Entity):
             LOGGER.debug(cr.get_effect())
         return cr.get_effect(), missing_attr
 
-    def _check_match(self, context):
+    def _check_match(self, context: Dict) -> bool:
         return parser.check_target(self.target, context)
 
 
+@dataclass
 class Policy(AC_Entity):
-    def __init__(self, entity_id, target, description, conflict_resolution,
-                 rules):
-        super().__init__(entity_id, target, description)
-        self.conflict_resolution = conflict_resolution
-        LOGGER.debug(self.conflict_resolution)
-        self.rules = rules
+    conflict_resolution: str
+    rules: List[str]
 
-    def __str__(self):
+    def __str__(self) -> str:
         basic = super().__str__()
         return "{}Conflict Resolution: {}\nRules{}\n".format(
             basic, self.conflict_resolution, self.rules)
 
-    def evaluate(
-            self, context: Dict, evaluation_cache: Dict
-    ) -> Tuple[Union[None, oidcproxy.ac.common.Effects], List[str]]:
+    def evaluate(self, context: Dict, evaluation_cache: Dict
+                 ) -> Tuple[Union[None, common.Effects], List[str]]:
         evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
         )
         try:
@@ -176,32 +172,32 @@ class Policy(AC_Entity):
                      cr.get_effect())
         return (cr.get_effect(), missing_attr)
 
-    def _check_match(self, context):
+    def _check_match(self, context: Dict[str, Dict]) -> bool:
         return parser.check_target(self.target, context)
 
 
+@dataclass
 class Rule(AC_Entity):
-    def __init__(self, entity_id: str, target: str, description: str,
-                 condition: str, effect: str) -> None:
-        super().__init__(entity_id, target, description)
-        self.condition = condition
-        self.effect = oidcproxy.ac.common.Effects[effect]
+    condition: str
+    effect: InitVar[str]
 
-    def __str__(self):
+    def __post_init__(self, effect: str) -> None:
+        self.effect = common.Effects[effect]
+
+    def __str__(self) -> str:
         basic = super().__str__()
         return "{}Condition: {}\nEffect: {}".format(basic, self.condition,
                                                     self.effect)
 
-    def evaluate(
-            self, context: Dict, evaluation_cache: Dict
-    ) -> Tuple[Union[None, oidcproxy.ac.common.Effects], List[str]]:
+    def evaluate(self, context: Dict, evaluation_cache: Dict
+                 ) -> Tuple[Union[None, common.Effects], List[str]]:
         evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
         )
         try:
             if self._check_match(context):
                 if self._check_condition(context):
                     return self.effect, []
-                return oidcproxy.ac.common.Effects(not self.effect), []
+                return common.Effects(not self.effect), []
         except lark.exceptions.VisitError as e:
             if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
                 print(e.orig_exc.attr)
@@ -211,10 +207,10 @@ class Rule(AC_Entity):
             raise
         return None, []
 
-    def _check_condition(self, context):
+    def _check_condition(self, context: Dict[str, Dict]) -> bool:
         return parser.check_condition(self.condition, context)
 
-    def _check_match(self, context):
+    def _check_match(self, context: Dict[str, Dict]) -> bool:
         return parser.check_target(self.target, context)
 
 
@@ -225,48 +221,57 @@ class AC_Container:
         self.policy_sets: Dict[str, Policy_Set] = dict()
         self.rules: Dict[str, Rule] = dict()
 
-    def __str__(self):
+    def __str__(self) -> str:
         string = ""
-        for key, val in self.policies.items():
-            string += "\n{}\n{}".format(str(key), str(val))
-        for key, val in self.policy_sets.items():
-            string += "\n{}\n{}".format(str(key), str(val))
-        for key, val in self.rules.items():
-            string += "\n{}\n{}".format(str(key), str(val))
+        for policy_key, policy_val in self.policies.items():
+            string += "\n{}\n{}".format(str(policy_key), str(policy_val))
+        for ps_key, ps_val in self.policy_sets.items():
+            string += "\n{}\n{}".format(str(ps_key), str(ps_val))
+        for rule_key, rule_val in self.rules.items():
+            string += "\n{}\n{}".format(str(rule_key), str(rule_val))
 
         return string
 
-    def load_file(self, filename):
+    def load_file(self, filename: str) -> None:
         with open(filename) as f:
             data = json.load(f)
             for entity_id, definition in data.items():
                 self.add_entity(entity_id, definition)
 
-    def load_dir(self, path):
+    def load_dir(self, path: str) -> None:
         import glob
         for f in glob.glob(path + "/*.json"):
             self.load_file(f)
 
-    def evaluate_by_entity_id(self, entity_id, context, evaluation_cache=None):
-        evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
-        )
+    def evaluate_by_entity_id(self,
+                              entity_id: str,
+                              context: Dict[str, MutableMapping],
+                              evaluation_cache: Optional[Dict] = None
+                              ) -> Tuple[Optional[common.Effects], List[str]]:
+        if evaluation_cache is None:
+            evaluation_cache = dict()
 
         if entity_id in evaluation_cache:
             return evaluation_cache[entity_id], []
         # Effect, Missing
-        effect, missing = self.policy_sets.get(entity_id, None).evaluate(
-            context, evaluation_cache)
+        try:
+            effect, missing = self.policy_sets[entity_id].evaluate(
+                context, evaluation_cache)
+        except KeyError:
+            LOGGER.debug("Requested ps {}, but was not found in container",
+                         entity_id)
+            raise
 
         evaluation_cache[entity_id] = effect
         assert isinstance(
-            effect, oidcproxy.ac.common.Effects
+            effect, common.Effects
         ) or effect == None, "effect is %s" % effect.__class__
         assert isinstance(missing, list)
         return (effect, missing)
 
-    def add_entity(self, entity_id, definition: Dict[str, str]):
-        if AC_Entity.container == None:
-            AC_Entity.container = self
+    def add_entity(self, entity_id: str, definition: Dict[str, str]) -> None:
+        #        if AC_Entity.container is None:
+        #    AC_Entity.container = self
         switcher = {"Policy": Policy, "PolicySet": Policy_Set, "Rule": Rule}
         switcher_dict: Dict[str, Dict[str, Any]] = {
             "Policy": self.policies,
@@ -295,6 +300,7 @@ class AC_Container:
                      str(kwargs))
         try:
             obj: AC_Entity = switcher[definition['Type']](entity_id, **kwargs)
+            obj.container = self
 
             obj_container: Dict[str, AC_Entity] = switcher_dict[
                 definition['Type']]

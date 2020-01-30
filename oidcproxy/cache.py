@@ -23,18 +23,18 @@ class Cache(collections.UserDict):
             if elem.item in self.data:
                 del self.data[elem.item]
 
-    def put(self, key, data, valid) -> None:
+    def put(self, key: str, data: Any, valid: int) -> None:
         self.expire()
         if key in self.data:
             raise Exception
         self.data[key] = data
         heapq.heappush(self.__valid, CacheItem(valid, key))
 
-    def __getitem__(self, key) -> Any:
+    def __getitem__(self, key: str) -> Any:
         self.expire()
         return self.data[key]
 
-    def get(self, key, default=None) -> Any:
+    def get(self, key: str, default: Any = None) -> Any:
         try:
             return self[key]
         except KeyError:

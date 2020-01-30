@@ -23,3 +23,6 @@ pdfdoc: doc
 
 codelines:
 	cloc oidcproxy --exclude-dir=htmlcov,__pycache__
+
+mypy:
+	mypy oidcproxy --ignore-missing-imports --disallow-untyped-calls --no-site-packages --disallow-incomplete-defs --disallow-untyped-defs || :

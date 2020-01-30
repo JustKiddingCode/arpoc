@@ -1,7 +1,7 @@
 from jinja2 import Environment, FileSystemLoader
 
 from dataclasses import dataclass, field
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Optional
 
 import os
 
@@ -19,23 +19,23 @@ class PAPNode:
     target: str
     effect: str
     condition: str
-    policy_sets: Union[List[object], None]
-    policies: Union[List[object], None]
-    rules: Union[List[object], None]
+    policy_sets: Optional[List['PAPNode']]
+    policies: Optional[List['PAPNode']]
+    rules: Optional[List['PAPNode']]
 
 
-def create_PAPNode_Rule(rule: ac.Rule):
+def create_PAPNode_Rule(rule: ac.Rule) -> PAPNode:
     return PAPNode(rule.entity_id, "rule", "", rule.target, str(rule.effect),
                    rule.condition, None, None, None)
 
 
-def create_PAPNode_Policy(policy: ac.Policy):
+def create_PAPNode_Policy(policy: ac.Policy) -> PAPNode:
     rules = [create_PAPNode_Rule(ac.container.rules[x]) for x in policy.rules]
     return PAPNode(policy.entity_id, "policy", policy.conflict_resolution,
                    policy.target, "", "", None, None, rules)
 
 
-def create_PAPNode_Policy_Set(policy_set: ac.Policy_Set):
+def create_PAPNode_Policy_Set(policy_set: ac.Policy_Set) -> PAPNode:
     policies = [
         create_PAPNode_Policy(ac.container.policies[x])
         for x in policy_set.policies
@@ -50,10 +50,10 @@ def create_PAPNode_Policy_Set(policy_set: ac.Policy_Set):
 
 
 class PolicyAdministrationPoint:
-    def __init__(self):
-        pass
+    #    def __init__(self):
+    #        pass
 
-    def index(self):
+    def index(self) -> str:
         tmpl = env.get_template('pap.html')
         s = []
         for ps in ac.container.policy_sets:

@@ -3,7 +3,9 @@ import logging
 import os
 import re
 import warnings
+from abc import abstractmethod
 from functools import reduce
+from typing import Dict, Any, TypeVar, Union, List
 
 import lark.exceptions
 from lark import Lark, Transformer, Tree, tree
@@ -17,6 +19,8 @@ lark_target = Lark(grammar, start="target")
 
 LOGGER = logging.getLogger(__name__)
 
+TNum = TypeVar('TNum', int, float)
+
 
 class BadSemantics(Exception):
     pass
@@ -24,41 +28,46 @@ class BadSemantics(Exception):
 
 class BinaryOperator:
     @classmethod
-    def eval(cls, op1, op2):
+    @abstractmethod
+    def eval(cls, op1: Any, op2: Any) -> Any:
         pass
 
 
 class BinarySameTypeOperator(BinaryOperator):
     @classmethod
-    def eval(cls, op1, op2):
+    @abstractmethod
+    def eval(cls, op1: Any, op2: Any) -> bool:
         if type(op1) != type(op2):
             raise BadSemantics(
                 "op1 '{}' and op2 '{}' need to have the same type, found {}, {}"
                 .format(op1, op2, type(op1), type(op2)))
+        return False
 
 
 class BinaryStringOperator(BinaryOperator):
     @classmethod
-    def eval(cls, op1, op2):
+    def eval(cls, op1: str, op2: str) -> bool:
         if not isinstance(op1, str):
             raise BadSemantics("op1 '{}' is not a string".format(op1))
         if not isinstance(op2, str):
             raise BadSemantics("op2 '{}' is not a string".format(op2))
+        return False
 
 
 class BinaryNumeralOperator(BinaryOperator):
     @classmethod
-    def eval(cls, op1, op2):
+    def eval(cls, op1: TNum, op2: TNum) -> bool:
         NumberTypes = (int, float)
         if not isinstance(op1, NumberTypes):
             raise BadSemantics("op1 '{}' is not a number".format(op1))
         if not isinstance(op2, NumberTypes):
             raise BadSemantics("op1 '{}' is not a number".format(op2))
+        return False
 
 
 class BinaryOperatorIn(BinaryOperator):
     @classmethod
-    def eval(cls, op1, op2):
+    def eval(cls, op1: Any, op2: Union[list, dict]) -> bool:
         if not isinstance(op2, list):
             if isinstance(op2, dict):
                 return op1 in op2.keys()
@@ -68,40 +77,40 @@ class BinaryOperatorIn(BinaryOperator):
 
 class Lesser(BinarySameTypeOperator):
     @classmethod
-    def eval(cls, op1, op2):
+    def eval(cls, op1: Any, op2: Any) -> bool:
         super().eval(op1, op2)
         return op1 < op2
 
 
 class Greater(BinarySameTypeOperator):
     @classmethod
-    def eval(cls, op1, op2):
+    def eval(cls, op1: Any, op2: Any) -> bool:
         super().eval(op1, op2)
         return op1 > op2
 
 
 class Equal(BinaryOperator):
     @classmethod
-    def eval(cls, op1, op2):
+    def eval(cls, op1: Any, op2: Any) -> bool:
         return op1 == op2
 
 
 class NotEqual(BinaryOperator):
     @classmethod
-    def eval(cls, op1, op2):
+    def eval(cls, op1: Any, op2: Any) -> bool:
         return op1 != op2
 
 
 class startswith(BinaryStringOperator):
     @classmethod
-    def eval(cls, op1, op2):
+    def eval(cls, op1: str, op2: str) -> bool:
         super().eval(op1, op2)
         return op1.startswith(op2)
 
 
 class matches(BinaryStringOperator):
     @classmethod
-    def eval(cls, op1, op2):
+    def eval(cls, op1: str, op2: str) -> bool:
         super().eval(op1, op2)
         return re.fullmatch(op2, op1) != None
 
@@ -126,7 +135,7 @@ class AttributeMissing(OIDCProxyException):
 
 
 class SubjectAttributeMissing(AttributeMissing):
-    def __init__(self, message, attr):
+    def __init__(self, message: str, attr: str) -> None:
         super().__init__(self, message)
         self.attr = attr
 
@@ -144,16 +153,16 @@ class BadRuleSyntax(Exception):
 
 
 class UOP:
-    def exists(elem):
+    def exists(elem: Any) -> bool:
         return elem != None
 
 
 class TransformAttr(Transformer):
-    def __init__(self, data):
+    def __init__(self, data: Dict):
         super().__init__(self)
         self.data = data
 
-    def subject_attr(self, args):
+    def subject_attr(self, args: List) -> Any:
         attr = reduce(
             lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
             args[0].split("."), self.data["subject"])
@@ -162,7 +171,7 @@ class TransformAttr(Transformer):
                                           args[0])
         return attr
 
-    def access_attr(self, args):
+    def access_attr(self, args: List) -> Any:
         attr = reduce(
             lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
             args[0].split("."), self.data["access"])
@@ -170,7 +179,7 @@ class TransformAttr(Transformer):
         #        attr = self.data["access"].get(str(args[0]), None)
         return attr
 
-    def object_attr(self, args):
+    def object_attr(self, args: List) -> Any:
         attr = reduce(
             lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
             args[0].split("."), self.data["object"])
@@ -183,7 +192,7 @@ class TransformAttr(Transformer):
 
         return attr
 
-    def environment_attr(self, args):
+    def environment_attr(self, args: List) -> Any:
         attr = reduce(
             lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
             args[0].split("."), self.data["environment"])
@@ -194,13 +203,13 @@ class TransformAttr(Transformer):
 
         return attr
 
-    def list_inner(self, args):
+    def list_inner(self, args: List) -> Any:
         # either we have two children (one list, one literal) or one child (literal)
         if len(args) == 1:
             return [args[0]]
         return [args[0]] + args[1]
 
-    def lit(self, args):
+    def lit(self, args: List) -> Union[Dict, List, str, int, float]:
         if isinstance(args[0], (list, )):
             return args[0]
         if args[0].type == "SINGLE_QUOTED_STRING":
@@ -213,41 +222,46 @@ class TransformAttr(Transformer):
 
 
 class EvalComplete(Transformer):
-    def condition(self, args):
+    def condition(self, args: List) -> Any:
         if len(args) == 1:
             return args[0]
-        return Tree("condition", args)
+        raise ValueError
+        #return Tree("condition", args)
 
-    def target(self, args):
+    def target(self, args: List) -> Any:
         if len(args) == 1:
             return args[0]
-        return Tree("target", args)
+        raise ValueError
+
+
+#        return Tree("target", args)
 
 
 class EvalTree(Transformer):
-    def cbop(self, args):
+    def cbop(self, args: List) -> str:
         return str(args[0])
 
-    def lbop(self, args):
+    def lbop(self, args: List) -> str:
         return str(args[0])
 
-    def statement(self, args):
+    def statement(self, args: List) -> Any:
         if len(args) == 1:
             return args[0]
-        return Tree("statement", args)
+        raise ValueError
+#        return Tree("statement", args)
 
-    def comparison(self, args):
+    def comparison(self, args: List) -> bool:
         # xor check for none attributes
         if bool(args[0] == None) ^ bool(args[2] == None):
             return False
         op = binary_operators.get(args[1], None)
-        if op == None:
+        if op is None:
             raise NotImplementedError()
-        assert op is not None  # for mypy
+#        assert op is not None  # for mypy
         LOGGER.debug("{} {} {}".format(args[0], args[1], args[2]))
         return op.eval(args[0], args[2])
 
-    def linked(self, args):
+    def linked(self, args: List) -> bool:
         if isinstance(args[0], bool) and isinstance(args[2], bool):
             if args[1] == "and":
                 return args[0] and args[2]
@@ -255,21 +269,23 @@ class EvalTree(Transformer):
                 return args[0] or args[2]
             else:
                 raise NotImplementedError
-        return Tree("linked", args)
+        raise ValueError
 
-    def uop(self, args):
+
+#        return Tree("linked", args)
+
+    def uop(self, args: List) -> Any:
         return getattr(UOP, str(args[0]))
 
-    def single(self, args):
+    def single(self, args: List) -> Any:
         if len(args) == 2:
             return args[0](args[1])
         if len(args) == 1:
             return args[0]
-        assert False
-        return None
+        raise ValueError
 
 
-def check_condition(condition, data):
+def check_condition(condition: str, data: Dict) -> bool:
     global lark_condition
     LOGGER.debug("Check condition %s with data %s", condition, data)
     l = Lark(grammar, start="condition")
@@ -285,7 +301,7 @@ def check_condition(condition, data):
     return ret_value
 
 
-def check_target(rule, data):
+def check_target(rule: str, data: Dict) -> bool:
     global lark_target
     LOGGER.debug("Check target rule %s with data %s", rule, data)
     try:

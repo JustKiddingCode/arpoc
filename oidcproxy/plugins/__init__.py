@@ -2,7 +2,7 @@
 # from user ted @ https://stackoverflow.com/a/59054776
 from importlib import import_module
 from pathlib import Path
-from typing import Dict, Callable
+from typing import Dict, Callable, Optional
 
 from . import _lib
 
@@ -20,7 +20,7 @@ class DuplicateKeyError(Exception):
     pass
 
 
-def get_env_attr_dict():
+def get_env_attr_dict() -> Dict[str, Callable]:
     d: Dict[str, Callable] = dict()
     for plugin in _lib.EnvironmentAttribute.__subclasses__():
         if plugin.target in d.keys():
@@ -43,7 +43,8 @@ class PrioritizedItem:
 
 
 class ObjectDict(collections.UserDict):
-    def __init__(self, service_name, initialdata=None):
+    def __init__(self, service_name: str,
+                 initialdata: Optional[Dict] = None) -> None:
         if not initialdata:
             initialdata = {}
         super().__init__(initialdata)
@@ -65,7 +66,7 @@ class ObjectDict(collections.UserDict):
                     item = PrioritizedItem(priority, plugin(plugin_cfg))
                     self._queue.put(item)
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Any = None) -> Any:
         if key in self.data:
             return self.data[key]
 
@@ -76,7 +77,7 @@ class ObjectDict(collections.UserDict):
                 return self.data[key]
         return default
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         elem = self.get(key)
         if elem == None:
             raise KeyError
@@ -84,13 +85,13 @@ class ObjectDict(collections.UserDict):
 
 
 class EnvironmentDict(collections.UserDict):
-    def __init__(self, initialdata=None):
+    def __init__(self, initialdata: Dict = None) -> None:
         if not initialdata:
             initialdata = {}
         super().__init__(initialdata)
         self._getter = get_env_attr_dict()
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: Any = None) -> Any:
         if key in self.data:
             return self.data[key]
         if key in self._getter:
@@ -98,7 +99,7 @@ class EnvironmentDict(collections.UserDict):
             return self.data[key]
         return default
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         elem = self.get(key)
         if elem == None:
             raise KeyError

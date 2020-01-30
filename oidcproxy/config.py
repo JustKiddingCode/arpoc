@@ -7,7 +7,7 @@ the configuration with the `config.cfg` variable.
 import logging
 import os
 from dataclasses import InitVar, asdict, dataclass, field, replace
-from typing import List, Dict, Union
+from typing import Dict, List, Union, Any
 
 import yaml
 
@@ -25,7 +25,7 @@ class ProviderConfig:
     special_claim2scope: InitVar[dict] = None
     claim2scope: dict = field(init=False)
 
-    def __post_init__(self, special_claim2scope):
+    def __post_init__(self, special_claim2scope: Dict) -> None:
         self.claim2scope = {
             "name": ['profile'],
             "family_name": ['profile'],
@@ -51,7 +51,7 @@ class ProviderConfig:
             for key, val in special_claim2scope.items():
                 self.claim2scope[key] = val
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
 
 
@@ -70,7 +70,7 @@ class ProxyConfig:
     secrets: str = "/var/lib/oidc-proxy/secrets.yml"
     redirect: str = "/secure/redirect_uris"
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
 
 
@@ -83,11 +83,11 @@ class ServiceConfig:
     objectsetters: dict = field(default_factory=dict)
     authentication: dict = field(default_factory=dict)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
 
 
-def default_json_dir():
+def default_json_dir() -> List:
     return ["/etc/oidc-proxy/acl"]
 
 
@@ -96,7 +96,7 @@ class ACConfig:
     """ Configuration for the access control """
     json_dir: List[str] = field(default_factory=default_json_dir)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
 
 
@@ -129,7 +129,7 @@ class OIDCProxyConfig:
                     pass
         self.check_config()
 
-    def add_provider(self, name: str, cfg: ProviderConfig):
+    def add_provider(self, name: str, cfg: ProviderConfig) -> None:
         self.openid_providers[name] = cfg
 
     def print_sample_config(self) -> None:
@@ -183,7 +183,7 @@ class OIDCProxyConfig:
             else:
                 self.proxy = ProxyConfig(**new_cfg['proxy'])
 
-    def read_file(self, filepath: str):
+    def read_file(self, filepath: str) -> None:
         with open(filepath, 'r') as ymlfile:
             new_cfg = yaml.safe_load(ymlfile)
 

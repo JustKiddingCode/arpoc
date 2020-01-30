@@ -1,3 +1,5 @@
+from typing import Any
+
 import datetime
 
 from . import _lib
@@ -9,7 +11,7 @@ class EnvAttrTime(_lib.EnvironmentAttribute):
     target = "time"
 
     @staticmethod
-    def run():
+    def run() -> Any:
         now = datetime.datetime.now()
         return "{}:{}:{}".format(now.hour, now.minute, now.second)
 
@@ -20,7 +22,7 @@ class EnvAttrDateTime(_lib.EnvironmentAttribute):
     target = "datetime"
 
     @staticmethod
-    def run():
+    def run() -> Any:
         now = datetime.datetime.now()
         return "{}-{}-{} {}:{}:{}".format(now.year, now.month, now.day,
                                           now.hour, now.minute, now.second)
@@ -32,7 +34,7 @@ class EnvAttrTimeHour(_lib.EnvironmentAttribute):
     target = "time_hour"
 
     @staticmethod
-    def run():
+    def run() -> Any:
         now = datetime.datetime.now()
         return now.hour
 
@@ -43,7 +45,7 @@ class EnvAttrTimeMinute(_lib.EnvironmentAttribute):
     target = "time_minute"
 
     @staticmethod
-    def run():
+    def run() -> Any:
         now = datetime.datetime.now()
         return now.minute
 
@@ -54,6 +56,6 @@ class EnvAttrTimeSecond(_lib.EnvironmentAttribute):
     target = "time_second"
 
     @staticmethod
-    def run():
+    def run() -> Any:
         now = datetime.datetime.now()
         return now.second

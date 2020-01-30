@@ -27,7 +27,7 @@ import urllib.parse
 from http.client import HTTPConnection
 #HTTPConnection.debuglevel = 1
 from dataclasses import dataclass, field
-from typing import List, Dict, Union, Tuple, Callable, Iterable
+from typing import List, Dict, Union, Tuple, Callable, Iterable, Optional, Any
 
 # side packages
 
@@ -81,7 +81,7 @@ class OidcHandler:
         self._secrets: Dict[str, dict] = dict()
         self._cache = oidcproxy.cache.Cache()
 
-    def get_secrets(self):
+    def get_secrets(self) -> Dict[str, dict]:
         return self._secrets
 
     def get_evaluation_cache(self,
@@ -210,7 +210,7 @@ class OidcHandler:
             return cherrypy.session['refresh'] < now
         return False
 
-    def need_claims(self, claims: List[str]):
+    def need_claims(self, claims: List[str]) -> None:
         if 'provider' in cherrypy.session:
             provider = cherrypy.session['provider']
             scopes = set(["openid"])
@@ -237,7 +237,7 @@ class OidcHandler:
 
         return None
 
-    def get_userinfo(self):
+    def get_userinfo(self) -> Tuple[Optional[str], Dict]:
         """ Gets the userinfo from the OIDC Provider.
             This works in two steps:
                 1. Check if the user supplied an Access Token
@@ -333,13 +333,15 @@ class OidcHandler:
     def _get_oidc_client(self, name: str) -> oic.oic.Client:
         return self.__oidc_provider[name]
 
-    def redirect(self, **kwargs):
+    def redirect(self, **kwargs: Any) -> str:
+        # We are trying to get the user info here from the provider
         LOGGING.debug(cherrypy.session)
         LOGGING.debug('kwargs is %s' % kwargs)
+        # Errors?
         if 'error' in kwargs:
             tmpl = env.get_template('500.html')
             return tmpl.render(info=kwargs)
-
+        # Get Access Token
         qry = {key: kwargs[key] for key in ['state', 'code']}
         client = self._get_oidc_client(cherrypy.session['provider'])
         aresp = client.parse_response(AuthorizationResponse,
@@ -360,7 +362,7 @@ class OidcHandler:
         # check for scopes:
         requested_scopes = set(cherrypy.session["scopes"])
         response_scopes = set(resp['scope'])
-
+        # Did we get the requested scopes?
         if not requested_scopes.issubset(response_scopes):
             tmpl = env.get_template('500.html')
             info = {
@@ -414,9 +416,10 @@ class OidcHandler:
                 "userinfo": dict(userinfo),
                 "evaluation_cache": {}
             }, refresh_valid)
-
+        # There should be an url in the session so we can redirect
         if "url" in cherrypy.session:
             raise cherrypy.HTTPRedirect(cherrypy.session["url"])
+        raise RuntimeError
 
     def _auth(self, scopes: Union[None, Iterable[str]] = None) -> None:
         if not scopes:
@@ -449,7 +452,7 @@ class OidcHandler:
 
         raise cherrypy.HTTPRedirect(login_url)
 
-    def auth(self, name='', **kwargs):
+    def auth(self, name: str = '', **kwargs: Any) -> Optional[str]:
         # Do we have only one openid provider? -> use this
         if len(self.__oidc_provider) == 1:
             cherrypy.session['provider'] = self.__oidc_provider.keys(
@@ -468,6 +471,7 @@ class OidcHandler:
                 return tmpl.render(auth_page='/auth', provider=provider)
 
         self._auth()
+        return None  # we won't get here
 
 
 class ServiceProxy:
@@ -481,7 +485,7 @@ class ServiceProxy:
         self.cfg = cfg
         self._oidc_handler = oidc_handler
 
-    def _proxy(self, url, access):
+    def _proxy(self, url: str, access: Dict) -> str:
         """ Actually perform the proxying.
 
             1. Setup request
@@ -529,20 +533,20 @@ class ServiceProxy:
         cherrypy.response.status = resp.status_code
         return resp
 
-    def _build_url(self, url: str, **kwargs) -> str:
+    def _build_url(self, url: str, **kwargs: Any) -> str:
         url = "{}/{}".format(self.cfg['origin_URL'], url)
         if kwargs:
             url = "{}?{}".format(url, urllib.parse.urlencode(kwargs))
         return url
 
-    def _build_proxy_url(self, url='', **kwargs) -> str:
+    def _build_proxy_url(self, url: str = '', **kwargs: Any) -> str:
         this_url = "{}{}/{}".format(self._oidc_handler.cfg.proxy['hostname'],
                                     self.cfg['proxy_URL'][1:], url)
         if kwargs:
             this_url = "{}?{}".format(this_url, urllib.parse.urlencode(kwargs))
         return this_url
 
-    def _send_403(self, message='') -> str:
+    def _send_403(self, message: str = '') -> str:
         cherrypy.response.status = 403
         return "<h1>Forbidden</h1><br>%s" % message
 
@@ -561,7 +565,7 @@ class ServiceProxy:
         return {"method": method, "body": body, "headers": headers}
 
     @cherrypy.expose
-    def index(self, *args, url='', **kwargs):
+    def index(self, *args: Any, url: str = '', **kwargs: Any) -> str:
         """
             Connects to the origin_URL of the proxied service.
             Important: If a request parameter "url" is in the REQUEST, it will
@@ -572,8 +576,10 @@ class ServiceProxy:
         LOGGING.debug("Incoming Request %s", url)
         LOGGING.debug("Kwargs are %s", kwargs)
         hash_access_token, userinfo = self._oidc_handler.get_userinfo()
-        evaluation_cache = self._oidc_handler.get_evaluation_cache(
-            hash_access_token)
+        evaluation_cache = None
+        if hash_access_token is not None:
+            evaluation_cache = self._oidc_handler.get_evaluation_cache(
+                hash_access_token)
 
         object_dict = ObjectDict(service_name=self.service_name,
                                  initialdata={
@@ -612,9 +618,9 @@ class App:
     def retry(self,
               function: Callable,
               exceptions: Tuple,
-              *args,
-              retries=5,
-              retry_delay=30):
+              *args: Any,
+              retries: int = 5,
+              retry_delay: int = 30) -> None:
         """ Retries function <retries> times, as long as <exceptions> are thrown"""
         try:
             function(*args)
@@ -634,7 +640,7 @@ class App:
                                           'retry_delay': retry_delay
                                       })
 
-    def get_routes_dispatcher(self):
+    def get_routes_dispatcher(self) -> cherrypy.dispatch.RoutesDispatcher:
         d = cherrypy.dispatch.RoutesDispatcher()
         # Connect the Proxied Services
         for name, service_cfg in self.config.services.items():
@@ -671,7 +677,7 @@ class App:
 
         return d
 
-    def read_secrets(self, filepath):
+    def read_secrets(self, filepath: str) -> Dict:
         try:
             with open(filepath, 'r') as ymlfile:
                 secrets = yaml.safe_load(ymlfile)
@@ -680,11 +686,11 @@ class App:
 
         return secrets
 
-    def save_secrets(self):
+    def save_secrets(self) -> None:
         with open(self.config.proxy['secrets'], 'w') as ymlfile:
             yaml.safe_dump(self.oidc_handler.get_secrets(), ymlfile)
 
-    def create_secrets_dir(self):
+    def create_secrets_dir(self) -> None:
         assert isinstance(self.config.proxy, config.ProxyConfig)
         secrets_dir = os.path.dirname(self.config.proxy['secrets'])
         os.makedirs(secrets_dir, exist_ok=True)
@@ -696,8 +702,7 @@ class App:
             for filename in filenames:
                 os.chown(os.path.join(dirpath, filename), uid, gid)
 
-    def setup_oidc_provider(self):
-        clients = dict()
+    def setup_oidc_provider(self) -> None:
         assert isinstance(self.config, config.OIDCProxyConfig)
         self.oidc_handler = OidcHandler(self.config)
 
