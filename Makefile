@@ -14,10 +14,10 @@ doc:
 	sphinx-apidoc -o docs/api oidcproxy -f
 
 htmldoc: doc
-	sphinx-build -b html . htmldoc
+	sphinx-build -c docs -b html . htmldoc
 
 pdfdoc: doc
-	sphinx-build -b latex . latexdoc
+	sphinx-build -c docs -b latex . latexdoc
 	cd latexdoc && latexmk --pdf OIDCProxy.tex
 	cp latexdoc/OIDCProxy.pdf ./doc.pdf
 

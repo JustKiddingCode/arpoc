@@ -1,17 +1,6 @@
 Writing Access Control Rules
 ============================
 
-The access control rules are ordered in a hierarchy.
-There are policy sets, policies and rules.
-Every policy sets can contain other policy sets or other policies.
-Every policy can contain multiple rules.
-
-Every entity (policy set, policy, rule) has an unique id, and a target.
-An entity is only evaluated if the target is evaluated to true.
-Policies and policy sets have a resolver to solve conflicts of the rule
-evaluation. Rules have a condition and an effect.
-The effect (GRANT, DENY) is only returned if the rule's condition has
-evaluated to true.
 
 Every service has a policy set assigned that is evaluated and based on the
 outcome the access to the service is either granted or denied.
