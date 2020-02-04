@@ -3,6 +3,7 @@ import logging
 import os
 import re
 import warnings
+from oidcproxy.exceptions import *
 from abc import abstractmethod
 from functools import reduce
 from typing import Dict, Any, TypeVar, Union, List
@@ -124,32 +125,6 @@ binary_operators = {
     "==": Equal,
     "!=": NotEqual
 }
-
-
-class OIDCProxyException(Exception):
-    pass
-
-
-class AttributeMissing(OIDCProxyException):
-    pass
-
-
-class SubjectAttributeMissing(AttributeMissing):
-    def __init__(self, message: str, attr: str) -> None:
-        super().__init__(self, message)
-        self.attr = attr
-
-
-class ObjectAttributeMissing(AttributeMissing):
-    pass
-
-
-class EnvironmentAttributeMissing(AttributeMissing):
-    pass
-
-
-class BadRuleSyntax(Exception):
-    pass
 
 
 class UOP:

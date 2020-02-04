@@ -1,0 +1,16 @@
+{
+"policy_with_missing_rule": {
+		"Type": "Policy",
+		"Description": " ",
+		"Target" : "True",
+		"Resolver": "AND"
+},
+"policyset_with_missing_policyset" : {
+		"Type": "not-existing",
+		"Description": " ",
+		"Target": "True",
+		"Policies": ["policy_dummy"],
+		"PolicySets": ["not-existing", "policyset_dummy"],
+		"Resolver": "AND"
+}
+}

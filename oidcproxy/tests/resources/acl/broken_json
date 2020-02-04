@@ -1,0 +1,49 @@
+"policy_with_missing_rule": {
+		"Type": "Policy",
+		"Description": " ",
+		"Target" : "True",
+		"Rules" : [ "not-existing" ],
+		"Resolver": "AND"
+},
+"policyset_with_missing_policyset" : {
+		"Type": "PolicySet",
+		"Description": " ",
+		"Target": "True",
+		"Policies": ["policy_dummy"],
+		"PolicySets": ["not-existing", "policyset_dummy"],
+		"Resolver": "AND"
+},
+"policyset_with_missing_policy" : {
+		"Type": "PolicySet",
+		"Description": " ",
+		"Target": "True",
+		"Policies": ["not-existing","policy_dummy"],
+		"PolicySets": ["policyset_dummy"],
+		"Resolver": "AND"
+},
+
+"policyset_dummy" : {
+		"Type": "PolicySet",
+		"Description": " ",
+		"Target": "True",
+		"Policies": ["policy_dummy"],
+		"PolicySets": [],
+		"Resolver": "AND"
+},
+
+"policy_dummy": {
+		"Type": "Policy",
+		"Description": " ",
+		"Target" : "True",
+		"Rules" : [ "rule_dummy" ],
+		"Resolver": "AND"
+},
+"rule_dummy": {
+		"Type": "Rule",
+		"Target": "True",
+		"Description": "Dummy Rule",
+		"Condition" : "True",
+		"Effect": "GRANT"
+}
+
+}

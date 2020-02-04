@@ -9,6 +9,8 @@ from abc import ABC
 from enum import Enum
 from typing import List, Union, Dict, Type, Any, Tuple, Callable, Optional, ClassVar, MutableMapping
 
+import itertools
+
 import logging
 
 from dataclasses import dataclass, InitVar
@@ -16,6 +18,7 @@ from dataclasses import dataclass, InitVar
 import lark.exceptions
 
 from .conflict_resolution import *
+from oidcproxy.exceptions import *
 
 #import oidcproxy
 #import oidcproxy.ac
@@ -38,9 +41,18 @@ class AC_Entity(ABC):
     target: str
     description: str
 
-    def __str__(self) -> str:
-        return "Entity: {}\nTarget: {}\nDescription: {}\n".format(
-            self.entity_id, self.target, self.description)
+    def _evaluate(self, entity_id, getter, evaluation_cache, cr, context,
+                  missing_attr):
+        if entity_id not in evaluation_cache:
+            LOGGER.debug("Considering entity_id %s", entity_id)
+            try:
+                result, missing = getter[entity_id].evaluate(
+                    context, evaluation_cache)
+            except KeyError:
+                raise ACEntityMissing(entity_id)
+            missing_attr += missing
+            evaluation_cache[entity_id] = result
+            cr.update(entity_id, result)
 
     def evaluate(self, context: Dict, evaluation_cache: Dict
                  ) -> Tuple[Union[None, common.Effects], List[str]]:
@@ -56,11 +68,6 @@ class Policy_Set(AC_Entity):
     policy_sets: List[str]
     policies: List[str]
 
-    def __str__(self) -> str:
-        basic = super().__str__()
-        return "{}Conflict Resolution: {}\nPolicy Sets:{}\nPolicies: {}".format(
-            basic, self.conflict_resolution, self.policy_sets, self.policies)
-
     def evaluate(self, context: Dict, evaluation_cache: Dict
                  ) -> Tuple[Union[None, common.Effects], List[str]]:
         """ Evaluate Policy Set"""
@@ -75,45 +82,28 @@ class Policy_Set(AC_Entity):
                 self.conflict_resolution)
 
         if self._check_match(context):
-            assert self.container is not None
-            for policy_set_id in self.policy_sets:
-                if policy_set_id not in evaluation_cache:
-                    LOGGER.debug("Considering policy set %s", policy_set_id)
-                    try:
-                        result, missing = self.container.policy_sets[
-                            policy_set_id].evaluate(context, evaluation_cache)
-                    except KeyError:
-                        LOGGER.debug(
-                            "{} requested ps {}, but was not found in container",
-                            self.entity_id, policy_set_id)
-                        raise
-                    missing_attr += missing
-                    evaluation_cache[policy_set_id] = result
-                    cr.update(policy_set_id, result)
-
+            try:
+                assert self.container is not None
+                for policy_set_id in self.policy_sets:
+                    self._evaluate(policy_set_id, self.container.policy_sets,
+                                   evaluation_cache, cr, context, missing_attr)
                     if cr.check_break():
                         break
 
-            for policy_id in self.policies:
-                if policy_id not in evaluation_cache:
-                    LOGGER.debug("Considering policy %s", policy_id)
-                    try:
-                        result, missing = self.container.policies[
-                            policy_id].evaluate(context, evaluation_cache)
-                    except KeyError:
-                        LOGGER.debug(
-                            "{} requested p {}, but was not found in container",
-                            self.entity_id, policy_id)
-                        raise
+                for policy_id in self.policies:
+                    self._evaluate(policy_id, self.container.policies,
+                                   evaluation_cache, cr, context, missing_attr)
+                    if cr.check_break():
+                        break
+            except ACEntityMissing as e:
+                LOGGER.warning(
+                    "%s requested entity %s, but was not found in container",
+                    self.entity_id, e.args[0])
+                return None, missing_attr
 
-                    missing_attr += missing
-                    evaluation_cache[policy_id] = result
-                cr.update(policy_id, evaluation_cache[policy_id])
-
-                if cr.check_break():
-                    break
             LOGGER.debug(evaluation_cache)
             LOGGER.debug(cr.get_effect())
+
         return cr.get_effect(), missing_attr
 
     def _check_match(self, context: Dict) -> bool:
@@ -124,11 +114,6 @@ class Policy_Set(AC_Entity):
 class Policy(AC_Entity):
     conflict_resolution: str
     rules: List[str]
-
-    def __str__(self) -> str:
-        basic = super().__str__()
-        return "{}Conflict Resolution: {}\nRules{}\n".format(
-            basic, self.conflict_resolution, self.rules)
 
     def evaluate(self, context: Dict, evaluation_cache: Dict
                  ) -> Tuple[Union[None, common.Effects], List[str]]:
@@ -147,25 +132,18 @@ class Policy(AC_Entity):
 
         if self._check_match(context):
             assert self.container is not None
-            for rules_id in self.rules:
-                if rules_id not in evaluation_cache:
-                    LOGGER.debug("Considering rule %s", rules_id)
-                    try:
-                        effect, missing = self.container.rules[
-                            rules_id].evaluate(context, evaluation_cache)
-                    except KeyError:
-                        LOGGER.debug(
-                            "{} requested r {}, but was not found in container",
-                            self.entity_id, rules_id)
-                        raise
+            try:
+                for rule_id in self.rules:
+                    self._evaluate(rule_id, self.container.rules,
+                                   evaluation_cache, cr, context, missing_attr)
+                    if cr.check_break():
+                        break
+            except ACEntityMissing as e:
+                LOGGER.warning(
+                    "%s requested entity %s, but was not found in container",
+                    self.entity_id, e.args[0])
+                return None, missing_attr
 
-                    missing_attr += missing
-                    evaluation_cache[rules_id] = effect
-                    LOGGER.debug(evaluation_cache[rules_id])
-                cr.update(rules_id, evaluation_cache[rules_id])
-
-                if cr.check_break():
-                    break
         LOGGER.debug("policy %s evaluation_cache %s", self.entity_id,
                      evaluation_cache)
         LOGGER.debug("policy %s evaluated to %s", self.entity_id,
@@ -184,11 +162,6 @@ class Rule(AC_Entity):
     def __post_init__(self, effect: str) -> None:
         self.effect = common.Effects[effect]
 
-    def __str__(self) -> str:
-        basic = super().__str__()
-        return "{}Condition: {}\nEffect: {}".format(basic, self.condition,
-                                                    self.effect)
-
     def evaluate(self, context: Dict, evaluation_cache: Dict
                  ) -> Tuple[Union[None, common.Effects], List[str]]:
         evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
@@ -200,9 +173,6 @@ class Rule(AC_Entity):
                 return common.Effects(not self.effect), []
         except lark.exceptions.VisitError as e:
             if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
-                print(e.orig_exc.attr)
-                print(e.__class__)
-                print(e.__traceback__)
                 return (None, [e.orig_exc.attr])
             raise
         return None, []
@@ -223,20 +193,23 @@ class AC_Container:
 
     def __str__(self) -> str:
         string = ""
-        for policy_key, policy_val in self.policies.items():
-            string += "\n{}\n{}".format(str(policy_key), str(policy_val))
-        for ps_key, ps_val in self.policy_sets.items():
-            string += "\n{}\n{}".format(str(ps_key), str(ps_val))
-        for rule_key, rule_val in self.rules.items():
-            string += "\n{}\n{}".format(str(rule_key), str(rule_val))
+        for key, val in itertools.chain(self.policies.items(),
+                                        self.policy_sets.items(),
+                                        self.rules.items()):
+            string += "\n{}\n{}".format(str(key), str(val))
 
         return string
 
     def load_file(self, filename: str) -> None:
-        with open(filename) as f:
-            data = json.load(f)
-            for entity_id, definition in data.items():
-                self.add_entity(entity_id, definition)
+        try:
+            with open(filename) as f:
+                data = json.load(f)
+                for entity_id, definition in data.items():
+                    self.add_entity(entity_id, definition)
+        except json.decoder.JSONDecodeError:
+            LOGGER.error("JSON File %s is no valid json", filename)
+        except TypeError:
+            LOGGER.error("Error handling file: %s", filename)
 
     def load_dir(self, path: str) -> None:
         import glob
@@ -258,9 +231,9 @@ class AC_Container:
             effect, missing = self.policy_sets[entity_id].evaluate(
                 context, evaluation_cache)
         except KeyError:
-            LOGGER.debug("Requested ps {}, but was not found in container",
+            LOGGER.debug("Requested ps %s, but was not found in container",
                          entity_id)
-            raise
+            raise ACEntityMissing(entity_id)
 
         evaluation_cache[entity_id] = effect
         assert isinstance(
@@ -270,6 +243,10 @@ class AC_Container:
         return (effect, missing)
 
     def add_entity(self, entity_id: str, definition: Dict[str, str]) -> None:
+        if not isinstance(definition, Dict):
+            LOGGER.warning("Cannot find ac entity type or cannot initialize")
+            LOGGER.warning('Error at: %s', definition)
+            raise TypeError("Cannot add ac entity without definition as dict")
         #        if AC_Entity.container is None:
         #    AC_Entity.container = self
         switcher = {"Policy": Policy, "PolicySet": Policy_Set, "Rule": Rule}
@@ -295,7 +272,6 @@ class AC_Container:
             for (key, value) in definition.items()
             if cleaner.get(key) != "--filter--"
         }
-        #        print(kwargs)
         LOGGER.debug('Creating %s with parameters %s', definition['Type'],
                      str(kwargs))
         try:
@@ -306,8 +282,12 @@ class AC_Container:
                 definition['Type']]
             obj_container[entity_id] = obj
         except KeyError:
-            LOGGER.debug("Cannot find ac entity type or cannot initialize")
-            raise
+            LOGGER.warning("Cannot find ac entity type or cannot initialize")
+            LOGGER.warning('Error at: %s', definition)
+        except TypeError:
+            LOGGER.warning("Probably error in AC Entity Definition")
+            LOGGER.warning('Error at: %s with parameters %s',
+                           definition['Type'], str(kwargs))
 
 
 container = AC_Container()

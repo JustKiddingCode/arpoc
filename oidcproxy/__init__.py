@@ -576,10 +576,6 @@ class ServiceProxy:
         LOGGING.debug("Incoming Request %s", url)
         LOGGING.debug("Kwargs are %s", kwargs)
         hash_access_token, userinfo = self._oidc_handler.get_userinfo()
-        evaluation_cache = None
-        if hash_access_token is not None:
-            evaluation_cache = self._oidc_handler.get_evaluation_cache(
-                hash_access_token)
 
         object_dict = ObjectDict(service_name=self.service_name,
                                  initialdata={
@@ -596,7 +592,7 @@ class ServiceProxy:
 
         proxy_url = self._build_url(url, **kwargs)
         effect, missing = self.ac.evaluate_by_entity_id(
-            self.cfg['AC'], context, evaluation_cache)
+            self.cfg['AC'], context)
         if effect == ac.Effects.GRANT:
             return self._proxy(proxy_url, access)
         if len(missing) > 0:

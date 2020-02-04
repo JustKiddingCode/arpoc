@@ -44,3 +44,18 @@ The resolver gets the result as soon as as a policy is evaluated.
 The resolver can abort the evaluation process if the result is fixed.
 This can be useful if, e.g. the access is denied, as soon as one rule denied
 the access.
+
+Error Handling
+***************
+
+Missing ac entities
+"""""""""""""""""""
+
+If an ac entity is missing, e.g. a typing error, a log message is generated
+with the log level `Warning`.
+The referencing entity evaluates to `None` in this case.
+
+PS -> P -> R!
+PS -> None
+
+
