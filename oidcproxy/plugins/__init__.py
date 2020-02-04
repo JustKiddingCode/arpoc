@@ -1,39 +1,45 @@
 # import all modules in this directory,
 # from user ted @ https://stackoverflow.com/a/59054776
-from importlib import import_module
+import importlib
 from pathlib import Path
 from typing import Dict, Callable, Optional
 
-from . import _lib
 
 from queue import PriorityQueue
+import collections
+from dataclasses import dataclass, field
+from typing import Any
+import os
 
+from . import _lib
 import oidcproxy.config as config
+from oidcproxy.exceptions import DuplicateKeyError
+
+import logging
+LOGGING = logging.getLogger()
 
 __all__ = [
     f".{f.stem}" for f in Path(__file__).parent.glob("*.py")
     if "__" not in f.stem
 ]
 
+plugins = []
 
-class DuplicateKeyError(Exception):
-    pass
-
-
-def get_env_attr_dict() -> Dict[str, Callable]:
-    d: Dict[str, Callable] = dict()
-    for plugin in _lib.EnvironmentAttribute.__subclasses__():
-        if plugin.target in d.keys():
-            DuplicateKeyError("key {} is already in target in a plugin".format(
-                plugin.target))
-        d[plugin.target] = plugin.run
-
-    return d
-
-
-import collections
-from dataclasses import dataclass, field
-from typing import Any
+def import_plugins():
+    global plugins
+    if config.cfg:
+        for plugin_dir in config.cfg.proxy.plugin_dirs:
+            for entry in os.listdir(plugin_dir):
+                wholepath = os.path.join(plugin_dir, entry)
+                if os.path.isfile(wholepath):
+                    module_name = os.path.splitext(entry)[0]
+                    LOGGING.debug("module_name: %s", module_name)
+                    LOGGING.debug("wholepath: %s", wholepath)
+                    if wholepath.endswith(".py"):
+                        spec = importlib.util.spec_from_file_location(module_name, wholepath)
+                        module = importlib.util.module_from_spec(spec)
+                        plugins.append(module)
+                        spec.loader.exec_module(module)
 
 
 @dataclass(order=True)
@@ -52,8 +58,9 @@ class ObjectDict(collections.UserDict):
         # sort "plugins" according to priority
         self._queue: PriorityQueue = PriorityQueue()
         assert config.cfg is not None
-        assert isinstance(config.cfg.services, config.ServiceConfig)
+        assert isinstance(config.cfg.services, dict)
         for plugin in _lib.ObjectSetter.__subclasses__():
+            LOGGING.debug("Found object setter %s, name: %s", plugin, plugin.name)
             priority = 100
             if plugin.name in config.cfg.services[service_name][
                     'objectsetters']:
@@ -89,7 +96,17 @@ class EnvironmentDict(collections.UserDict):
         if not initialdata:
             initialdata = {}
         super().__init__(initialdata)
-        self._getter = get_env_attr_dict()
+        self.__get_env_attr_dict()
+
+    def __get_env_attr_dict(self) -> Dict[str, Callable]:
+        d: Dict[str, Callable] = dict()
+        for plugin in _lib.EnvironmentAttribute.__subclasses__():
+            if plugin.target in d.keys():
+                DuplicateKeyError("key {} is already in target in a plugin".format(
+                    plugin.target))
+            d[plugin.target] = plugin.run
+
+        self._getter = d
 
     def get(self, key: str, default: Any = None) -> Any:
         if key in self.data:
