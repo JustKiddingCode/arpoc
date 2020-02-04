@@ -1,6 +1,5 @@
 from typing import Any
 
-
 from oidcproxy.plugins import _lib
 
 

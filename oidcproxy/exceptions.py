@@ -31,5 +31,6 @@ class BadRuleSyntax(Exception):
 class BadSemantics(Exception):
     pass
 
+
 class DuplicateKeyError(OIDCProxyException):
     pass

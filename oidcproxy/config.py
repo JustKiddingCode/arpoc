@@ -69,7 +69,8 @@ class ProxyConfig:
     groupname: str = "www-data"
     secrets: str = "/var/lib/oidc-proxy/secrets.yml"
     redirect: str = "/secure/redirect_uris"
-    plugin_dirs : List[str] = field(default_factory=list)
+    plugin_dirs: List[str] = field(default_factory=list)
+
     def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
 

@@ -4,7 +4,6 @@ import importlib
 from pathlib import Path
 from typing import Dict, Callable, Optional
 
-
 from queue import PriorityQueue
 import collections
 from dataclasses import dataclass, field
@@ -25,6 +24,7 @@ __all__ = [
 
 plugins = []
 
+
 def import_plugins():
     global plugins
     if config.cfg:
@@ -36,7 +36,8 @@ def import_plugins():
                     LOGGING.debug("module_name: %s", module_name)
                     LOGGING.debug("wholepath: %s", wholepath)
                     if wholepath.endswith(".py"):
-                        spec = importlib.util.spec_from_file_location(module_name, wholepath)
+                        spec = importlib.util.spec_from_file_location(
+                            module_name, wholepath)
                         module = importlib.util.module_from_spec(spec)
                         plugins.append(module)
                         spec.loader.exec_module(module)
@@ -60,7 +61,8 @@ class ObjectDict(collections.UserDict):
         assert config.cfg is not None
         assert isinstance(config.cfg.services, dict)
         for plugin in _lib.ObjectSetter.__subclasses__():
-            LOGGING.debug("Found object setter %s, name: %s", plugin, plugin.name)
+            LOGGING.debug("Found object setter %s, name: %s", plugin,
+                          plugin.name)
             priority = 100
             if plugin.name in config.cfg.services[service_name][
                     'objectsetters']:
@@ -102,8 +104,9 @@ class EnvironmentDict(collections.UserDict):
         d: Dict[str, Callable] = dict()
         for plugin in _lib.EnvironmentAttribute.__subclasses__():
             if plugin.target in d.keys():
-                DuplicateKeyError("key {} is already in target in a plugin".format(
-                    plugin.target))
+                DuplicateKeyError(
+                    "key {} is already in target in a plugin".format(
+                        plugin.target))
             d[plugin.target] = plugin.run
 
         self._getter = d
