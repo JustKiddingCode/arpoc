@@ -23,10 +23,6 @@ LOGGER = logging.getLogger(__name__)
 TNum = TypeVar('TNum', int, float)
 
 
-class BadSemantics(Exception):
-    pass
-
-
 class BinaryOperator:
     @classmethod
     @abstractmethod

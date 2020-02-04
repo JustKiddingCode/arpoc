@@ -41,8 +41,9 @@ class AC_Entity(ABC):
     target: str
     description: str
 
-    def _evaluate(self, entity_id, getter, evaluation_cache, cr, context,
-                  missing_attr):
+    def _evaluate(self, entity_id: str, getter: Dict, evaluation_cache: Dict,
+                  cr: ConflictResolution, context: Dict,
+                  missing_attr: List[str]) -> None:
         if entity_id not in evaluation_cache:
             LOGGER.debug("Considering entity_id %s", entity_id)
             try:
@@ -276,7 +277,7 @@ class AC_Container:
                      str(kwargs))
         try:
             obj: AC_Entity = switcher[definition['Type']](entity_id, **kwargs)
-            obj.container = self
+            AC_Entity.container = self
 
             obj_container: Dict[str, AC_Entity] = switcher_dict[
                 definition['Type']]
