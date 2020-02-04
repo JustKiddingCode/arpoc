@@ -53,9 +53,7 @@ Missing ac entities
 
 If an ac entity is missing, e.g. a typing error, a log message is generated
 with the log level `Warning`.
-The referencing entity evaluates to `None` in this case.
-
-PS -> P -> R!
-PS -> None
-
-
+The referencing entity evaluates to `None` in this case. Note that this is only
+true if the missing entity type is called for evaluation, i.e. if the conflict
+resolution algorithm already decided the result of the policy, a missing rule
+will not change this result.
