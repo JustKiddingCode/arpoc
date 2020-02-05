@@ -784,6 +784,9 @@ class App:
         parser = argparse.ArgumentParser(description='OIDC Proxy')
         parser.add_argument('-c', '--config-file')
         parser.add_argument('--print-sample-config', action='store_true')
+        parser.add_argument('--add-provider')
+        parser.add_argument('--client-id')
+        parser.add_argument('--client-secret')
 
         args = parser.parse_args()
 
@@ -794,6 +797,20 @@ class App:
             return
 
         self.config = config.cfg
+
+        if args.add_provider and args.client_id and args.client_secret:
+            # read secrets
+            secrets = self.read_secrets(self.config.proxy['secrets'])
+
+            # add secrets
+            secret_dict = { "client_id" : args.client_id, "client_secret" : args.client_secret }
+            secrets[args.add_provider] = secret_dict
+            # save secrets
+            with open(self.config.proxy['secrets'], 'w') as ymlfile:
+                yaml.safe_dump(secrets, ymlfile)
+            return
+
+
 
         #### Create secrets dir and change ownership (perm)
         self.create_secrets_dir()
