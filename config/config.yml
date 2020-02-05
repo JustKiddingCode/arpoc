@@ -26,6 +26,9 @@ proxy:
         - https://python-proxy.example.com/secure/redirect_uris
     contacts:
         - info@konstantinzangerle.de
+    tls_port: 443
+    plain_port: 80
+    https_only: True
 
 services:
     serviceA:

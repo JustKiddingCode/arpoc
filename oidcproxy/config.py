@@ -64,7 +64,9 @@ class ProxyConfig:
     contacts: List[str]
     redirect_uris: List[str]
     address: str = "0.0.0.0"
-    port: int = 443
+    tls_port: int = 443
+    plain_port: int = 80
+    https_only: bool = True
     username: str = "www-data"
     groupname: str = "www-data"
     secrets: str = "/var/lib/oidc-proxy/secrets.yml"

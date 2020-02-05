@@ -46,6 +46,7 @@ import yaml
 import requests
 
 import cherrypy
+from cherrypy._cpdispatch import Dispatcher
 from cherrypy.process.plugins import DropPrivileges
 
 from jinja2 import Environment, FileSystemLoader
@@ -639,6 +640,16 @@ class ServiceProxy:
             return self._send_403(warn)
         return self._send_403("")
 
+class TLSOnlyDispatcher(Dispatcher):
+    def __init__(self, tls_url, next_dispatcher):
+        self._tls_url = tls_url
+        self._next_dispatcher = next_dispatcher
+    def __call__(self, path_info):
+        if cherrypy.request.scheme == 'https':
+            return self._next_dispatcher(path_info)
+        return self._next_dispatcher("/TLSRedirect" + path_info)
+
+
 
 class App:
     """ Class for application handling.
@@ -685,6 +696,11 @@ class App:
                                           'retry_delay': retry_delay
                                       })
 
+    def tls_redirect(self, *args: Any, **kwargs: Any) -> None:
+        url = cherrypy.url()
+        raise cherrypy.HTTPRedirect(self.config.proxy['hostname'] + kwargs['url'])
+
+
     def get_routes_dispatcher(self) -> cherrypy.dispatch.RoutesDispatcher:
         """ Setups the Cherry Py dispatcher
             This connects makes the proxied services accessible"""
@@ -724,6 +740,10 @@ class App:
                            "/auth/{name:.*?}",
                            controller=self.oidc_handler,
                            action='auth')
+        if self.config.proxy['https_only']:
+            dispatcher.connect('TLSRedirect','/TLSRedirect/{url:.*?}', controller=self, action='tls_redirect')
+            tls_dispatcher = TLSOnlyDispatcher(self.config.proxy['hostname'], dispatcher)
+            return tls_dispatcher
 
         return dispatcher
 
@@ -823,7 +843,7 @@ class App:
             'log.access_file': '',
             'log.error_file': '',
             'server.socket_host': config.cfg.proxy['address'],
-            'server.socket_port': config.cfg.proxy['port'],
+            'server.socket_port': config.cfg.proxy['tls_port'],
             'server.ssl_private_key': config.cfg.proxy['keyfile'],
             'server.ssl_certificate': config.cfg.proxy['certfile'],
             'engine.autoreload.on': False
@@ -845,12 +865,12 @@ class App:
 
         #### Start Web Server
         cherrypy.tree.mount(None, '/', app_conf)
-
-        server2 = cherrypy._cpserver.Server()
-        server2.socket_port = 80
-        server2._socket_host = "0.0.0.0"
-        server2.thread_pool = 30
-        server2.subscribe()
+        if self.config.proxy['plain_port']:
+            server2 = cherrypy._cpserver.Server()
+            server2.socket_port = self.config.proxy['plain_port']
+            server2._socket_host = "0.0.0.0"
+            server2.thread_pool = 30
+            server2.subscribe()
 
         cherrypy.engine.start()
         cherrypy.engine.block()
