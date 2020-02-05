@@ -39,6 +39,7 @@ def test_env():
 @patch('oidcproxy.config.cfg', app_config, create=True)
 def test_obj():
     print(oidcproxy.config.cfg.services)
-    obj_dict = oidcproxy.plugins.ObjectDict("dummy")
+    dummysetter = {"dummysetter": {"enable": True}}
+    obj_dict = oidcproxy.plugins.ObjectDict(dummysetter)
     assert obj_dict['dummy']
     assert obj_dict['dummy']  # again, for caching

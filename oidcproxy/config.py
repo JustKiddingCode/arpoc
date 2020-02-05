@@ -111,7 +111,7 @@ class OIDCProxyConfig:
                  std_config: Union[None, str] = '/etc/oidc-proxy/config.yml'):
 
         self.openid_providers: Dict[str, ProviderConfig] = {}
-        self.proxy: ProxyConfig
+        self.proxy: Optional[ProxyConfig] = None
         self.services: Dict[str, ServiceConfig] = {}
         self.access_control = ACConfig()
 

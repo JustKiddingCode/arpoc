@@ -237,6 +237,46 @@ class OidcHandler:
 
         return None
 
+    def refresh_access_token(self, hash_access_token: str) -> Tuple[str, Dict]:
+        client = self._get_oidc_client(cherrypy.session['provider'])
+        cache_entry = self._cache[hash_access_token]
+        state = cache_entry['state']
+        try:
+            del self._cache[hash_access_token]
+
+            userinfo = dict(client.do_user_info_request(state=state))
+            new_token = client.get_token(state=state)
+            LOGGING.debug("New token: %s", new_token)
+
+            hash_access_token = hashlib.sha256(
+                str(new_token.access_token).encode()).hexdigest()
+            cherrypy.session['hash_at'] = hash_access_token
+            valid_until = int(datetime.datetime.now().timestamp()) + 30
+
+            if 'expires_in' in new_token.keys():
+                valid_until = int(
+                    datetime.datetime.now().timestamp()) + new_token.expires_in
+
+            if "refresh_expires_in" in new_token.keys():
+                refresh_valid = datetime.datetime.now().timestamp(
+                ) + new_token.refresh_expires_in
+            elif "refresh_token" in new_token.keys():
+                raise NotImplementedError
+            else:
+                refresh_valid = valid_until
+
+            self._cache.put(
+                hash_access_token, {
+                    "state": state,
+                    "valid_until": valid_until,
+                    "userinfo": userinfo,
+                    "evaluation_cache": {}
+                }, refresh_valid)
+            return hash_access_token, userinfo
+        except Exception as e:
+            LOGGING.debug(e.__class__)
+            raise
+
     def get_userinfo(self) -> Tuple[Optional[str], Dict]:
         """ Gets the userinfo from the OIDC Provider.
             This works in two steps:
@@ -280,51 +320,7 @@ class OidcHandler:
             # the entry valid_until is the validity of the refresh token, not of the cache entry
             if cache_entry['valid_until'] > now:
                 return hash_access_token, cache_entry['userinfo']
-
-            LOGGING.debug("refreshing user information")
-            # do a refresh
-            client = self._get_oidc_client(cherrypy.session['provider'])
-            state = cache_entry['state']
-            #            token = client.get_token(state=state)
-            #            if token.refresh_token:
-            #                LOGGING.debug("Original refresh token %s", token.refresh_token)
-            #            valid_until = cache_entry.timestamp
-            # is requesting a new access token automatically
-            try:
-                del self._cache[hash_access_token]
-
-                userinfo = dict(client.do_user_info_request(state=state))
-                new_token = client.get_token(state=state)
-                LOGGING.debug("New token: %s", new_token)
-
-                hash_access_token = hashlib.sha256(
-                    str(new_token.access_token).encode()).hexdigest()
-                cherrypy.session['hash_at'] = hash_access_token
-                valid_until = int(datetime.datetime.now().timestamp()) + 30
-
-                if 'expires_in' in new_token.keys():
-                    valid_until = int(datetime.datetime.now().timestamp()
-                                      ) + new_token.expires_in
-
-                if "refresh_expires_in" in new_token.keys():
-                    refresh_valid = datetime.datetime.now().timestamp(
-                    ) + new_token.refresh_expires_in
-                elif "refresh_token" in new_token.keys():
-                    raise NotImplementedError
-                else:
-                    refresh_valid = valid_until
-
-                self._cache.put(
-                    hash_access_token, {
-                        "state": state,
-                        "valid_until": valid_until,
-                        "userinfo": userinfo,
-                        "evaluation_cache": {}
-                    }, refresh_valid)
-                return hash_access_token, userinfo
-            except Exception as e:
-                LOGGING.debug(e.__class__)
-                raise
+            return self.refresh_access_token(hash_access_token)
         return None, {}
 
 
@@ -333,47 +329,8 @@ class OidcHandler:
     def _get_oidc_client(self, name: str) -> oic.oic.Client:
         return self.__oidc_provider[name]
 
-    def redirect(self, **kwargs: Any) -> str:
-        # We are trying to get the user info here from the provider
-        LOGGING.debug(cherrypy.session)
-        LOGGING.debug('kwargs is %s' % kwargs)
-        # Errors?
-        if 'error' in kwargs:
-            tmpl = env.get_template('500.html')
-            return tmpl.render(info=kwargs)
-        # Get Access Token
-        qry = {key: kwargs[key] for key in ['state', 'code']}
-        client = self._get_oidc_client(cherrypy.session['provider'])
-        aresp = client.parse_response(AuthorizationResponse,
-                                      info=qry,
-                                      sformat="dict")
-        LOGGING.debug("Authorization Response %s",
-                      dict(aresp))  # just code and state
-        args = {"code": aresp["code"]}
-        resp = client.do_access_token_request(
-            state=aresp["state"],
-            request_args=args,
-            authn_method="client_secret_basic")
-        LOGGING.debug("Access Token Request %s", resp)
-
-        hash_at = hashlib.sha256(str(resp).encode()).hexdigest()
-        cherrypy.session['hash_at'] = hash_at
-
-        # check for scopes:
-        requested_scopes = set(cherrypy.session["scopes"])
-        response_scopes = set(resp['scope'])
-        # Did we get the requested scopes?
-        if not requested_scopes.issubset(response_scopes):
-            tmpl = env.get_template('500.html')
-            info = {
-                "error":
-                "The openid provider did not respond with the requested scopes",
-                "requested scopes": cherrypy.session["scopes"],
-                "scopes in answer": resp['scope']
-            }
-            return tmpl.render(info=info)
-        cherrypy.session["scopes"] = resp['scope']
-
+    def get_validity_from_resp(self, resp: oic.oic.AuthorizationResponse
+                               ) -> Tuple[int, int]:
         # how long is the information valid?
         # oauth has the expires_in (but only RECOMMENDED)
         # oidc has exp and iat required.
@@ -393,8 +350,12 @@ class OidcHandler:
         else:
             refresh_valid = valid_until
 
+        return (valid_until, refresh_valid)
+
+    def do_userinfo_request_with_state(self, state: str) -> Dict:
+        client = self._get_oidc_client(cherrypy.session['provider'])
         try:
-            userinfo = client.do_user_info_request(state=aresp["state"])
+            userinfo = client.do_user_info_request(state=state)
         except oic.exception.CommunicationError as excep:
             exception_args = excep.args
             LOGGING.debug(exception_args)
@@ -403,15 +364,76 @@ class OidcHandler:
                 # allowed methods in [1]
                 if exception_args[1][0] in ["GET", "POST"]:
                     userinfo = client.do_user_info_request(
-                        state=aresp["state"], method=exception_args[1][0])
+                        state=state, method=exception_args[1][0])
                 else:
                     raise
         except oic.exception.RequestError as excep:
             LOGGING.debug(excep.args)
             raise
+        return userinfo
+
+    def get_access_token_from_code(self, state: str,
+                                   code: str) -> oic.oic.AccessTokenResponse:
+        # Get Access Token
+        qry = {'state': state, 'code': code}
+        client = self._get_oidc_client(cherrypy.session['provider'])
+        aresp = client.parse_response(AuthorizationResponse,
+                                      info=qry,
+                                      sformat="dict")
+        if state != aresp['state']:
+            raise RuntimeError
+        LOGGING.debug("Authorization Response %s",
+                      dict(aresp))  # just code and state
+        args = {"code": aresp["code"]}
+        resp = client.do_access_token_request(
+            state=aresp["state"],
+            request_args=args,
+            authn_method="client_secret_basic")
+        LOGGING.debug("Access Token Request %s", resp)
+
+        return resp
+
+    def check_scopes(self, request: List, response: List) -> Optional[str]:
+        requested_scopes = set(request)
+        response_scopes = set(response)
+        # Did we get the requested scopes?
+        if not requested_scopes.issubset(response_scopes):
+            tmpl = env.get_template('500.html')
+            info = {
+                "error":
+                "The openid provider did not respond with the requested scopes",
+                "requested scopes": request,
+                "scopes in answer": response
+            }
+            return tmpl.render(info=info)
+        return None
+
+    def redirect(self, **kwargs: Any) -> str:
+        # We are trying to get the user info here from the provider
+        LOGGING.debug(cherrypy.session)
+        LOGGING.debug('kwargs is %s' % kwargs)
+        # Errors?
+        if 'error' in kwargs:
+            tmpl = env.get_template('500.html')
+            return tmpl.render(info=kwargs)
+
+        resp = self.get_access_token_from_code(kwargs['state'], kwargs['code'])
+
+        hash_at = hashlib.sha256(str(resp).encode()).hexdigest()
+        cherrypy.session['hash_at'] = hash_at
+
+        # check for scopes:
+        response_check = self.check_scopes(cherrypy.session["scopes"],
+                                           resp["scope"])
+        if response_check:
+            return response_check
+        cherrypy.session["scopes"] = resp['scope']
+
+        valid_until, refresh_valid = self.get_validity_from_resp(resp)
+        userinfo = self.do_userinfo_request_with_state(state=kwargs["state"])
         self._cache.put(
             hash_at, {
-                "state": aresp['state'],
+                "state": kwargs['state'],
                 "valid_until": valid_until,
                 "userinfo": dict(userinfo),
                 "evaluation_cache": {}
@@ -577,7 +599,7 @@ class ServiceProxy:
         LOGGING.debug("Kwargs are %s", kwargs)
         hash_access_token, userinfo = self._oidc_handler.get_userinfo()
 
-        object_dict = ObjectDict(service_name=self.service_name,
+        object_dict = ObjectDict(objsetter=self.cfg['objectsetters'],
                                  initialdata={
                                      "url": url,
                                      **kwargs

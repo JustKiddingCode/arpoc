@@ -233,13 +233,17 @@ class EvalTree(Transformer):
         return op.eval(args[0], args[2])
 
     def linked(self, args: List) -> bool:
-        if isinstance(args[0], bool) and isinstance(args[2], bool):
+        NoneType = type(None)
+        allowed_types = (bool, dict, list, str, float, int, NoneType)
+        if isinstance(args[0], allowed_types) and isinstance(
+                args[2], allowed_types):
             if args[1] == "and":
                 return args[0] and args[2]
             elif args[1] == "or":
                 return args[0] or args[2]
             else:
                 raise NotImplementedError
+        LOGGER.debug("Types are %s and %s", type(args[0]), type(args[2]))
         raise ValueError
 
 

@@ -1,6 +1,7 @@
 # import all modules in this directory,
 # from user ted @ https://stackoverflow.com/a/59054776
 import importlib
+import importlib.util
 from pathlib import Path
 from typing import Dict, Callable, Optional
 
@@ -25,7 +26,7 @@ __all__ = [
 plugins = []
 
 
-def import_plugins():
+def import_plugins() -> None:
     global plugins
     if config.cfg:
         for plugin_dir in config.cfg.proxy.plugin_dirs:
@@ -38,6 +39,8 @@ def import_plugins():
                     if wholepath.endswith(".py"):
                         spec = importlib.util.spec_from_file_location(
                             module_name, wholepath)
+                        if spec is None:
+                            raise RuntimeError("Failed to load %s", wholepath)
                         module = importlib.util.module_from_spec(spec)
                         plugins.append(module)
                         spec.loader.exec_module(module)
@@ -50,7 +53,7 @@ class PrioritizedItem:
 
 
 class ObjectDict(collections.UserDict):
-    def __init__(self, service_name: str,
+    def __init__(self, objsetter: Dict,
                  initialdata: Optional[Dict] = None) -> None:
         if not initialdata:
             initialdata = {}
@@ -58,20 +61,15 @@ class ObjectDict(collections.UserDict):
         self._executed_flag = False
         # sort "plugins" according to priority
         self._queue: PriorityQueue = PriorityQueue()
-        assert config.cfg is not None
-        assert isinstance(config.cfg.services, dict)
         for plugin in _lib.ObjectSetter.__subclasses__():
             LOGGING.debug("Found object setter %s, name: %s", plugin,
                           plugin.name)
-            priority = 100
-            if plugin.name in config.cfg.services[service_name][
-                    'objectsetters']:
-                plugin_cfg = config.cfg.services[service_name][
-                    'objectsetters'][plugin.name]
+            if plugin.name in objsetter:
+                plugin_cfg = objsetter[plugin.name]
                 if plugin_cfg['enable']:
                     # give configuration to the plugin and set priority
-                    if priority in plugin_cfg:
-                        priority = plugin_cfg['priority']
+                    priority = plugin_cfg[
+                        'priority'] if 'priority' in plugin_cfg else 100
                     item = PrioritizedItem(priority, plugin(plugin_cfg))
                     self._queue.put(item)
 
@@ -100,7 +98,7 @@ class EnvironmentDict(collections.UserDict):
         super().__init__(initialdata)
         self.__get_env_attr_dict()
 
-    def __get_env_attr_dict(self) -> Dict[str, Callable]:
+    def __get_env_attr_dict(self) -> None:
         d: Dict[str, Callable] = dict()
         for plugin in _lib.EnvironmentAttribute.__subclasses__():
             if plugin.target in d.keys():
