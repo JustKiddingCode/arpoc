@@ -1,8 +1,8 @@
+from typing import Any, Dict
+
 import requests
 
 from oidcproxy.plugins._lib import ObjectSetter
-
-from typing import Any, Dict
 
 
 class obj_dummy(ObjectSetter):

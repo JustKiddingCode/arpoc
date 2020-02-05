@@ -1,9 +1,9 @@
-import oidcproxy
-import oidcproxy.plugins
-import oidcproxy.config
+import os
 from unittest.mock import patch
 
-import os
+import oidcproxy
+import oidcproxy.config
+import oidcproxy.plugins
 
 dummy_plugins = os.path.join(os.path.dirname(__file__), "resources",
                              "dummy_plugins")

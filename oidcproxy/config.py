@@ -7,7 +7,7 @@ the configuration with the `config.cfg` variable.
 import logging
 import os
 from dataclasses import InitVar, asdict, dataclass, field, replace
-from typing import Dict, List, Union, Any
+from typing import Any, Dict, List, Union
 
 import yaml
 

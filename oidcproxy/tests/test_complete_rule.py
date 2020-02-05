@@ -4,8 +4,8 @@ import os
 import lark
 import pytest
 
-import oidcproxy.exceptions
 import oidcproxy.ac
+import oidcproxy.exceptions
 from oidcproxy.ac.common import Effects
 
 Container = oidcproxy.ac.AC_Container()

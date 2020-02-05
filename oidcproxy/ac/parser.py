@@ -3,13 +3,14 @@ import logging
 import os
 import re
 import warnings
-from oidcproxy.exceptions import *
 from abc import abstractmethod
 from functools import reduce
-from typing import Dict, Any, TypeVar, Union, List
+from typing import Any, Dict, List, TypeVar, Union
 
 import lark.exceptions
 from lark import Lark, Transformer, Tree, tree
+
+from oidcproxy.exceptions import *
 
 with importlib.resources.path(
         'oidcproxy.resources',

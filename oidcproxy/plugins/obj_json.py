@@ -1,8 +1,8 @@
+from typing import Any, Dict
+
 import requests
 
 from ._lib import ObjectSetter
-
-from typing import Any, Dict
 
 
 class obj_json(ObjectSetter):

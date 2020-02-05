@@ -64,10 +64,6 @@ logging.basicConfig(level=logging.DEBUG)
 
 LOGGING = logging.getLogger()
 
-with importlib.resources.path(
-        'oidcproxy.resources',
-        'loggers.yml') as loggers_path, open(loggers_path) as ymlfile:
-    LOG_CONF = yaml.safe_load(ymlfile)
 
 env = Environment(loader=FileSystemLoader(
     os.path.join(os.path.dirname(__file__), 'resources', 'templates')))
@@ -82,17 +78,8 @@ class OidcHandler:
         self._cache = oidcproxy.cache.Cache()
 
     def get_secrets(self) -> Dict[str, dict]:
+        """ Returns the secrets (client_id, client_secret) of the OIDC Relying Partys"""
         return self._secrets
-
-    def get_evaluation_cache(self,
-                             hash_access_token: str) -> Union[None, Dict]:
-        if not hash_access_token:
-            return None
-        try:
-            cache_entry = self._cache[hash_access_token]
-            return cache_entry['evaluation_cache']
-        except KeyError:
-            return None
 
     def register_first_time(self, name: str,
                             provider: config.ProviderConfig) -> None:
@@ -179,7 +166,7 @@ class OidcHandler:
             oauth_client = oic.extension.client.Client(**kwargs)
             for key, val in client.__dict__.items():
                 if key.endswith("_endpoint"):
-                    oauth_client.__setattr__(key, client.__getattribute__(key))
+                    oauth_client.__setattr__(key, val)
             oauth_client.client_secret = client.client_secret
             introspection_res = oauth_client.do_token_introspection(
                 request_args={
@@ -200,7 +187,8 @@ class OidcHandler:
             LOGGING.info("Access token issuer %s", issuer)
         return valid_until, dict(userinfo)
 
-    def _check_session_refresh(self) -> bool:
+    @staticmethod
+    def _check_session_refresh() -> bool:
         """ checks if the session must be refreshed. If there is no session,
             then False is returned"""
         if 'refresh' in cherrypy.session:
@@ -211,6 +199,9 @@ class OidcHandler:
         return False
 
     def need_claims(self, claims: List[str]) -> None:
+        """ Maps claims to scopes and checks
+            if the scopes were already requested.
+            Else start auth procedure to get requested scopes"""
         if 'provider' in cherrypy.session:
             provider = cherrypy.session['provider']
             scopes = set(["openid"])
@@ -224,7 +215,10 @@ class OidcHandler:
             cherrypy.session["url"] = cherrypy.url()
             raise cherrypy.HTTPRedirect("/auth")
 
-    def get_access_token_from_headers(self) -> Union[None, str]:
+    @staticmethod
+    def get_access_token_from_headers() -> Union[None, str]:
+        """ Returns the Access Token from the authorization header.
+            Strips the bearer part """
         if 'authorization' in cherrypy.request.headers:
             auth_header = cherrypy.request.headers['authorization']
             len_bearer = len("bearer")
@@ -238,6 +232,8 @@ class OidcHandler:
         return None
 
     def refresh_access_token(self, hash_access_token: str) -> Tuple[str, Dict]:
+        """ Refreshes the access token.
+            This can only be done, if we are Client (normal web interface). """
         client = self._get_oidc_client(cherrypy.session['provider'])
         cache_entry = self._cache[hash_access_token]
         state = cache_entry['state']
@@ -273,8 +269,8 @@ class OidcHandler:
                     "evaluation_cache": {}
                 }, refresh_valid)
             return hash_access_token, userinfo
-        except Exception as e:
-            LOGGING.debug(e.__class__)
+        except Exception as excep:
+            LOGGING.debug(excep.__class__)
             raise
 
     def get_userinfo(self) -> Tuple[Optional[str], Dict]:
@@ -329,8 +325,10 @@ class OidcHandler:
     def _get_oidc_client(self, name: str) -> oic.oic.Client:
         return self.__oidc_provider[name]
 
-    def get_validity_from_resp(self, resp: oic.oic.AuthorizationResponse
+    @staticmethod
+    def get_validity_from_resp(resp: oic.oic.AuthorizationResponse
                                ) -> Tuple[int, int]:
+        """Find the validity of the id_token, access_token and refresh_token """
         # how long is the information valid?
         # oauth has the expires_in (but only RECOMMENDED)
         # oidc has exp and iat required.
@@ -353,6 +351,7 @@ class OidcHandler:
         return (valid_until, refresh_valid)
 
     def do_userinfo_request_with_state(self, state: str) -> Dict:
+        """ Perform the userinfo request with given state """
         client = self._get_oidc_client(cherrypy.session['provider'])
         try:
             userinfo = client.do_user_info_request(state=state)
@@ -374,6 +373,10 @@ class OidcHandler:
 
     def get_access_token_from_code(self, state: str,
                                    code: str) -> oic.oic.AccessTokenResponse:
+        """ Takes the OIDC Authorization Code,
+            Performs the Access Token Request
+
+            Returns: The Access Token Request Response"""
         # Get Access Token
         qry = {'state': state, 'code': code}
         client = self._get_oidc_client(cherrypy.session['provider'])
@@ -393,7 +396,10 @@ class OidcHandler:
 
         return resp
 
-    def check_scopes(self, request: List, response: List) -> Optional[str]:
+    @staticmethod
+    def check_scopes(request: List, response: List) -> Optional[str]:
+        """ Checks the request and response scopes
+            and alert if the response scopes are not enough"""
         requested_scopes = set(request)
         response_scopes = set(response)
         # Did we get the requested scopes?
@@ -409,9 +415,10 @@ class OidcHandler:
         return None
 
     def redirect(self, **kwargs: Any) -> str:
+        """Handler for the redirect method (entrypoint after forwarding to OIDC Provider """
         # We are trying to get the user info here from the provider
         LOGGING.debug(cherrypy.session)
-        LOGGING.debug('kwargs is %s' % kwargs)
+        LOGGING.debug('kwargs is %s', kwargs)
         # Errors?
         if 'error' in kwargs:
             tmpl = env.get_template('500.html')
@@ -474,14 +481,16 @@ class OidcHandler:
 
         raise cherrypy.HTTPRedirect(login_url)
 
-    def auth(self, name: str = '', **kwargs: Any) -> Optional[str]:
+    def auth(self, **kwargs: Any) -> Optional[str]:
+        """ Start an authentication request.
+            Redirects to OIDC Provider if given"""
         # Do we have only one openid provider? -> use this
         if len(self.__oidc_provider) == 1:
             cherrypy.session['provider'] = self.__oidc_provider.keys(
             ).__iter__().__next__()
         else:
-            if name and name in self.__oidc_provider:
-                cherrypy.session['provider'] = name
+            if 'name' in kwargs and kwargs['name'] in self.__oidc_provider:
+                cherrypy.session['provider'] = kwargs['name']
             else:
                 LOGGING.debug(self.__oidc_provider)
                 tmpl = env.get_template('auth.html')
@@ -568,11 +577,14 @@ class ServiceProxy:
             this_url = "{}?{}".format(this_url, urllib.parse.urlencode(kwargs))
         return this_url
 
-    def _send_403(self, message: str = '') -> str:
+    @staticmethod
+    def _send_403(message: str = '') -> str:
         cherrypy.response.status = 403
         return "<h1>Forbidden</h1><br>%s" % message
 
-    def build_access_dict(self) -> Dict:
+    @staticmethod
+    def build_access_dict() -> Dict:
+        """Creates the access dict for the evaluation context """
         method = cherrypy.request.method
         headers = copy.copy(cherrypy.request.headers)
         headers.pop('host', None)
@@ -580,11 +592,11 @@ class ServiceProxy:
         headers['connection'] = "close"
 
         # Read request body
-        body = ""
+        request_body = ""
         if cherrypy.request.method in cherrypy.request.methods_with_bodies:
             request_body = cherrypy.request.body.read()
 
-        return {"method": method, "body": body, "headers": headers}
+        return {"method": method, "body": request_body, "headers": headers}
 
     @cherrypy.expose
     def index(self, *args: Any, url: str = '', **kwargs: Any) -> str:
@@ -597,7 +609,7 @@ class ServiceProxy:
         """
         LOGGING.debug("Incoming Request %s", url)
         LOGGING.debug("Kwargs are %s", kwargs)
-        hash_access_token, userinfo = self._oidc_handler.get_userinfo()
+        _, userinfo = self._oidc_handler.get_userinfo()
 
         object_dict = ObjectDict(objsetter=self.cfg['objectsetters'],
                                  initialdata={
@@ -621,17 +633,32 @@ class ServiceProxy:
             # -> Are we logged in?
             attr = set(missing)
             self._oidc_handler.need_claims(list(attr))
-            warn = "Failed to get the claims even we requested the right scopes.<br>Missing claims are:<br>"
+            warn = ("Failed to get the claims even we requested the " +
+                    "right scopes.<br>Missing claims are:<br>")
             warn += "<br>".join(attr)
             return self._send_403(warn)
         return self._send_403("")
 
 
 class App:
+    """ Class for application handling.
+        Reads configuration files,
+        setups the oidc client classes
+        and the dispatcher for the services"""
     def __init__(self) -> None:
         self._scheduler = sched.scheduler(time.time, time.sleep)
+        self.thread = threading.Thread(target=self._scheduler.run)
         self.oidc_handler: OidcHandler
         self.config: config.OIDCProxyConfig
+
+    @staticmethod
+    def setup_loggers():
+        """ Read the loggers configuration and configure the loggers"""
+        with importlib.resources.path(
+                'oidcproxy.resources',
+                'loggers.yml') as loggers_path, open(loggers_path) as ymlfile:
+            log_conf = yaml.safe_load(ymlfile)
+        logging.config.dictConfig(log_conf)
 
     def retry(self,
               function: Callable,
@@ -659,43 +686,50 @@ class App:
                                       })
 
     def get_routes_dispatcher(self) -> cherrypy.dispatch.RoutesDispatcher:
-        d = cherrypy.dispatch.RoutesDispatcher()
+        """ Setups the Cherry Py dispatcher
+            This connects makes the proxied services accessible"""
+        dispatcher = cherrypy.dispatch.RoutesDispatcher()
         # Connect the Proxied Services
         for name, service_cfg in self.config.services.items():
             logging.debug(service_cfg)
             service_proxy_obj = ServiceProxy(name, self.oidc_handler,
                                              service_cfg)
-            d.connect(name,
-                      service_cfg['proxy_URL'],
-                      controller=service_proxy_obj,
-                      action='index')
-            d.connect(name,
-                      service_cfg['proxy_URL'] + "/{url:.*?}",
-                      controller=service_proxy_obj,
-                      action='index')
+            dispatcher.connect(name,
+                               service_cfg['proxy_URL'],
+                               controller=service_proxy_obj,
+                               action='index')
+            dispatcher.connect(name,
+                               service_cfg['proxy_URL'] + "/{url:.*?}",
+                               controller=service_proxy_obj,
+                               action='index')
         pap = oidcproxy.pap.PolicyAdministrationPoint()
-        d.connect('pap', "/pap", controller=pap, action='index')
+        dispatcher.connect('pap', "/pap", controller=pap, action='index')
         # Connect the Redirect URI
         LOGGING.debug(self.config.proxy['redirect'])
         for i in self.config.proxy['redirect']:
-            d.connect('redirect',
-                      i,
-                      controller=self.oidc_handler,
-                      action='redirect')
-        d.connect('userinfo',
-                  '/userinfo',
-                  controller=self.oidc_handler,
-                  action='userinfo')
+            dispatcher.connect('redirect',
+                               i,
+                               controller=self.oidc_handler,
+                               action='redirect')
+        dispatcher.connect('userinfo',
+                           '/userinfo',
+                           controller=self.oidc_handler,
+                           action='userinfo')
         # Test auth required
-        d.connect('auth', "/auth", controller=self.oidc_handler, action='auth')
-        d.connect('auth',
-                  "/auth/{name:.*?}",
-                  controller=self.oidc_handler,
-                  action='auth')
+        dispatcher.connect('auth',
+                           "/auth",
+                           controller=self.oidc_handler,
+                           action='auth')
+        dispatcher.connect('auth',
+                           "/auth/{name:.*?}",
+                           controller=self.oidc_handler,
+                           action='auth')
 
-        return d
+        return dispatcher
 
-    def read_secrets(self, filepath: str) -> Dict:
+    @staticmethod
+    def read_secrets(filepath: str) -> Dict:
+        """ Reads the secrets file from the filepath """
         try:
             with open(filepath, 'r') as ymlfile:
                 secrets = yaml.safe_load(ymlfile)
@@ -704,7 +738,9 @@ class App:
 
         return secrets
 
+
     def save_secrets(self) -> None:
+        """ Saves the oidc rp secrets into the secrets file"""
         with open(self.config.proxy['secrets'], 'w') as ymlfile:
             yaml.safe_dump(self.oidc_handler.get_secrets(), ymlfile)
 
@@ -715,12 +751,13 @@ class App:
         uid = pwd.getpwnam(self.config.proxy['username'])[2]
         gid = grp.getgrnam(self.config.proxy['groupname'])[2]
 
-        for dirpath, dirnames, filenames in os.walk(secrets_dir):
+        for dirpath, _, filenames in os.walk(secrets_dir):
             os.chown(dirpath, uid, gid)
             for filename in filenames:
                 os.chown(os.path.join(dirpath, filename), uid, gid)
 
     def setup_oidc_provider(self) -> None:
+        """Setup the connection to all oidc providers in the config """
         assert isinstance(self.config, config.OIDCProxyConfig)
         self.oidc_handler = OidcHandler(self.config)
 
@@ -739,8 +776,7 @@ class App:
                 self.retry(self.oidc_handler.register_first_time,
                            (requests.exceptions.RequestException,
                             oic.exception.CommunicationError), name, provider)
-        self.t = threading.Thread(target=self._scheduler.run)
-        self.t.start()
+        self.thread.start()
 
     def run(self) -> None:
         """ Starts the application """
@@ -754,7 +790,7 @@ class App:
         #### Read Configuration
         config.cfg = config.OIDCProxyConfig(config_file=args.config_file)
         if args.print_sample_config:
-            self.config.print_sample_config()
+            config.cfg.print_sample_config()
             return
 
         self.config = config.cfg
@@ -776,7 +812,6 @@ class App:
             'engine.autoreload.on': False
         }
         cherrypy.config.update(global_conf)
-        logging.config.dictConfig(LOG_CONF)
         app_conf = {
             '/': {
                 'tools.sessions.on': True,
@@ -802,6 +837,6 @@ class App:
 
         cherrypy.engine.start()
         cherrypy.engine.block()
-        self.t.join()
+        self.thread.join()
 
     #    cherrypy.quickstart(None, '/', app_conf)
