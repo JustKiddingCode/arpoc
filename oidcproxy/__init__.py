@@ -65,7 +65,6 @@ logging.basicConfig(level=logging.DEBUG)
 
 LOGGING = logging.getLogger()
 
-
 env = Environment(loader=FileSystemLoader(
     os.path.join(os.path.dirname(__file__), 'resources', 'templates')))
 
@@ -626,8 +625,10 @@ class ServiceProxy:
         }
 
         proxy_url = self._build_url(url, **kwargs)
-        effect, missing = self.ac.evaluate_by_entity_id(
+        evaluation_result = self.ac.evaluate_by_entity_id(
             self.cfg['AC'], context)
+        (effect, missing) = (evaluation_result.results[self.cfg['AC']],
+                             evaluation_result.missing_attr)
         if effect == ac.Effects.GRANT:
             return self._proxy(proxy_url, access)
         if len(missing) > 0:
@@ -640,15 +641,16 @@ class ServiceProxy:
             return self._send_403(warn)
         return self._send_403("")
 
+
 class TLSOnlyDispatcher(Dispatcher):
     def __init__(self, tls_url, next_dispatcher):
         self._tls_url = tls_url
         self._next_dispatcher = next_dispatcher
+
     def __call__(self, path_info):
         if cherrypy.request.scheme == 'https':
             return self._next_dispatcher(path_info)
         return self._next_dispatcher("/TLSRedirect" + path_info)
-
 
 
 class App:
@@ -698,8 +700,8 @@ class App:
 
     def tls_redirect(self, *args: Any, **kwargs: Any) -> None:
         url = cherrypy.url()
-        raise cherrypy.HTTPRedirect(self.config.proxy['hostname'] + kwargs['url'])
-
+        raise cherrypy.HTTPRedirect(self.config.proxy['hostname'] +
+                                    kwargs['url'])
 
     def get_routes_dispatcher(self) -> cherrypy.dispatch.RoutesDispatcher:
         """ Setups the Cherry Py dispatcher
@@ -741,8 +743,12 @@ class App:
                            controller=self.oidc_handler,
                            action='auth')
         if self.config.proxy['https_only']:
-            dispatcher.connect('TLSRedirect','/TLSRedirect/{url:.*?}', controller=self, action='tls_redirect')
-            tls_dispatcher = TLSOnlyDispatcher(self.config.proxy['hostname'], dispatcher)
+            dispatcher.connect('TLSRedirect',
+                               '/TLSRedirect/{url:.*?}',
+                               controller=self,
+                               action='tls_redirect')
+            tls_dispatcher = TLSOnlyDispatcher(self.config.proxy['hostname'],
+                                               dispatcher)
             return tls_dispatcher
 
         return dispatcher
@@ -757,7 +763,6 @@ class App:
             secrets = dict()
 
         return secrets
-
 
     def save_secrets(self) -> None:
         """ Saves the oidc rp secrets into the secrets file"""
@@ -823,14 +828,15 @@ class App:
             secrets = self.read_secrets(self.config.proxy['secrets'])
 
             # add secrets
-            secret_dict = { "client_id" : args.client_id, "client_secret" : args.client_secret }
+            secret_dict = {
+                "client_id": args.client_id,
+                "client_secret": args.client_secret
+            }
             secrets[args.add_provider] = secret_dict
             # save secrets
             with open(self.config.proxy['secrets'], 'w') as ymlfile:
                 yaml.safe_dump(secrets, ymlfile)
             return
-
-
 
         #### Create secrets dir and change ownership (perm)
         self.create_secrets_dir()

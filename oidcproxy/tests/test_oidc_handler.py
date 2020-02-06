@@ -153,20 +153,20 @@ def setup_oidchandler_provider_registration(setup_oidc_handler):
     return cfg, oidchandler
 
 
-def test_get_evaluation_cache(setup_oidc_handler):
-    _, oidchandler = setup_oidc_handler
-    assert oidchandler.get_evaluation_cache("") == None
-    cache = oidcproxy.cache.Cache()
-    oidchandler._cache = cache
-
-    cache.put("testkey", {'evaluation_cache': {
-        'foo': 'bar'
-    }},
-              time.time() + 30)
-
-    assert oidchandler.get_evaluation_cache("testkey")['foo'] == "bar"
-
-    assert oidchandler.get_evaluation_cache("nonexisting") == None
+#def test_get_evaluation_cache(setup_oidc_handler):
+#    _, oidchandler = setup_oidc_handler
+#    assert oidchandler.get_evaluation_cache("") == None
+#    cache = oidcproxy.cache.Cache()
+#    oidchandler._cache = cache
+#
+#    cache.put("testkey", {'evaluation_cache': {
+#        'foo': 'bar'
+#    }},
+#              time.time() + 30)
+#
+#    assert oidchandler.get_evaluation_cache("testkey")['foo'] == "bar"
+#
+#    assert oidchandler.get_evaluation_cache("nonexisting") == None
 
 
 def test_userinfo_from_at_registration(setup_oidchandler_provider_registration,

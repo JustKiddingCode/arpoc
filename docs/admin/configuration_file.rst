@@ -39,7 +39,7 @@ protocol.
    :linenos:
    :lineno-start: 11
    :language: yaml
-   :lines: 11-24
+   :lines: 11-27
 
 services
 --------
@@ -52,9 +52,9 @@ The `AC` key must specify a valid policy set that will evaluated on every access
 
 .. literalinclude:: /docs/gen/sample_config.yml
    :linenos:
-   :lineno-start: 25
+   :lineno-start: 28
    :language: yaml
-   :lines: 25-31
+   :lines: 28-34
 
 access_control
 --------------

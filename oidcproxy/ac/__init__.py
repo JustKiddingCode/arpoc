@@ -13,7 +13,7 @@ import itertools
 
 import logging
 
-from dataclasses import dataclass, InitVar
+from dataclasses import dataclass, InitVar, field
 
 import lark.exceptions
 
@@ -29,7 +29,13 @@ logging.basicConfig(level=logging.DEBUG)
 
 LOGGER = logging.getLogger(__name__)
 
+
 #__all__ = ["conflict_resolution", "common", "parser"]
+@dataclass
+class EvaluationResult:
+    missing_attr: List[str] = field(default_factory=list)
+    results: Dict[str, Optional[common.Effects]] = field(default_factory=dict)
+    obligations: List[Any] = field(default_factory=list)
 
 
 @dataclass
@@ -41,22 +47,22 @@ class AC_Entity(ABC):
     target: str
     description: str
 
-    def _evaluate(self, entity_id: str, getter: Dict, evaluation_cache: Dict,
-                  cr: ConflictResolution, context: Dict,
-                  missing_attr: List[str]) -> None:
-        if entity_id not in evaluation_cache:
+    def _evaluate(self, entity_id: str, getter: Dict,
+                  evaluation_result: EvaluationResult, cr: ConflictResolution,
+                  context: Dict) -> None:
+        if entity_id not in evaluation_result.results:
             LOGGER.debug("Considering entity_id %s", entity_id)
             try:
-                result, missing = getter[entity_id].evaluate(
-                    context, evaluation_cache)
+                evaluation_result = getter[entity_id].evaluate(
+                    context, evaluation_result)
             except KeyError:
                 raise ACEntityMissing(entity_id)
-            missing_attr += missing
-            evaluation_cache[entity_id] = result
-            cr.update(entity_id, result)
+            cr.update(entity_id, evaluation_result.results[entity_id])
 
-    def evaluate(self, context: Dict, evaluation_cache: Dict
-                 ) -> Tuple[Union[None, common.Effects], List[str]]:
+    def evaluate(self,
+                 context: Dict,
+                 evaluation_result: Optional[EvaluationResult] = None
+                 ) -> EvaluationResult:
         pass
 
     def _check_match(self, context: Dict[str, Dict]) -> bool:
@@ -69,11 +75,12 @@ class Policy_Set(AC_Entity):
     policy_sets: List[str]
     policies: List[str]
 
-    def evaluate(self, context: Dict, evaluation_cache: Dict
-                 ) -> Tuple[Union[None, common.Effects], List[str]]:
+    def evaluate(self,
+                 context: Dict,
+                 evaluation_result: Optional[EvaluationResult] = None
+                 ) -> EvaluationResult:
         """ Evaluate Policy Set"""
-        missing_attr: List[str] = []
-        evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
+        evaluation_result = evaluation_result if evaluation_result is not None else EvaluationResult(
         )
         try:
             cr = cr_switcher[self.conflict_resolution]()
@@ -81,31 +88,38 @@ class Policy_Set(AC_Entity):
             raise NotImplementedError(
                 "Conflict Resolution %s is not implemented" %
                 self.conflict_resolution)
+        try:
+            if self._check_match(context):
+                try:
+                    assert self.container is not None
+                    for policy_set_id in self.policy_sets:
+                        self._evaluate(policy_set_id,
+                                       self.container.policy_sets,
+                                       evaluation_result, cr, context)
+                        if cr.check_break():
+                            break
 
-        if self._check_match(context):
-            try:
-                assert self.container is not None
-                for policy_set_id in self.policy_sets:
-                    self._evaluate(policy_set_id, self.container.policy_sets,
-                                   evaluation_cache, cr, context, missing_attr)
-                    if cr.check_break():
-                        break
+                    for policy_id in self.policies:
+                        self._evaluate(policy_id, self.container.policies,
+                                       evaluation_result, cr, context)
+                        if cr.check_break():
+                            break
+                except ACEntityMissing as e:
+                    LOGGER.warning(
+                        "%s requested entity %s, but was not found in container",
+                        self.entity_id, e.args[0])
+                    evaluation_result.results[self.entity_id] = None
+                    return evaluation_result
+        except lark.exceptions.VisitError as e:
+            if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
+                evaluation_result.results[self.entity_id] = None
+                evaluation_result.missing_attr.append(e.orig_exc.attr)
+                return evaluation_result
+            raise
 
-                for policy_id in self.policies:
-                    self._evaluate(policy_id, self.container.policies,
-                                   evaluation_cache, cr, context, missing_attr)
-                    if cr.check_break():
-                        break
-            except ACEntityMissing as e:
-                LOGGER.warning(
-                    "%s requested entity %s, but was not found in container",
-                    self.entity_id, e.args[0])
-                return None, missing_attr
-
-            LOGGER.debug(evaluation_cache)
-            LOGGER.debug(cr.get_effect())
-
-        return cr.get_effect(), missing_attr
+        # Update Evaluation Result
+        evaluation_result.results[self.entity_id] = cr.get_effect()
+        return evaluation_result
 
     def _check_match(self, context: Dict) -> bool:
         return parser.check_target(self.target, context)
@@ -116,9 +130,11 @@ class Policy(AC_Entity):
     conflict_resolution: str
     rules: List[str]
 
-    def evaluate(self, context: Dict, evaluation_cache: Dict
-                 ) -> Tuple[Union[None, common.Effects], List[str]]:
-        evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
+    def evaluate(self,
+                 context: Dict,
+                 evaluation_result: Optional[EvaluationResult] = None
+                 ) -> EvaluationResult:
+        evaluation_result = evaluation_result if evaluation_result is not None else EvaluationResult(
         )
         try:
             cr = cr_switcher[self.conflict_resolution]()
@@ -128,28 +144,31 @@ class Policy(AC_Entity):
                 self.conflict_resolution)
         LOGGER.debug("policy %s before evaluation: %s", self.entity_id,
                      cr.get_effect())
+        try:
+            if self._check_match(context):
+                assert self.container is not None
+                try:
+                    for rule_id in self.rules:
+                        self._evaluate(rule_id, self.container.rules,
+                                       evaluation_result, cr, context)
+                        if cr.check_break():
+                            break
+                except ACEntityMissing as e:
+                    LOGGER.warning(
+                        "%s requested entity %s, but was not found in container",
+                        self.entity_id, e.args[0])
+                    evaluation_result.results[self.entity_id] = None
+        except lark.exceptions.VisitError as e:
+            if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
+                evaluation_result.results[self.entity_id] = None
+                evaluation_result.missing_attr.append(e.orig_exc.attr)
+                return evaluation_result
+            raise
 
-        missing_attr: List[str] = []
-
-        if self._check_match(context):
-            assert self.container is not None
-            try:
-                for rule_id in self.rules:
-                    self._evaluate(rule_id, self.container.rules,
-                                   evaluation_cache, cr, context, missing_attr)
-                    if cr.check_break():
-                        break
-            except ACEntityMissing as e:
-                LOGGER.warning(
-                    "%s requested entity %s, but was not found in container",
-                    self.entity_id, e.args[0])
-                return None, missing_attr
-
-        LOGGER.debug("policy %s evaluation_cache %s", self.entity_id,
-                     evaluation_cache)
         LOGGER.debug("policy %s evaluated to %s", self.entity_id,
                      cr.get_effect())
-        return (cr.get_effect(), missing_attr)
+        evaluation_result.results[self.entity_id] = cr.get_effect()
+        return evaluation_result
 
     def _check_match(self, context: Dict[str, Dict]) -> bool:
         return parser.check_target(self.target, context)
@@ -163,20 +182,27 @@ class Rule(AC_Entity):
     def __post_init__(self, effect: str) -> None:
         self.effect = common.Effects[effect]
 
-    def evaluate(self, context: Dict, evaluation_cache: Dict
-                 ) -> Tuple[Union[None, common.Effects], List[str]]:
-        evaluation_cache = evaluation_cache if evaluation_cache != None else dict(
+    def evaluate(self,
+                 context: Dict,
+                 evaluation_result: Optional[EvaluationResult] = None
+                 ) -> EvaluationResult:
+        evaluation_result = evaluation_result if evaluation_result is not None else EvaluationResult(
         )
         try:
             if self._check_match(context):
                 if self._check_condition(context):
-                    return self.effect, []
-                return common.Effects(not self.effect), []
+                    evaluation_result.results[self.entity_id] = self.effect
+                else:
+                    evaluation_result.results[self.entity_id] = common.Effects(
+                        not self.effect)
+                return evaluation_result
         except lark.exceptions.VisitError as e:
             if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
-                return (None, [e.orig_exc.attr])
+                evaluation_result.results[self.entity_id] = None
+                evaluation_result.missing_attr.append(e.orig_exc.attr)
+                return evaluation_result
             raise
-        return None, []
+        return evaluation_result
 
     def _check_condition(self, context: Dict[str, Dict]) -> bool:
         return parser.check_condition(self.condition, context)
@@ -217,31 +243,27 @@ class AC_Container:
         for f in glob.glob(path + "/*.json"):
             self.load_file(f)
 
-    def evaluate_by_entity_id(self,
-                              entity_id: str,
-                              context: Dict[str, MutableMapping],
-                              evaluation_cache: Optional[Dict] = None
-                              ) -> Tuple[Optional[common.Effects], List[str]]:
-        if evaluation_cache is None:
-            evaluation_cache = dict()
+    def evaluate_by_entity_id(
+            self,
+            entity_id: str,
+            context: Dict[str, MutableMapping],
+            evaluation_result: Optional[EvaluationResult] = None
+    ) -> EvaluationResult:
+        if evaluation_result is None:
+            evaluation_result = EvaluationResult()
 
-        if entity_id in evaluation_cache:
-            return evaluation_cache[entity_id], []
+        if entity_id in evaluation_result.results:
+            return evaluation_result
         # Effect, Missing
         try:
-            effect, missing = self.policy_sets[entity_id].evaluate(
-                context, evaluation_cache)
+            evaluation_result = self.policy_sets[entity_id].evaluate(
+                context, evaluation_result)
         except KeyError:
             LOGGER.debug("Requested ps %s, but was not found in container",
                          entity_id)
             raise ACEntityMissing(entity_id)
 
-        evaluation_cache[entity_id] = effect
-        assert isinstance(
-            effect, common.Effects
-        ) or effect == None, "effect is %s" % effect.__class__
-        assert isinstance(missing, list)
-        return (effect, missing)
+        return evaluation_result
 
     def add_entity(self, entity_id: str, definition: Dict[str, str]) -> None:
         if not isinstance(definition, Dict):

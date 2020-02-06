@@ -24,9 +24,11 @@ def test_only_init_lark(benchmark):
 
 def test_alwaysGrant(benchmark):
     context = {"subject": {}, "object": {}, "environment": {}}
-    effect, _ = benchmark(Container.evaluate_by_entity_id,
-                          "com.example.policysets.alwaysGrant", context)
-    assert effect == Effects.GRANT
+    evaluation_result = benchmark(Container.evaluate_by_entity_id,
+                                  "com.example.policysets.alwaysGrant",
+                                  context)
+    assert evaluation_result.results[
+        "com.example.policysets.alwaysGrant"] == Effects.GRANT
 
 
 def test_missing_entities():
@@ -36,11 +38,11 @@ def test_missing_entities():
         effect, _ = Container.evaluate_by_entity_id("not-existing", context)
     # Everything else should return none
     assert Container.policies["policy_with_missing_rule"].evaluate(
-        context, {})[0] is None
+        context).results["policy_with_missing_rule"] is None
     assert Container.policy_sets["policyset_with_missing_policyset"].evaluate(
-        context, {})[0] is None
+        context).results["policyset_with_missing_policyset"] is None
     assert Container.policy_sets["policyset_with_missing_policy"].evaluate(
-        context, {})[0] is None
+        context).results["policyset_with_missing_policy"] is None
 
 
 def test_container_to_string():
@@ -79,9 +81,11 @@ def test_loggedIn(benchmark):
         },
         "environment": {}
     }
-    effect, _ = benchmark(Container.evaluate_by_entity_id,
-                          "com.example.policysets.loggedIn", context)
-    assert effect == Effects.GRANT
+
+    evaluation_result = benchmark(Container.evaluate_by_entity_id,
+                                  "com.example.policysets.loggedIn", context)
+    assert evaluation_result.results[
+        "com.example.policysets.loggedIn"] == Effects.GRANT
 
 
 def test_loggedInAdmin(benchmark):
@@ -94,9 +98,10 @@ def test_loggedInAdmin(benchmark):
         },
         "environment": {}
     }
-    effect, _ = benchmark(Container.evaluate_by_entity_id,
-                          "com.example.policysets.loggedIn", context)
-    assert effect == Effects.GRANT
+    test = "com.example.policysets.loggedIn"
+    evaluation_result = benchmark(Container.evaluate_by_entity_id, test,
+                                  context)
+    assert evaluation_result.results[test] == Effects.GRANT
 
 
 def test_normalUser_wants_admin(benchmark):
@@ -109,6 +114,7 @@ def test_normalUser_wants_admin(benchmark):
         },
         "environment": {}
     }
-    effect, _ = benchmark(Container.evaluate_by_entity_id,
-                          "com.example.policysets.loggedIn", context)
-    assert effect == Effects.DENY
+    test = "com.example.policysets.loggedIn"
+    evaluation_result = benchmark(Container.evaluate_by_entity_id, test,
+                                  context)
+    assert evaluation_result.results[test] == Effects.DENY
