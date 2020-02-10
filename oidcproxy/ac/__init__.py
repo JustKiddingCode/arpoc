@@ -46,6 +46,7 @@ class AC_Entity(ABC):
     entity_id: str
     target: str
     description: str
+    obligations: List[str]
 
     def _evaluate(self, entity_id: str, getter: Dict,
                   evaluation_result: EvaluationResult, cr: ConflictResolution,
@@ -110,6 +111,8 @@ class Policy_Set(AC_Entity):
                         self.entity_id, e.args[0])
                     evaluation_result.results[self.entity_id] = None
                     return evaluation_result
+
+                evaluation_result.obligations.extend(self.obligations)
         except lark.exceptions.VisitError as e:
             if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
                 evaluation_result.results[self.entity_id] = None
@@ -158,6 +161,8 @@ class Policy(AC_Entity):
                         "%s requested entity %s, but was not found in container",
                         self.entity_id, e.args[0])
                     evaluation_result.results[self.entity_id] = None
+
+                evaluation_result.obligations.extend(self.obligations)
         except lark.exceptions.VisitError as e:
             if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
                 evaluation_result.results[self.entity_id] = None
@@ -195,6 +200,7 @@ class Rule(AC_Entity):
                 else:
                     evaluation_result.results[self.entity_id] = common.Effects(
                         not self.effect)
+                evaluation_result.obligations.extend(self.obligations)
                 return evaluation_result
         except lark.exceptions.VisitError as e:
             if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
@@ -288,6 +294,7 @@ class AC_Container:
             "Resolver": "conflict_resolution",
             "Effect": "effect",
             "Condition": "condition",
+            "Obligations": "obligations",
             "Type": "--filter--"
         }
         kwargs = {

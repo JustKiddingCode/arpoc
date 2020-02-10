@@ -4,7 +4,8 @@
 		"Description": "Default Policy",
 		"Target" : "object.url startswith 'admin'",
 		"Rules" : [ "com.example.rules.is_admin" ],
-		"Resolver": "ANY"
+		"Resolver": "ANY",
+		"Obligations" : []
 },
 
 "com.example.policies.default": {
@@ -12,28 +13,32 @@
 		"Description": "Default Policy",
 		"Target" : "True",
 		"Rules" : [ "com.example.rules.default" ],
-		"Resolver": "ANY"
+		"Resolver": "ANY",
+		"Obligations" : []
 },
 "com.example.policies.loggedIn": {
 		"Type": "Policy",
 		"Description": "Allow for logged in Users",
 		"Target" : "True",
 		"Rules" : [ "com.example.rules.loggedIn" ],
-		"Resolver": "ANY"
+		"Resolver": "ANY",
+		"Obligations" : []
 },
 "com.example.policies.alwaysGrant": {
 		"Type": "Policy",
 		"Description": "Always Grant Policy",
 		"Target" : "True",
 		"Rules" : [ "com.example.rules.alwaysGrant" ],
-		"Resolver": "ANY"
+		"Resolver": "ANY",
+		"Obligations" : []
 },
 "com.example.policies.alwaysDeny": {
 		"Type": "Policy",
 		"Description": "Always Deny Policy",
 		"Target" : "True",
 		"Rules" : [ "com.example.rules.alwaysDeny" ],
-		"Resolver": "ANY"
+		"Resolver": "ANY",
+		"Obligations" : []
 },
 
 "com.example.policies.inTestGroup": {
@@ -41,6 +46,7 @@
 		"Description": "Test if user is in /test group",
 		"Target" : "True",
 		"Rules" : [ "com.example.rules.inTestGroup" ],
-		"Resolver": "ANY"
+		"Resolver": "ANY",
+		"Obligations" : []
 }
 }

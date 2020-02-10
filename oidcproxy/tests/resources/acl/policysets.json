@@ -1,4 +1,13 @@
 {
+"policyset_with_obligation" : {
+		"Type": "PolicySet",
+		"Description": " ",
+		"Target": "True",
+		"Policies": ["policy_dummy"],
+		"PolicySets": [],
+		"Resolver": "AND",
+		"Obligations" : ["obl_log_failed"]
+},
 
 "com.example.policysets.default": {
 		"Type": "PolicySet",
@@ -6,7 +15,8 @@
 		"Target": "True",
 		"Policies": ["com.example.policies.default"],
 		"PolicySets": [],
-		"Resolver": "ANY"
+		"Resolver": "ANY",
+		"Obligations" : []
 },
 "com.example.policysets.default2" : {
 		"Type": "PolicySet",
@@ -14,7 +24,8 @@
 		"Target": "True",
 		"Policies": ["com.example.policies.default2"],
 		"PolicySets": [],
-		"Resolver": "ANY"
+		"Resolver": "ANY",
+		"Obligations" : []
 },
 "com.example.policysets.loggedIn": {
 		"Type": "PolicySet",
@@ -22,7 +33,8 @@
 		"Target": "True",
 		"Policies": ["com.example.policies.loggedIn", "com.example.policies.adminpages"],
 		"PolicySets": [],
-		"Resolver": "AND"
+		"Resolver": "AND",
+		"Obligations" : []
 },
 "com.example.policysets.alwaysGrant": {
 		"Type": "PolicySet",
@@ -30,7 +42,8 @@
 		"Target": "True",
 		"Policies": ["com.example.policies.alwaysGrant"],
 		"PolicySets": [],
-		"Resolver": "ANY"
+		"Resolver": "ANY",
+		"Obligations" : []
 },
 "com.example.policysets.alwaysDeny" : {
 		"Type": "PolicySet",
@@ -38,7 +51,8 @@
 		"Target": "True",
 		"Policies": ["com.example.policies.alwaysDeny"],
 		"PolicySets": [],
-		"Resolver": "ANY"
+		"Resolver": "ANY",
+		"Obligations" : []
 },
 "com.example.policysets.inTestGroup" : {
 		"Type": "PolicySet",
@@ -46,7 +60,8 @@
 		"Target": "True",
 		"Policies": ["com.example.policies.inTestGroup"],
 		"PolicySets": [],
-		"Resolver": "ANY"
+		"Resolver": "ANY",
+		"Obligations" : []
 }
 
 }

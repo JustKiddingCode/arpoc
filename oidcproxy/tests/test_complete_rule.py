@@ -8,21 +8,25 @@ import oidcproxy.ac
 import oidcproxy.exceptions
 from oidcproxy.ac.common import Effects
 
-Container = oidcproxy.ac.AC_Container()
 
 test_acls = 'oidcproxy.tests.resources.acl'
 
-for f in importlib.resources.contents(test_acls):
-    if f.endswith(".json"):
-        with importlib.resources.path(test_acls, f) as path_p:
-            Container.load_file(path_p)
+
+@pytest.fixture
+def Container():
+    Container = oidcproxy.ac.AC_Container()
+    for f in importlib.resources.contents(test_acls):
+        if f.endswith(".json"):
+            with importlib.resources.path(test_acls, f) as path_p:
+                Container.load_file(path_p)
+    return Container
 
 
 def test_only_init_lark(benchmark):
     benchmark(lark.Lark, oidcproxy.ac.parser.grammar, start="condition")
 
 
-def test_alwaysGrant(benchmark):
+def test_alwaysGrant(benchmark, Container):
     context = {"subject": {}, "object": {}, "environment": {}}
     evaluation_result = benchmark(Container.evaluate_by_entity_id,
                                   "com.example.policysets.alwaysGrant",
@@ -30,8 +34,14 @@ def test_alwaysGrant(benchmark):
     assert evaluation_result.results[
         "com.example.policysets.alwaysGrant"] == Effects.GRANT
 
+def test_obligations(Container):
+    context = {"subject": {}, "object": {}, "environment": {}}
+    print(Container.policy_sets.keys())
+    ps = Container.policy_sets["policyset_with_obligation"]
+    res = ps.evaluate(context)
+    assert res.obligations == ['obl_log_failed']
 
-def test_missing_entities():
+def test_missing_entities(Container):
     context = {"subject": {}, "object": {}, "environment": {}}
     # A Service with missing policy set should raise an exception
     with pytest.raises(oidcproxy.exceptions.ACEntityMissing):
@@ -45,33 +55,33 @@ def test_missing_entities():
         context).results["policyset_with_missing_policy"] is None
 
 
-def test_container_to_string():
+def test_container_to_string(Container):
     container_str = str(Container)
     assert "Policy(" in container_str
     assert "Policy_Set(" in container_str
     assert "Rule" in container_str
 
 
-def test_broken_json(caplog):
+def test_broken_json(caplog, Container):
     with importlib.resources.path(test_acls, "broken_json") as path_p:
         Container.load_file(path_p)
     assert "JSON File" in caplog.text
     assert "is no valid json" in caplog.text
 
 
-def test_broken_definitions(caplog):
+def test_broken_definitions(caplog, Container):
     with importlib.resources.path(test_acls, "broken_definitions") as path_p:
         Container.load_file(path_p)
     assert "Probably error in AC Entity Definition" in caplog.text
 
 
-def test_json_no_ac_format(caplog):
+def test_json_no_ac_format(caplog, Container):
     with importlib.resources.path(test_acls, "json_no_ac_format") as path_p:
         Container.load_file(path_p)
     assert "Error handling file" in caplog.text
 
 
-def test_loggedIn(benchmark):
+def test_loggedIn(benchmark, Container):
     context = {
         "subject": {
             'email': 'admin@example.com'
@@ -88,7 +98,7 @@ def test_loggedIn(benchmark):
         "com.example.policysets.loggedIn"] == Effects.GRANT
 
 
-def test_loggedInAdmin(benchmark):
+def test_loggedInAdmin(benchmark, Container):
     context = {
         "subject": {
             'email': 'admin@example.com'
@@ -104,7 +114,7 @@ def test_loggedInAdmin(benchmark):
     assert evaluation_result.results[test] == Effects.GRANT
 
 
-def test_normalUser_wants_admin(benchmark):
+def test_normalUser_wants_admin(benchmark, Container):
     context = {
         "subject": {
             'email': 'normaluser@example.com'

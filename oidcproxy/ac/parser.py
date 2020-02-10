@@ -125,6 +125,7 @@ binary_operators = {
 
 
 class UOP:
+    @staticmethod
     def exists(elem: Any) -> bool:
         return elem != None
 
@@ -156,8 +157,7 @@ class TransformAttr(Transformer):
             lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
             args[0].split("."), self.data["object"])
         if attr == None:
-            pass
-
+            raise ObjectAttributeMissing("No object attr %s" % str(args[0]), args[0])
 
 #            warnings.warn("No object_attr %s" % str(args[0]),
 #                          ObjectAttributeMissingWarning)
@@ -169,7 +169,7 @@ class TransformAttr(Transformer):
             lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
             args[0].split("."), self.data["environment"])
         if attr == None:
-            pass
+            raise EnvironmentAttributeMissing("No object attr %s" % str(args[0]), args[0])
             #           warnings.warn("No environment_attr %s" % str(args[0]),
             #              EnvironmentAttributeMissingWarning)
 
@@ -192,6 +192,30 @@ class TransformAttr(Transformer):
             return args[0] == "True"
         return int(args[0])
 
+class ExistsTransformer(Transformer):
+    def __init__(self, attr_transformer : TransformAttr ):
+        super().__init__(self)
+        self.attr_transformer = attr_transformer
+    """ The exists Transformer must run before the normal transformers in order to catch exceptions """
+    def _exists(self, args : List) -> bool:
+        try:
+            getattr(self.attr_transformer, args[0].data)(args[0].children)
+            return True
+        except AttributeMissing:
+            return False
+
+    def single(self, args: List) -> Any:
+        if args[0] == "exists":
+            return self._exists(args[1:])
+        return Tree("single", args)
+
+
+
+    def uop(self, args: List) -> Any:
+        if (args[0] == "exists"):
+            return "exists"
+        return Tree("uop", args)
+        #return getattr(UOP, str(args[0]))
 
 class EvalComplete(Transformer):
     def condition(self, args: List) -> Any:
@@ -204,9 +228,6 @@ class EvalComplete(Transformer):
         if len(args) == 1:
             return args[0]
         raise ValueError
-
-
-#        return Tree("target", args)
 
 
 class EvalTree(Transformer):
@@ -260,40 +281,53 @@ class EvalTree(Transformer):
             return args[0]
         raise ValueError
 
+def parse_and_transform(lark_handle, rule, data: Dict) -> bool:
+    try:
+        ast = lark_handle.parse(rule)
+    except (lark.exceptions.UnexpectedCharacters,
+            lark.exceptions.UnexpectedEOF):
+        raise BadRuleSyntax('Rule has a bad syntax %s' % rule)
+    # Eval exists
+    attr_transformer = TransformAttr(data)
+    new_ast = ExistsTransformer(attr_transformer).transform(ast)
+    T = attr_transformer * EvalTree() * EvalComplete()
+    return T.transform(new_ast)
 
 def check_condition(condition: str, data: Dict) -> bool:
     global lark_condition
     LOGGER.debug("Check condition %s with data %s", condition, data)
-    l = Lark(grammar, start="condition")
-    try:
-        ast = lark_condition.parse(condition)
-    except (lark.exceptions.UnexpectedCharacters,
-            lark.exceptions.UnexpectedEOF):
-        raise BadRuleSyntax('Rule has a bad syntax %s' % condition)
-    T = TransformAttr(data) * EvalTree() * EvalComplete()
-    ret_value = T.transform(ast)
+    ret_value = parse_and_transform(lark_condition, condition, data)
     LOGGER.debug("Condition %s evaluated to %s", condition, ret_value)
-
     return ret_value
 
 
 def check_target(rule: str, data: Dict) -> bool:
     global lark_target
     LOGGER.debug("Check target rule %s with data %s", rule, data)
-    try:
-        ast = lark_target.parse(rule)
-    except (lark.exceptions.UnexpectedCharacters,
-            lark.exceptions.UnexpectedEOF):
-        raise BadRuleSyntax('Rule has a bad syntax %s' % rule)
-    T = TransformAttr(data) * EvalTree() * EvalComplete()
-    ret_value = T.transform(ast)
+    ret_value = parse_and_transform(lark_condition, rule, data)
     LOGGER.debug("Target Rule %s evaluated to %s", rule, ret_value)
     return ret_value
 
 
-#if __name__ == "__main__":
+if __name__ == "__main__":
 #
-#    l = Lark(grammar, start="condition")
+    l = Lark(grammar, start="condition")
+    data = {"subject" : {"email" : "hello"}}
+    attr_transformer = TransformAttr(data)
+    ast = l.parse("exists subject.email")
+    new_ast = ExistsTransformer(attr_transformer).transform(ast)
+    print(new_ast)
+    T = attr_transformer * EvalTree() * EvalComplete()
+    print(T.transform(new_ast))
+    ast = l.parse("exists subject.notexisting")
+    new_ast = ExistsTransformer(attr_transformer).transform(ast)
+    print(new_ast)
+    T = attr_transformer * EvalTree() * EvalComplete()
+    print(T.transform(new_ast))
+    print(ast)
+    new_ast = ExistsTransformer(attr_transformer).transform(ast)
+    print(new_ast)
+    #print(new_ast)
 #
 #    ast = l.parse("[5, '4', True]")
 #    print(ast)

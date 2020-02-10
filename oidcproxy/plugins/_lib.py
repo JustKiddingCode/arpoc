@@ -1,6 +1,7 @@
 from abc import ABC
 from typing import Any, Dict
 
+import oidcproxy.ac.common
 
 class EnvironmentAttribute(ABC):
     target = ""
@@ -18,3 +19,12 @@ class ObjectSetter(ABC):
 
     def run(self, data: Dict) -> Any:
         return None
+
+class Obligation(ABC):
+    name = ""
+
+    def __init__(self) -> None:
+        pass
+
+    def run(self, effect : oidcproxy.ac.common.Effects):
+        pass

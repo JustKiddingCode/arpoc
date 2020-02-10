@@ -3,7 +3,7 @@
 import importlib
 import importlib.util
 from pathlib import Path
-from typing import Dict, Callable, Optional
+from typing import Dict, Callable, Optional, List
 
 from queue import PriorityQueue
 import collections
@@ -90,6 +90,46 @@ class ObjectDict(collections.UserDict):
             raise KeyError
         return elem
 
+class ObligationsDict(collections.UserDict):
+    def __init__(self, initialdata: Dict = None) -> None:
+        if not initialdata:
+            initialdata = {}
+        super().__init__(initialdata)
+        self.__get_obligations_dict()
+
+    def __get_obligations_dict(self) -> None:
+        d: Dict[str, Callable] = dict()
+        for plugin in _lib.Obligation.__subclasses__():
+            if plugin.target in d.keys():
+                DuplicateKeyError(
+                    "key {} is already in target in a plugin".format(
+                        plugin.target))
+            d[plugin.target] = plugin
+
+        self._obligations : List[Type[_lib.Obligation]] = d
+
+    def run_all(self, obligations : List[str]) -> List[bool]:
+        results : List[bool] = []
+        for key in obligations:
+            if key in self._obligations:
+                results.append(self._obligations[key].run())
+            else:
+                raise ValueError
+        return results
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if key in self.data:
+            return self.data[key]
+        if key in self._getter:
+            self.data[key] = self._getter[key]()
+            return self.data[key]
+        return default
+
+    def __getitem__(self, key: str) -> Any:
+        elem = self.get(key)
+        if elem == None:
+            raise KeyError
+        return elem
 
 class EnvironmentDict(collections.UserDict):
     def __init__(self, initialdata: Dict = None) -> None:

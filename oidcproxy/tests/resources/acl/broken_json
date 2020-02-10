@@ -3,7 +3,8 @@
 		"Description": " ",
 		"Target" : "True",
 		"Rules" : [ "not-existing" ],
-		"Resolver": "AND"
+		"Resolver": "AND",
+		"Obligations" : []
 },
 "policyset_with_missing_policyset" : {
 		"Type": "PolicySet",
@@ -11,7 +12,8 @@
 		"Target": "True",
 		"Policies": ["policy_dummy"],
 		"PolicySets": ["not-existing", "policyset_dummy"],
-		"Resolver": "AND"
+		"Resolver": "AND",
+		"Obligations" : []
 },
 "policyset_with_missing_policy" : {
 		"Type": "PolicySet",
@@ -19,7 +21,8 @@
 		"Target": "True",
 		"Policies": ["not-existing","policy_dummy"],
 		"PolicySets": ["policyset_dummy"],
-		"Resolver": "AND"
+		"Resolver": "AND",
+		"Obligations" : []
 },
 
 "policyset_dummy" : {
@@ -28,7 +31,8 @@
 		"Target": "True",
 		"Policies": ["policy_dummy"],
 		"PolicySets": [],
-		"Resolver": "AND"
+		"Resolver": "AND",
+		"Obligations" : []
 },
 
 "policy_dummy": {
@@ -36,14 +40,19 @@
 		"Description": " ",
 		"Target" : "True",
 		"Rules" : [ "rule_dummy" ],
-		"Resolver": "AND"
+		"Resolver": "AND",
+		"Obligations" : []
+
+
 },
 "rule_dummy": {
 		"Type": "Rule",
 		"Target": "True",
 		"Description": "Dummy Rule",
 		"Condition" : "True",
-		"Effect": "GRANT"
+		"Effect": "GRANT",
+		"Obligations" : []
+
 }
 
 }

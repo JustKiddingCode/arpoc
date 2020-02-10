@@ -59,7 +59,7 @@ import oidcproxy.ac as ac
 import oidcproxy.config as config
 import oidcproxy.pap
 import oidcproxy.cache
-from oidcproxy.plugins import EnvironmentDict, ObjectDict
+from oidcproxy.plugins import EnvironmentDict, ObjectDict, ObligationsDict
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -627,9 +627,14 @@ class ServiceProxy:
         proxy_url = self._build_url(url, **kwargs)
         evaluation_result = self.ac.evaluate_by_entity_id(
             self.cfg['AC'], context)
-        (effect, missing) = (evaluation_result.results[self.cfg['AC']],
-                             evaluation_result.missing_attr)
-        if effect == ac.Effects.GRANT:
+        (effect, missing, obligations) = (evaluation_result.results[self.cfg['AC']],
+                             evaluation_result.missing_attr,
+                             evaluation_result.obligations)
+        LOGGING.debug("Obligations are: %s", obligations)
+        obligations_dict = ObligationsDict()
+        obligations_result = obligations_dict.run_all(obligations)
+
+        if effect == ac.Effects.GRANT and all(obligations_result):
             return self._proxy(proxy_url, access)
         if len(missing) > 0:
             # -> Are we logged in?

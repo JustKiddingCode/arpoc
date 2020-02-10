@@ -3,7 +3,8 @@
 		"Type": "Policy",
 		"Description": " ",
 		"Target" : "True",
-		"Resolver": "AND"
+		"Resolver": "AND",
+		"Obligations" : []
 },
 "policyset_with_missing_policyset" : {
 		"Type": "not-existing",
@@ -11,6 +12,7 @@
 		"Target": "True",
 		"Policies": ["policy_dummy"],
 		"PolicySets": ["not-existing", "policyset_dummy"],
-		"Resolver": "AND"
+		"Resolver": "AND",
+		"Obligations" : []
 }
 }
