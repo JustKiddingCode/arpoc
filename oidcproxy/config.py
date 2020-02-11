@@ -60,9 +60,8 @@ class ProxyConfig:
     """ Configuration for the Proxy Setup """
     keyfile: str
     certfile: str
-    hostname: str
+    domainname: str
     contacts: List[str]
-    redirect_uris: List[str]
     address: str = "0.0.0.0"
     tls_port: int = 443
     plain_port: int = 80
@@ -75,6 +74,13 @@ class ProxyConfig:
 
     def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
+
+    def __post_init__(self):
+        assert isinstance(self.redirect, List)
+        self.baseuri = "https://{}/".format(self.domainname)
+        self.redirect_uris = []
+        for redirect_path in self.redirect:
+            self.redirect_uris.append("{}{}".format(self.baseuri, redirect_path))
 
 
 @dataclass

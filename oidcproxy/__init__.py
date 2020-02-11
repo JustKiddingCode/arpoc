@@ -571,7 +571,7 @@ class ServiceProxy:
         return url
 
     def _build_proxy_url(self, url: str = '', **kwargs: Any) -> str:
-        this_url = "{}{}/{}".format(self._oidc_handler.cfg.proxy['hostname'],
+        this_url = "{}{}/{}".format(self._oidc_handler.cfg.proxy['baseuri'],
                                     self.cfg['proxy_URL'][1:], url)
         if kwargs:
             this_url = "{}?{}".format(this_url, urllib.parse.urlencode(kwargs))
@@ -705,7 +705,7 @@ class App:
 
     def tls_redirect(self, *args: Any, **kwargs: Any) -> None:
         url = cherrypy.url()
-        raise cherrypy.HTTPRedirect(self.config.proxy['hostname'] +
+        raise cherrypy.HTTPRedirect(self.config.proxy['baseuri'] +
                                     kwargs['url'])
 
     def get_routes_dispatcher(self) -> cherrypy.dispatch.RoutesDispatcher:
@@ -752,7 +752,7 @@ class App:
                                '/TLSRedirect/{url:.*?}',
                                controller=self,
                                action='tls_redirect')
-            tls_dispatcher = TLSOnlyDispatcher(self.config.proxy['hostname'],
+            tls_dispatcher = TLSOnlyDispatcher(self.config.proxy['baseuri'],
                                                dispatcher)
             return tls_dispatcher
 

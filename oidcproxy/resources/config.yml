@@ -29,7 +29,7 @@ proxy:
     port: 443
 #    keyfile: /etc/ssl/private/python-proxy.example.com.key
 #    certfile: /etc/ssl/private/python-proxy.example.com.crt
-#    hostname: https://python-proxy.example.com/
+#    domainname: https://python-proxy.example.com/
     username: www-data
     groupname: www-data
     secrets: /var/lib/oidc-proxy/secrets.yml

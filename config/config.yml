@@ -18,12 +18,10 @@ openid_providers:
 proxy:
     keyfile: /etc/ssl/private/key.pem
     certfile: /etc/ssl/private/cert.crt
-    hostname: https://python-proxy.example.com/
+    domainname: python-proxy.example.com
     redirect: 
         - /secure/redirect_uris
         - /redirect
-    redirect_uris:
-        - https://python-proxy.example.com/secure/redirect_uris
     contacts:
         - info@konstantinzangerle.de
     tls_port: 443
