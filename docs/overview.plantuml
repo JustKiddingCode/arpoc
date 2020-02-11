@@ -1,0 +1,32 @@
+
+!define ICONURL https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v2.1.0
+!includeurl ICONURL/common.puml
+!includeurl ICONURL/govicons/world.puml
+!includeurl ICONURL/govicons/user.puml
+!includeurl ICONURL/govicons/database.puml
+!includeurl ICONURL/govicons/file.puml
+!includeurl ICONURL/govicons/id_card.puml
+!includeurl ICONURL/font-awesome-5/clipboard_list.puml
+!define ICONURL https://raw.githubusercontent.com/Roemer/plantuml-office/master/office2014
+!includeurl ICONURL/Concepts/service_application.puml
+OFF_SERVICE_APPLICATION(OIDC,OIDC Proxy)
+FA5_CLIPBOARD_LIST(obligations, Obligations)
+
+GOV_WORLD(environment,Environment)
+GOV_USER(user, User)
+GOV_DATABASE(acentities, AC Entities)
+GOV_DATABASE(objinf, Object Information)
+GOV_FILE(object, Object)
+GOV_ID_CARD(oidcprovider, OIDC Provider)
+
+user -> [OIDC]: Request
+OIDC -> user: Response
+OIDC <-- environment: Environment Attributes
+OIDC <-- objinf
+obligations <-- OIDC
+oidcprovider <-- OIDC
+acentities --> OIDC: Rules
+OIDC -> object
+object -> OIDC
+oidcprovider <--> user
+
