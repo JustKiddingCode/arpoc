@@ -4,48 +4,55 @@
 		"Target": "True",
 		"Description": "Default Rule",
 		"Condition" : "True",
-		"Effect": "GRANT"
+		"Effect": "GRANT",
+		"Obligations" : []
 },
 "com.example.rules.alwaysGrant" : {
 		"Type": "Rule",
 		"Target": "True",
 		"Description": "Always Grant Rule",
 		"Condition" : "True",
-		"Effect": "GRANT"
+		"Effect": "GRANT",
+		"Obligations" : []
 },
 "com.example.rules.alwaysDeny" : {
 		"Type": "Rule",
 		"Target": "True",
 		"Description": "Always Deny Rule",
 		"Condition" : "True",
-		"Effect": "DENY"
+		"Effect": "DENY",
+		"Obligations" : []
 },
 "com.example.rules.loggedIn" : {
 		"Type": "Rule",
 		"Target": "True",
 		"Description": "Allow access when User is logged in (aka. email adress exists)",
-		"Condition" : "exists subject.email",
-		"Effect": "GRANT"
+		"Condition" : "subject.email",
+		"Effect": "GRANT",
+		"Obligations" : ["obl_log_successful"]
 },
 "com.example.rules.inTestGroup" : {
 		"Type": "Rule",
 		"Target": "True",
 		"Description": "Allow access when User is in /test group",
 		"Condition" : "'/test1' in subject.groups",
-		"Effect": "GRANT"
+		"Effect": "GRANT",
+		"Obligations" : []
 },
 "com.example.rules.is_admin" : {
 		"Type": "Rule",
 		"Target": "True",
 		"Description": "Allow access when email starts with admin@",
 		"Condition" : "subject.email startswith 'admin@'",
-		"Effect": "GRANT"
+		"Effect": "GRANT",
+		"Obligations" : []
 },
 "com.example.rules.is_workingtime" : {
 		"Type": "Rule",
 		"Target": "True",
 		"Description": "Allow access between 10:20 and 10:30",
 		"Condition" : "environment.time < '10:30' and environment.time > '10:20'",
-		"Effect": "GRANT"
+		"Effect": "GRANT",
+		"Obligations" : []
 }
 }

@@ -632,7 +632,7 @@ class ServiceProxy:
                              evaluation_result.obligations)
         LOGGING.debug("Obligations are: %s", obligations)
         obligations_dict = ObligationsDict()
-        obligations_result = obligations_dict.run_all(obligations)
+        obligations_result = obligations_dict.run_all(obligations, effect)
 
         if effect == ac.Effects.GRANT and all(obligations_result):
             return self._proxy(proxy_url, access)

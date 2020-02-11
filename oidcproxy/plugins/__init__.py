@@ -12,16 +12,21 @@ from typing import Any
 import os
 
 from . import _lib
+from oidcproxy.ac.common import Effects
 import oidcproxy.config as config
 from oidcproxy.exceptions import DuplicateKeyError
+
 
 import logging
 LOGGING = logging.getLogger()
 
 __all__ = [
-    f".{f.stem}" for f in Path(__file__).parent.glob("*.py")
-    if "__" not in f.stem
+    f"{f.stem}" for f in Path(__file__).parent.glob("*.py")
+    if not str(f.stem).startswith("_")
 ]
+
+for m in __all__:
+    importlib.import_module("." + m, "oidcproxy.plugins")
 
 plugins = []
 
@@ -96,23 +101,24 @@ class ObligationsDict(collections.UserDict):
             initialdata = {}
         super().__init__(initialdata)
         self.__get_obligations_dict()
+        LOGGING.debug("Obligations found %s", self._obligations)
 
     def __get_obligations_dict(self) -> None:
         d: Dict[str, Callable] = dict()
         for plugin in _lib.Obligation.__subclasses__():
-            if plugin.target in d.keys():
+            if plugin.name in d.keys():
                 DuplicateKeyError(
                     "key {} is already in target in a plugin".format(
-                        plugin.target))
-            d[plugin.target] = plugin
+                        plugin.name))
+            d[plugin.name] = plugin
 
         self._obligations : List[Type[_lib.Obligation]] = d
 
-    def run_all(self, obligations : List[str]) -> List[bool]:
+    def run_all(self, obligations : List[str], effect : Effects) -> List[bool]:
         results : List[bool] = []
         for key in obligations:
             if key in self._obligations:
-                results.append(self._obligations[key].run())
+                results.append(self._obligations[key].run(effect))
             else:
                 raise ValueError
         return results

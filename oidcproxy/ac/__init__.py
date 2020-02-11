@@ -118,6 +118,13 @@ class Policy_Set(AC_Entity):
                 evaluation_result.results[self.entity_id] = None
                 evaluation_result.missing_attr.append(e.orig_exc.attr)
                 return evaluation_result
+            if e.orig_exc.__class__ == parser.ObjectAttributeMissing:
+                evaluation_result.results[self.entity_id] = None
+                return evaluation_result
+            if e.orig_exc.__class__ == parser.EnvironmentAttributeMissing:
+                evaluation_result.results[self.entity_id] = None
+                return evaluation_result
+
             raise
 
         # Update Evaluation Result
@@ -168,6 +175,12 @@ class Policy(AC_Entity):
                 evaluation_result.results[self.entity_id] = None
                 evaluation_result.missing_attr.append(e.orig_exc.attr)
                 return evaluation_result
+            if e.orig_exc.__class__ == parser.ObjectAttributeMissing:
+                evaluation_result.results[self.entity_id] = None
+                return evaluation_result
+            if e.orig_exc.__class__ == parser.EnvironmentAttributeMissing:
+                evaluation_result.results[self.entity_id] = None
+                return evaluation_result
             raise
 
         LOGGER.debug("policy %s evaluated to %s", self.entity_id,
@@ -206,6 +219,12 @@ class Rule(AC_Entity):
             if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
                 evaluation_result.results[self.entity_id] = None
                 evaluation_result.missing_attr.append(e.orig_exc.attr)
+                return evaluation_result
+            if e.orig_exc.__class__ == parser.ObjectAttributeMissing:
+                evaluation_result.results[self.entity_id] = None
+                return evaluation_result
+            if e.orig_exc.__class__ == parser.EnvironmentAttributeMissing:
+                evaluation_result.results[self.entity_id] = None
                 return evaluation_result
             raise
         return evaluation_result
