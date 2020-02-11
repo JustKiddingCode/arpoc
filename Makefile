@@ -1,7 +1,7 @@
 .PHONY: tests, codelines, doc, htmldoc, pdfdoc
 
 tests:
-	python3.7-coverage run --include './oidcproxy/*' -m pytest oidcproxy/tests
+	python3.7-coverage run --include './oidcproxy/*' -m pytest oidcproxy/tests || :
 	python3.7-coverage html
 
 clean:

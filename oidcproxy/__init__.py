@@ -56,6 +56,7 @@ from jwkest import jwt
 #### Own Imports
 
 import oidcproxy.ac as ac
+import oidcproxy.exceptions
 import oidcproxy.config as config
 import oidcproxy.pap
 import oidcproxy.cache
@@ -117,12 +118,15 @@ class OidcHandler:
                     registration_token=provider['configuration_token'],
                     **args)
             else:
-                raise Exception("Error in the configuration file")
+                raise oidcproxy.exceptions.OIDCProxyException("Error in the configuration file")
         except oic.exception.RegistrationError:
             LOGGING.debug("Provider %s returned an error on registration",
                           name)
             LOGGING.debug("Seems to be permament, so not retrying")
             return
+        except (requests.exceptions.MissingSchema, requests.exceptions.InvalidSchema, requests.exceptions.InvalidURL):
+            raise oidcproxy.exceptions.OIDCProxyException("Error in the configuration file")
+ 
 
         self.__oidc_provider[name] = client
         self.__oidc_provider[name].redirect_uris = args["redirect_uris"]

@@ -4,6 +4,8 @@ import re
 import time
 from unittest.mock import Mock, PropertyMock, mock_open, patch
 
+import datetime
+
 import pytest
 import requests
 import requests_mock
@@ -77,6 +79,10 @@ def registration_response():
   }"""
     return re.sub(r'\s+', ' ', response)
 
+def registration_response_error():
+    response = """  { "error": "invalid_redirect_uri", "error_description": "Blub" } """
+    return re.sub(r'\s+', ' ', response)
+
 
 @pytest.fixture
 def setup_oidc_handler():
@@ -88,30 +94,6 @@ def setup_oidc_handler():
     service_cfg = oidcproxy.config.ServiceConfig("", "", "")
     oidc_handler = oidcproxy.OidcHandler(cfg)
     return cfg, oidc_handler
-
-
-@patch('oidcproxy.cherrypy.session', {'refresh': 1579702851}, create=True)
-def test_check_session_refresh(setup_oidc_handler):
-    _, oidc_handler = setup_oidc_handler
-    #    oidcproxy.cherrypy.session['refresh'] = 1579702851 # Mi 22. Jan 15:21 2020
-    assert oidc_handler._check_session_refresh()
-
-
-@patch('oidcproxy.cherrypy.session', {'refresh': time.time() + 30},
-       create=True)
-def test_check_session_refresh_in_future(setup_oidc_handler):
-    _, oidc_handler = setup_oidc_handler
-    #    oidcproxy.cherrypy.session['refresh'] = 1579702851 # Mi 22. Jan 15:21 2020
-    assert not oidc_handler._check_session_refresh()
-
-
-@patch('oidcproxy.cherrypy.session', {'refresh': time.time() + 100},
-       create=True)
-def test_check_session_refresh_no_time(setup_oidc_handler):
-    _, oidc_handler = setup_oidc_handler
-    #    oidcproxy.cherrypy.session['refresh'] = 1579702851 # Mi 22. Jan 15:21 2020
-    assert not oidc_handler._check_session_refresh()
-
 
 @pytest.fixture
 def setup_oidchandler_provider(setup_oidc_handler):
@@ -152,34 +134,93 @@ def setup_oidchandler_provider_registration(setup_oidc_handler):
 
     return cfg, oidchandler
 
-
-#def test_get_evaluation_cache(setup_oidc_handler):
-#    _, oidchandler = setup_oidc_handler
-#    assert oidchandler.get_evaluation_cache("") == None
-#    cache = oidcproxy.cache.Cache()
-#    oidchandler._cache = cache
-#
-#    cache.put("testkey", {'evaluation_cache': {
-#        'foo': 'bar'
-#    }},
-#              time.time() + 30)
-#
-#    assert oidchandler.get_evaluation_cache("testkey")['foo'] == "bar"
-#
-#    assert oidchandler.get_evaluation_cache("nonexisting") == None
+###########################
+#         TESTS           #
+###########################
 
 
-def test_userinfo_from_at_registration(setup_oidchandler_provider_registration,
-                                       setup_jwt):
-    _, oidc_handler = setup_oidchandler_provider_registration
+def test_get_secrets(setup_oidchandler_provider):
+    cfg, oidchandler = setup_oidchandler_provider
+    secrets = oidchandler.get_secrets()
+    assert secrets['test']['client_id'] == 's6BhdRkqt3'
+    assert secrets['test']['client_secret'] == 'ZJYCqe3GGRvdrudKyZS0XhGv_Z45DuKhCUk0gBR1vZk'
+
+def test_register_first_time_registration(setup_oidchandler_provider_registration):
+    assert True
+
+def test_register_first_time_configuration(setup_oidchandler_provider):
+    assert True
+
+def test_register_first_time_error(setup_oidc_handler, caplog):
+    cfg, oidchandler = setup_oidc_handler
+
+    configuration_url = ""
+    configuration_token = ""
+    registration_token = ""
+    registration_url = ""
+    provider_config_obj = oidcproxy.config.ProviderConfig("test", configuration_url, configuration_token, registration_token, registration_url)
+    with requests_mock.mock() as m:
+        m.get(
+            "https://openid-provider.example.com/auth/realms/master/.well-known/openid-configuration",
+            text=provider_config())
+        m.get(
+            "https://openid-provider.example.com/auth/realms/master/registerme",
+            text=registration_response())
+        with pytest.raises(oidcproxy.exceptions.OIDCProxyException):
+            oidchandler.register_first_time("test", provider_config_obj)
+
+        configuration_url = ""
+        configuration_token = ""
+        registration_token = "abcde"
+        registration_url = "https://openid-provider.example.com/auth/realms/master/registerme",
+        provider_config_obj = oidcproxy.config.ProviderConfig("test", configuration_url, configuration_token, registration_token, registration_url)
+
+        with pytest.raises(oidcproxy.exceptions.OIDCProxyException):
+            oidchandler.register_first_time("test", provider_config_obj)
+    # force lib error
+    with requests_mock.mock() as m:
+        registration_url = "https://openid-provider.example.com/auth/realms/master/registerme"
+        m.get(
+            "https://openid-provider.example.com/auth/realms/master/.well-known/openid-configuration",
+            text=provider_config())
+        m.get(registration_url,
+            text=registration_response_error(), status_code=400)
+
+        configuration_url = "https://openid-provider.example.com/auth/realms/master/"
+        configuration_token = ""
+        registration_token = "abcde"
+        provider_config_obj = oidcproxy.config.ProviderConfig("test", configuration_url, configuration_token, registration_token, registration_url)
+
+        oidchandler.register_first_time("test", provider_config_obj)
+        assert "Provider test returned an error on registration" in caplog.text
+
+def test_create_client_from_secrets(setup_oidchandler_provider,
+                                    client_secrets):
+    cfg, provider = setup_oidchandler_provider
+
+    with requests_mock.mock() as m:
+        m.get(
+            "https://openid-provider.example.com/auth/realms/master/.well-known/openid-configuration",
+            text=provider_config())
+        provider.create_client_from_secrets("test",
+                                            cfg.openid_providers['test'],
+                                            client_secrets['default'])
+
+
+#############################
+# get_userinfo_access_token #
+#############################
+
+def test_get_userinfo_access_token_no_exp(setup_oidchandler_provider, setup_jwt):
+    _, oidc_handler = setup_oidchandler_provider
     access_token = setup_jwt
 
-    token_introspection = {"active": True, "exp": 100}
+    now = int(datetime.datetime.now().timestamp())
+    valid_should = now + 30
 
-    #    oidcproxy.oic.oauth2.base.requests = requests
-    #    oidcproxy.oic.extension.message.requests = requests
     with requests_mock.mock() as m:
         userinfo = {"sub": "evil", "email": "evil@test.example.com"}
+        token_introspection = {"active": True}
         m.register_uri(
             'POST',
             "https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/userinfo",
@@ -192,12 +233,11 @@ def test_userinfo_from_at_registration(setup_oidchandler_provider_registration,
             headers={'content-type': 'application/json'})
         valid, resp_userinfo = oidc_handler.get_userinfo_access_token(
             access_token)
-        assert valid, dict(resp_userinfo) == (100, userinfo)
+        assert valid < valid_should + 10
+        assert valid > valid_should - 10
+        assert dict(resp_userinfo) == userinfo
 
-        assert m.call_count > 0
-
-
-def test_userinfo_from_at(setup_oidchandler_provider, setup_jwt):
+def test_get_userinfo_access_token(setup_oidchandler_provider, setup_jwt):
     _, oidc_handler = setup_oidchandler_provider
     access_token = setup_jwt
 
@@ -218,10 +258,46 @@ def test_userinfo_from_at(setup_oidchandler_provider, setup_jwt):
             headers={'content-type': 'application/json'})
         valid, resp_userinfo = oidc_handler.get_userinfo_access_token(
             access_token)
-        assert valid, dict(valid, resp_userinfo) == (100, userinfo)
+        assert (valid, dict(resp_userinfo)) == (100, userinfo)
 
-        assert m.call_count > 0
+def test_get_userinfo_access_token_no_provider(setup_jwt, setup_oidc_handler):
+    access_token = setup_jwt
+    _, oidc_handler = setup_oidc_handler
 
+    #    oidcproxy.oic.oauth2.base.requests = requests
+    #    oidcproxy.oic.extension.message.requests = requests
+    valid, resp_userinfo = oidc_handler.get_userinfo_access_token(
+        access_token)
+    assert (valid, dict(resp_userinfo)) == (0, {})
+
+
+#########################
+# check_session_refresh #
+#########################
+
+@patch('oidcproxy.cherrypy.session', {'refresh': 1579702851}, create=True)
+def test_check_session_refresh(setup_oidc_handler):
+    _, oidc_handler = setup_oidc_handler
+    #    oidcproxy.cherrypy.session['refresh'] = 1579702851 # Mi 22. Jan 15:21 2020
+    assert oidc_handler._check_session_refresh()
+
+
+@patch('oidcproxy.cherrypy.session', {'refresh': time.time() + 30},
+       create=True)
+def test_check_session_refresh_in_future(setup_oidc_handler):
+    _, oidc_handler = setup_oidc_handler
+    assert not oidc_handler._check_session_refresh()
+
+@patch('oidcproxy.cherrypy.session', {''},
+       create=True)
+def test_check_session_refresh_without_time(setup_oidc_handler):
+    _, oidc_handler = setup_oidc_handler
+    assert not oidc_handler._check_session_refresh()
+
+
+###############
+# need_claims #
+###############
 
 @patch('oidcproxy.cherrypy.session', {}, create=True)
 def test_need_claims_without_provider(setup_oidchandler_provider):
@@ -238,19 +314,9 @@ def test_need_claims_with_provider(setup_oidchandler_provider):
     with pytest.raises(oidcproxy.cherrypy._cperror.HTTPRedirect):
         provider.need_claims(claims)
 
-
-def test_create_client_from_secrets(setup_oidchandler_provider,
-                                    client_secrets):
-    cfg, provider = setup_oidchandler_provider
-
-    with requests_mock.mock() as m:
-        m.get(
-            "https://openid-provider.example.com/auth/realms/master/.well-known/openid-configuration",
-            text=provider_config())
-        provider.create_client_from_secrets("test",
-                                            cfg.openid_providers['test'],
-                                            client_secrets['default'])
-
+#################################
+# get_access_token_from_headers #
+#################################
 
 @patch('oidcproxy.cherrypy.request.headers', {"authorization": "hello"},
        create=True)
@@ -261,6 +327,7 @@ def test_get_access_token_from_headers(setup_oidc_handler):
 
 @patch('oidcproxy.cherrypy.request.headers', {"authorization": "bearer 123"},
        create=True)
+
 def test_get_access_token_from_headers_small(setup_oidc_handler):
     _, oidc_handler = setup_oidc_handler
     assert oidc_handler.get_access_token_from_headers() == "123"
@@ -272,3 +339,63 @@ def test_get_access_token_from_headers_small(setup_oidc_handler):
 def test_get_access_token_from_headers_mixed(setup_oidc_handler):
     _, oidc_handler = setup_oidc_handler
     assert oidc_handler.get_access_token_from_headers() == "teststring"
+
+########################
+# refresh_access_token #
+########################
+
+def test_refresh_access_token():
+    assert False
+
+################
+# get_userinfo #
+################
+
+def test_get_userinfo():
+    assert False
+
+##########################
+# get_validity_from_resp #
+##########################
+
+def test_get_validity_from_resp():
+    assert False
+
+
+##################################
+# do_userinfo_request_with_state #
+##################################
+
+def test_do_userinfo_request_with_state():
+    assert False
+
+##############################
+# get_access_token_from_code #
+##############################
+
+def test_get_access_token_from_code():
+    assert False
+
+################
+# check_scopes #
+################
+
+def test_check_scopes():
+    assert False
+
+
+############
+# redirect #
+############
+
+def test_redirect():
+    assert False
+
+#########
+# _auth #
+#########
+
+def test__auth():
+    assert False
+
+
