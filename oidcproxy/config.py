@@ -55,6 +55,9 @@ class ProviderConfig:
         return getattr(self, key)
 
 
+def default_redirect() -> List:
+    return ["/secure/redirect_uris"]
+
 @dataclass
 class ProxyConfig:
     """ Configuration for the Proxy Setup """
@@ -69,7 +72,7 @@ class ProxyConfig:
     username: str = "www-data"
     groupname: str = "www-data"
     secrets: str = "/var/lib/oidc-proxy/secrets.yml"
-    redirect: str = "/secure/redirect_uris"
+    redirect: List[str] = field(default_factory=default_redirect)
     plugin_dirs: List[str] = field(default_factory=list)
 
     def __getitem__(self, key: str) -> Any:

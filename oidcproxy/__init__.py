@@ -814,6 +814,7 @@ class App:
         parser = argparse.ArgumentParser(description='OIDC Proxy')
         parser.add_argument('-c', '--config-file')
         parser.add_argument('--print-sample-config', action='store_true')
+        parser.add_argument('--print-sample-ac', action='store_true')
         parser.add_argument('--add-provider')
         parser.add_argument('--client-id')
         parser.add_argument('--client-secret')
@@ -824,6 +825,10 @@ class App:
         config.cfg = config.OIDCProxyConfig(config_file=args.config_file)
         if args.print_sample_config:
             config.cfg.print_sample_config()
+            return
+
+        if args.print_sample_ac:
+            oidcproxy.ac.print_sample_ac()
             return
 
         self.config = config.cfg

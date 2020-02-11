@@ -12,7 +12,6 @@ proxy_cfg = oidcproxy.config.ProxyConfig("",
                                          "",
                                          "",
                                          "",
-                                         "",
                                          plugin_dirs=[dummy_plugins])
 service_cfg = oidcproxy.config.ServiceConfig("", "", "",
                                              {"dummysetter": {

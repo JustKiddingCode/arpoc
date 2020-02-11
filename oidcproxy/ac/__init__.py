@@ -339,4 +339,36 @@ class AC_Container:
                            definition['Type'], str(kwargs))
 
 
+def print_sample_ac():
+    ac = """
+{
+    "com.example.policysets.default": {
+		"Type": "PolicySet",
+		"Description": "Default Policy Set",
+		"Target": "True",
+		"Policies": ["com.example.policies.default"],
+		"PolicySets": [],
+		"Resolver": "ANY",
+		"Obligations" : []
+    },
+    "com.example.policies.default": {
+		"Type": "Policy",
+		"Description": "Default Policy",
+		"Target" : "True",
+		"Rules" : [ "com.example.rules.default" ],
+		"Resolver": "AND",
+		"Obligations" : []
+    },
+    "com.example.rules.default" : {
+		"Type": "Rule",
+		"Target": "True",
+		"Description": "Default Rule",
+		"Condition" : "True",
+		"Effect": "GRANT",
+		"Obligations" : []
+    }
+}
+    """
+    print(ac)
+
 container = AC_Container()
