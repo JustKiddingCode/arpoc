@@ -247,23 +247,10 @@ class OidcHandler:
             userinfo = dict(client.do_user_info_request(state=state))
             new_token = client.get_token(state=state)
             LOGGING.debug("New token: %s", new_token)
-
             hash_access_token = hashlib.sha256(
                 str(new_token.access_token).encode()).hexdigest()
             cherrypy.session['hash_at'] = hash_access_token
-            valid_until = int(datetime.datetime.now().timestamp()) + 30
-
-            if 'expires_in' in new_token.keys():
-                valid_until = int(
-                    datetime.datetime.now().timestamp()) + new_token.expires_in
-
-            if "refresh_expires_in" in new_token.keys():
-                refresh_valid = datetime.datetime.now().timestamp(
-                ) + new_token.refresh_expires_in
-            elif "refresh_token" in new_token.keys():
-                raise NotImplementedError
-            else:
-                refresh_valid = valid_until
+            valid_until, refresh_valid = self.get_validity_from_resp(new_token)
 
             self._cache.put(
                 hash_access_token, {
@@ -427,6 +414,8 @@ class OidcHandler:
         if 'error' in kwargs:
             tmpl = env.get_template('500.html')
             return tmpl.render(info=kwargs)
+
+        # TODO: Here we should check that state has not been altered!
 
         resp = self.get_access_token_from_code(kwargs['state'], kwargs['code'])
 
