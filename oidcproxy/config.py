@@ -73,6 +73,8 @@ class ProxyConfig:
     username: str = "www-data"
     groupname: str = "www-data"
     secrets: str = "/var/lib/oidc-proxy/secrets.yml"
+    tls_redirect: str = "/TLSRedirect"
+    auth : str = "/auth"
     redirect: List[str] = field(default_factory=default_redirect)
     plugin_dirs: List[str] = field(default_factory=list)
 

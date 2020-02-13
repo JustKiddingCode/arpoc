@@ -217,7 +217,7 @@ class OidcHandler:
             self._auth(scopes)
         else:
             cherrypy.session["url"] = cherrypy.url()
-            raise cherrypy.HTTPRedirect("/auth")
+            raise cherrypy.HTTPRedirect(self.cfg.proxy.auth)
 
     @staticmethod
     def get_access_token_from_headers() -> Union[None, str]:
@@ -310,8 +310,6 @@ class OidcHandler:
             return self.refresh_access_token(hash_access_token)
         return None, {}
 
-
-#                raise cherrypy.HTTPRedirect("/auth")
 
     def _get_oidc_client(self, name: str) -> oic.oic.Client:
         return self.__oidc_provider[name]
@@ -492,7 +490,7 @@ class OidcHandler:
                 for key in self.__oidc_provider:
                     provider[key] = self.cfg.openid_providers[key][
                         'human_readable_name']
-                return tmpl.render(auth_page='/auth', provider=provider)
+                return tmpl.render(auth_page=self.cfg.proxy.auth, provider=provider)
 
         self._auth()
         return None  # we won't get here
@@ -648,7 +646,7 @@ class TLSOnlyDispatcher(Dispatcher):
     def __call__(self, path_info):
         if cherrypy.request.scheme == 'https':
             return self._next_dispatcher(path_info)
-        return self._next_dispatcher("/TLSRedirect" + path_info)
+        return self._next_dispatcher(self._tls_url + path_info)
 
 
 class App:
@@ -736,19 +734,19 @@ class App:
                            action='userinfo')
         # Test auth required
         dispatcher.connect('auth',
-                           "/auth",
+                           "%s" % self.config.proxy.auth,
                            controller=self.oidc_handler,
                            action='auth')
         dispatcher.connect('auth',
-                           "/auth/{name:.*?}",
+                           "%s/{name:.*?}" % self.config.proxy.auth,
                            controller=self.oidc_handler,
                            action='auth')
         if self.config.proxy['https_only']:
             dispatcher.connect('TLSRedirect',
-                               '/TLSRedirect/{url:.*?}',
+                               '%s/{url:.*?}' % self.config.proxy.tls_redirect,
                                controller=self,
                                action='tls_redirect')
-            tls_dispatcher = TLSOnlyDispatcher(self.config.proxy['baseuri'],
+            tls_dispatcher = TLSOnlyDispatcher(self.config.proxy.tls_redirect,
                                                dispatcher)
             return tls_dispatcher
 
