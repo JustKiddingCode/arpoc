@@ -47,7 +47,7 @@ import requests
 
 import cherrypy
 from cherrypy._cpdispatch import Dispatcher
-from cherrypy.process.plugins import DropPrivileges
+from cherrypy.process.plugins import DropPrivileges, Daemonizer, PIDFile
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -785,7 +785,6 @@ class App:
     def setup_oidc_provider(self) -> None:
         """Setup the connection to all oidc providers in the config """
         assert isinstance(self.config, config.OIDCProxyConfig)
-        self.oidc_handler = OidcHandler(self.config)
 
         #        atexit.register(app.save_secrets) TODO
         # Read secrets
@@ -814,6 +813,7 @@ class App:
         parser.add_argument('--add-provider')
         parser.add_argument('--client-id')
         parser.add_argument('--client-secret')
+        parser.add_argument('-d', '--daemonize', action='store_true')
 
         args = parser.parse_args()
 
@@ -847,11 +847,32 @@ class App:
                 yaml.safe_dump(secrets, ymlfile)
             return
 
+        if args.daemonize:
+            daemonizer = Daemonizer(cherrypy.engine) 
+            daemonizer.subscribe()
+            # check if pid file exists
+            try:
+                with open(self.config.misc.pid_file) as pidfile:
+                    pid = int(pidfile.read().strip())
+                    try:
+                        os.kill(pid,0) # check if running
+                    except OSError:
+                        PIDFile(cherrypy.engine, self.config.misc.pid_file).subscribe()
+                        # not running
+                    else:
+                        # running
+                        print("PID File %s exists" % self.config.misc.pid_file)
+                        print("Another instance of oidcproxy seems to be running")
+                        return
+            except FileNotFoundError:
+                PIDFile(cherrypy.engine, self.config.misc.pid_file).subscribe()
+
         #### Create secrets dir and change ownership (perm)
         self.create_secrets_dir()
 
         #### Setup OIDC Provider
-        self.setup_oidc_provider()
+        self.oidc_handler = OidcHandler(self.config)
+        cherrypy.engine.subscribe('start', self.setup_oidc_provider, 80)
         #### Setup Cherrypy
         global_conf = {
             'log.screen': False,
