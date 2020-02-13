@@ -25,7 +25,7 @@ from oidcproxy.exceptions import *
 import oidcproxy.ac.common as common
 import oidcproxy.ac.parser as parser
 
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 
 LOGGER = logging.getLogger(__name__)
 

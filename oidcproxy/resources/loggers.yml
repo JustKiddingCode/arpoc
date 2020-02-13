@@ -35,7 +35,7 @@ loggers:
   ? ''
   : handlers:
     - default
-    level: DEBUG
+    level: DEFAULTLEVEL
   cherrypy.access:
     handlers:
     - cherrypy_access
@@ -50,5 +50,13 @@ loggers:
   default:
     handlers:
     - default
-    level: DEBUG
+    level: DEFAULTLEVEL
+  oidcproxy.ac:
+    handlers:
+      - default
+    level: DEFAULTLEVEL
+  oidcproxy:
+    handlers:
+      - default
+    level: DEFAULTLEVEL
 version: 1

@@ -34,3 +34,6 @@ class BadSemantics(Exception):
 
 class DuplicateKeyError(OIDCProxyException):
     pass
+
+class ConfigError(OIDCProxyException):
+    pass

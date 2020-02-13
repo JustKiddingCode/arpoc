@@ -62,9 +62,9 @@ import oidcproxy.pap
 import oidcproxy.cache
 from oidcproxy.plugins import EnvironmentDict, ObjectDict, ObligationsDict
 
-logging.basicConfig(level=logging.DEBUG)
+#logging.basicConfig(level=logging.DEBUG)
 
-LOGGING = logging.getLogger()
+LOGGING = logging.getLogger(__name__)
 
 env = Environment(loader=FileSystemLoader(
     os.path.join(os.path.dirname(__file__), 'resources', 'templates')))
@@ -662,13 +662,15 @@ class App:
         self.oidc_handler: OidcHandler
         self.config: config.OIDCProxyConfig
 
-    @staticmethod
-    def setup_loggers():
+    def setup_loggers(self):
         """ Read the loggers configuration and configure the loggers"""
+        filelike = io.StringIO()
         with importlib.resources.path(
                 'oidcproxy.resources',
                 'loggers.yml') as loggers_path, open(loggers_path) as ymlfile:
-            log_conf = yaml.safe_load(ymlfile)
+            log_config_str = ymlfile.read()
+            log_config_str = log_config_str.replace('DEFAULTLEVEL', self.config.misc.log_level)
+            log_conf = yaml.safe_load(log_config_str)
         logging.config.dictConfig(log_conf)
 
     def retry(self,
@@ -814,8 +816,12 @@ class App:
 
         args = parser.parse_args()
 
-        #### Read Configuration
         config.cfg = config.OIDCProxyConfig(config_file=args.config_file)
+        self.config = config.cfg
+
+        self.setup_loggers()
+
+        #### Read Configuration
         if args.print_sample_config:
             config.cfg.print_sample_config()
             return
@@ -824,7 +830,6 @@ class App:
             oidcproxy.ac.print_sample_ac()
             return
 
-        self.config = config.cfg
 
         if args.add_provider and args.client_id and args.client_secret:
             # read secrets

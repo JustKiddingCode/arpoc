@@ -8,6 +8,7 @@ import logging
 import os
 from dataclasses import InitVar, asdict, dataclass, field, replace
 from typing import Any, Dict, List, Union
+from oidcproxy.exceptions import *
 
 import yaml
 
@@ -111,9 +112,11 @@ class ACConfig:
     def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
 
-
-class ConfigError(Exception):
-    pass
+@dataclass
+class Misc:
+    pid_file: str = "/var/run/oidcproxy.pid"
+    daemonize: bool = True
+    log_level: str = "INFO"
 
 
 class OIDCProxyConfig:
@@ -125,6 +128,7 @@ class OIDCProxyConfig:
         self.proxy: Optional[ProxyConfig] = None
         self.services: Dict[str, ServiceConfig] = {}
         self.access_control = ACConfig()
+        self.misc : Optional[Misc] = None
 
         default_paths = [std_config]
         if 'OIDC_PROXY_CONFIG' in os.environ:
@@ -195,6 +199,13 @@ class OIDCProxyConfig:
             else:
                 self.proxy = ProxyConfig(**new_cfg['proxy'])
 
+        if 'misc' in new_cfg:
+            if self.misc:
+                replace(self.misc, **new_cfg['misc'])
+            else:
+                self.misc = Misc(**new_cfg['misc'])
+
+
     def read_file(self, filepath: str) -> None:
         with open(filepath, 'r') as ymlfile:
             new_cfg = yaml.safe_load(ymlfile)
@@ -219,7 +230,4 @@ cfg: Union[None, OIDCProxyConfig] = None
 
 if __name__ == "__main__":
     cfg = OIDCProxyConfig()
-    #cfg.check_config()
-    #    cfg.read_file("oidcproxy/config2.yml")
     cfg.print_sample_config()
-    #cfg.print_config()

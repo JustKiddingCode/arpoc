@@ -77,4 +77,10 @@ services:
 
 access_control:
     json_dir:
-       - /etc/oidc-proxy/acl
+        - /etc/oidc-proxy/acl
+
+misc:
+    log_level: ERROR
+    daemonize: True
+    pid_file: /var/run/oidcproxy.pid
+
