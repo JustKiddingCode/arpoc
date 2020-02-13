@@ -117,6 +117,8 @@ class Misc:
     pid_file: str = "/var/run/oidcproxy.pid"
     daemonize: bool = True
     log_level: str = "INFO"
+    access_log: str = "/var/log/oidcproxy/access.log"
+    error_log: str = "/var/log/oidcproxy/error.log"
 
 
 class OIDCProxyConfig:

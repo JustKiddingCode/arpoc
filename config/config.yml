@@ -80,7 +80,9 @@ access_control:
         - /etc/oidc-proxy/acl
 
 misc:
-    log_level: ERROR
+    log_level: DEBUG
+    access_log: access.log
+    error_log: error.log
     daemonize: True
     pid_file: /var/run/oidcproxy.pid
 

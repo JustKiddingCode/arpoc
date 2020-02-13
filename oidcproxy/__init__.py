@@ -664,12 +664,13 @@ class App:
 
     def setup_loggers(self):
         """ Read the loggers configuration and configure the loggers"""
-        filelike = io.StringIO()
         with importlib.resources.path(
                 'oidcproxy.resources',
                 'loggers.yml') as loggers_path, open(loggers_path) as ymlfile:
             log_config_str = ymlfile.read()
             log_config_str = log_config_str.replace('DEFAULTLEVEL', self.config.misc.log_level)
+            log_config_str = log_config_str.replace('ACCESS_LOG', self.config.misc.access_log)
+            log_config_str = log_config_str.replace('ERROR_LOG', self.config.misc.error_log)
             log_conf = yaml.safe_load(log_config_str)
         logging.config.dictConfig(log_conf)
 

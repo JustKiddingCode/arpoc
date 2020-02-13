@@ -9,28 +9,28 @@ handlers:
     backupCount: 20
     class: logging.handlers.RotatingFileHandler
     encoding: utf8
-    filename: access.log
+    filename: ACCESS_LOG
     formatter: void
-    level: INFO
+    level: DEBUG
     maxBytes: 10485760
   cherrypy_console:
     class: logging.StreamHandler
     formatter: void
-    level: INFO
-    stream: ext://sys.stdout
-  cherrypy_error:
+    level: DEBUG
+    stream: ext://sys.stderr
+  errorfile:
     backupCount: 20
     class: logging.handlers.RotatingFileHandler
     encoding: utf8
-    filename: errors.log
-    formatter: void
-    level: INFO
+    filename: ERROR_LOG
+    formatter: standard
+    level: DEBUG
     maxBytes: 10485760
   default:
     class: logging.StreamHandler
     formatter: standard
-    level: DEBUG
-    stream: ext://sys.stdout
+    level: DEFAULTLEVEL
+    stream: ext://sys.stderr
 loggers:
   ? ''
   : handlers:
@@ -44,7 +44,7 @@ loggers:
   cherrypy.error:
     handlers:
     - cherrypy_console
-    - cherrypy_error
+    - errorfile
     level: INFO
     propagate: false
   default:
@@ -54,9 +54,11 @@ loggers:
   oidcproxy.ac:
     handlers:
       - default
+      - errorfile
     level: DEFAULTLEVEL
   oidcproxy:
     handlers:
       - default
+      - errorfile
     level: DEFAULTLEVEL
 version: 1
