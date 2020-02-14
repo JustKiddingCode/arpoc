@@ -1,5 +1,5 @@
 from abc import ABC
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import oidcproxy.ac.common
 
@@ -26,5 +26,5 @@ class Obligation(ABC):
     def __init__(self) -> None:
         pass
 
-    def run(self, effect : oidcproxy.ac.common.Effects):
+    def run(self, effect : Optional[oidcproxy.ac.common.Effects], context: Dict, cfg : Dict) -> bool:
         pass

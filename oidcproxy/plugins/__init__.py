@@ -3,7 +3,7 @@
 import importlib
 import importlib.util
 from pathlib import Path
-from typing import Dict, Callable, Optional, List
+from typing import Dict, Callable, Optional, List, Type, TypeVar
 
 from queue import PriorityQueue
 import collections
@@ -44,7 +44,7 @@ def import_plugins() -> None:
                     if wholepath.endswith(".py"):
                         spec = importlib.util.spec_from_file_location(
                             module_name, wholepath)
-                        if spec is None:
+                        if spec is None or not isinstance(spec.loader, importlib.abc.Loader):
                             raise RuntimeError("Failed to load %s", wholepath)
                         module = importlib.util.module_from_spec(spec)
                         plugins.append(module)
@@ -95,11 +95,9 @@ class ObjectDict(collections.UserDict):
             raise KeyError
         return elem
 
-class ObligationsDict(collections.UserDict):
-    def __init__(self, initialdata: Dict = None) -> None:
-        if not initialdata:
-            initialdata = {}
-        super().__init__(initialdata)
+
+class ObligationsDict():
+    def __init__(self) -> None:
         self.__get_obligations_dict()
         LOGGING.debug("Obligations found %s", self._obligations)
 
@@ -110,32 +108,31 @@ class ObligationsDict(collections.UserDict):
                 DuplicateKeyError(
                     "key {} is already in target in a plugin".format(
                         plugin.name))
-            d[plugin.name] = plugin
+            d[plugin.name] = plugin.run
+#        def () -> oidcproxy.plugins._lib.Obligation
+        T = TypeVar('T', bound='_lib.Obligation')
+        
+        self._obligations : Dict[str,Callable] = d
 
-        self._obligations : List[Type[_lib.Obligation]] = d
-
-    def run_all(self, obligations : List[str], effect : Effects) -> List[bool]:
+    def run_all(self, obligations : List[str], effect : Optional[Effects], context : Dict, cfg : Dict) -> List[bool]:
         results : List[bool] = []
         for key in obligations:
-            if key in self._obligations:
-                results.append(self._obligations[key].run(effect))
+            obl = self.get(key)
+            if obl is not None:
+                obl_cfg = cfg[key] if key in cfg else {}
+                results.append(self._obligations[key](effect, effect, obl_cfg))
             else:
                 raise ValueError
         return results
 
     def get(self, key: str, default: Any = None) -> Any:
-        if key in self.data:
-            return self.data[key]
-        if key in self._getter:
-            self.data[key] = self._getter[key]()
-            return self.data[key]
-        return default
+        try:
+            self.__getitem__(key)
+        except KeyError:
+            return default
 
     def __getitem__(self, key: str) -> Any:
-        elem = self.get(key)
-        if elem == None:
-            raise KeyError
-        return elem
+        return self._obligations[key]
 
 class EnvironmentDict(collections.UserDict):
     def __init__(self, initialdata: Dict = None) -> None:

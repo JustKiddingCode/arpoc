@@ -78,6 +78,8 @@ class OidcHandler:
         self._secrets: Dict[str, dict] = dict()
         self._cache = oidcproxy.cache.Cache()
 
+#        assert self.cfg.proxy is not None
+
     def get_secrets(self) -> Dict[str, dict]:
         """ Returns the secrets (client_id, client_secret) of the OIDC Relying Partys"""
         return self._secrets
@@ -107,6 +109,7 @@ class OidcHandler:
                 args = dict()
                 args['redirect_uris'] = registration_response['redirect_uris']
             elif provider.configuration_url and provider.configuration_token:
+                assert self.cfg.proxy is not None
                 provider_info = client.provider_config(
                     provider['configuration_url'])
                 args = {
@@ -120,7 +123,7 @@ class OidcHandler:
             else:
                 raise oidcproxy.exceptions.OIDCProxyException("Error in the configuration file")
         except oic.exception.RegistrationError:
-            LOGGING.debug("Provider %s returned an error on registration",
+            LOGGING.warning("Provider %s returned an error on registration",
                           name)
             LOGGING.debug("Seems to be permament, so not retrying")
             return
@@ -623,7 +626,7 @@ class ServiceProxy:
                              evaluation_result.obligations)
         LOGGING.debug("Obligations are: %s", obligations)
         obligations_dict = ObligationsDict()
-        obligations_result = obligations_dict.run_all(obligations, effect)
+        obligations_result = obligations_dict.run_all(obligations, effect, context, {}) # TODO cfg obligations
 
         if effect == ac.Effects.GRANT and all(obligations_result):
             return self._proxy(proxy_url, access)
@@ -639,11 +642,11 @@ class ServiceProxy:
 
 
 class TLSOnlyDispatcher(Dispatcher):
-    def __init__(self, tls_url, next_dispatcher):
+    def __init__(self, tls_url : str, next_dispatcher : Dispatcher):
         self._tls_url = tls_url
         self._next_dispatcher = next_dispatcher
 
-    def __call__(self, path_info):
+    def __call__(self, path_info : str) -> Dispatcher:
         if cherrypy.request.scheme == 'https':
             return self._next_dispatcher(path_info)
         return self._next_dispatcher(self._tls_url + path_info)
@@ -660,7 +663,7 @@ class App:
         self.oidc_handler: OidcHandler
         self.config: config.OIDCProxyConfig
 
-    def setup_loggers(self):
+    def setup_loggers(self) -> None:
         """ Read the loggers configuration and configure the loggers"""
         with importlib.resources.path(
                 'oidcproxy.resources',
@@ -817,6 +820,8 @@ class App:
 
         config.cfg = config.OIDCProxyConfig(config_file=args.config_file)
         self.config = config.cfg
+
+        assert self.config.proxy is not None
 
         self.setup_loggers()
 

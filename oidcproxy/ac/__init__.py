@@ -339,7 +339,7 @@ class AC_Container:
                            definition['Type'], str(kwargs))
 
 
-def print_sample_ac():
+def print_sample_ac() -> None:
     ac = """
 {
     "com.example.policysets.default": {

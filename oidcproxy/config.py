@@ -7,7 +7,7 @@ the configuration with the `config.cfg` variable.
 import logging
 import os
 from dataclasses import InitVar, asdict, dataclass, field, replace
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Optional
 from oidcproxy.exceptions import *
 
 import yaml
@@ -81,7 +81,7 @@ class ProxyConfig:
     def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         assert isinstance(self.redirect, List)
         self.baseuri = "https://{}/".format(self.domainname)
         self.redirect_uris = []
@@ -129,10 +129,10 @@ class OIDCProxyConfig:
                  std_config: Union[None, str] = '/etc/oidc-proxy/config.yml'):
 
         self.openid_providers: Dict[str, ProviderConfig] = {}
-        self.proxy: Optional[ProxyConfig] = None
+        self.proxy: ProxyConfig = ProxyConfig("","","",[""])
         self.services: Dict[str, ServiceConfig] = {}
         self.access_control = ACConfig()
-        self.misc : Optional[Misc] = None
+        self.misc : Misc = Misc()
 
         default_paths = [std_config]
         if 'OIDC_PROXY_CONFIG' in os.environ:
@@ -154,7 +154,7 @@ class OIDCProxyConfig:
 
     def print_sample_config(self) -> None:
         provider = ProviderConfig("", "", "", "", "")
-        proxy = ProxyConfig("", "", "", [""], [""])
+        proxy = ProxyConfig("", "", "", [""], "")
         service = ServiceConfig("", "", "", {}, {})
         ac = ACConfig()
 
@@ -180,6 +180,8 @@ class OIDCProxyConfig:
             if service.proxy_URL in l:
                 raise ConfigError()
             l.append(service.proxy_URL)
+
+        assert self.proxy is not None
 
     def check_config(self) -> None:
         LOGGING.debug("checking config consistency")

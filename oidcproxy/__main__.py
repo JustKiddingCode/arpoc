@@ -1,7 +1,7 @@
 import oidcproxy
 
 
-def main():
+def main() -> None:
     app = oidcproxy.App()
     app.run()
 

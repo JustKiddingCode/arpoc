@@ -255,14 +255,17 @@ class EvalTree(Transformer):
         return op.eval(args[0], args[2])
 
     def linked(self, args: List) -> bool:
-        NoneType = type(None)
-        allowed_types = (bool, dict, list, str, float, int, NoneType)
+        allowed_types = (bool, dict, list, str, float, int)
+        if args[0] is None:
+            args[0] = False
+        if args[1] is None:
+            args[1] = False
         if isinstance(args[0], allowed_types) and isinstance(
                 args[2], allowed_types):
             if args[1] == "and":
-                return args[0] and args[2]
+                return bool(args[0] and args[2])
             elif args[1] == "or":
-                return args[0] or args[2]
+                return bool(args[0] or args[2])
             else:
                 raise NotImplementedError
         LOGGER.debug("Types are %s and %s", type(args[0]), type(args[2]))
@@ -281,7 +284,7 @@ class EvalTree(Transformer):
             return args[0]
         raise ValueError
 
-def parse_and_transform(lark_handle, rule, data: Dict) -> bool:
+def parse_and_transform(lark_handle : Lark, rule : str, data: Dict) -> bool:
     try:
         ast = lark_handle.parse(rule)
     except (lark.exceptions.UnexpectedCharacters,
@@ -304,7 +307,7 @@ def check_condition(condition: str, data: Dict) -> bool:
 def check_target(rule: str, data: Dict) -> bool:
     global lark_target
     LOGGER.debug("Check target rule %s with data %s", rule, data)
-    ret_value = parse_and_transform(lark_condition, rule, data)
+    ret_value = parse_and_transform(lark_target, rule, data)
     LOGGER.debug("Target Rule %s evaluated to %s", rule, ret_value)
     return ret_value
 
