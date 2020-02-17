@@ -1,5 +1,6 @@
 from abc import ABC
 from typing import Any, Dict, Optional
+import collections.abc
 
 import oidcproxy.ac.common
 
@@ -28,3 +29,12 @@ class Obligation(ABC):
 
     def run(self, effect : Optional[oidcproxy.ac.common.Effects], context: Dict, cfg : Dict) -> bool:
         pass
+
+
+def deep_dict_update(d, u):
+    for k, v in u.items():
+        if isinstance(v, collections.abc.Mapping):
+            d[k] = deep_dict_update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d

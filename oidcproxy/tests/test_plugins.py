@@ -4,6 +4,7 @@ from unittest.mock import patch
 import oidcproxy
 import oidcproxy.config
 import oidcproxy.plugins
+from oidcproxy.plugins._lib import deep_dict_update
 
 dummy_plugins = os.path.join(os.path.dirname(__file__), "resources",
                              "dummy_plugins")
@@ -42,3 +43,30 @@ def test_obj():
     obj_dict = oidcproxy.plugins.ObjectDict(dummysetter)
     assert obj_dict['dummy']
     assert obj_dict['dummy']  # again, for caching
+
+def test_deep_dict_update():
+    logger_cfg = { "version" : 1,
+        "disable_existing_loggers" : False,
+        "handlers": {
+            "obligation_file": {
+                "class": "logging.handlers.RotatingFileHandler",
+                "filename": "obligation.log",
+                "maxBytes": 1024,
+                "backupCount":3
+            }
+        },
+        "loggers": {
+            "obligation_logger" : {
+                "level" : "INFO",
+                "handlers": ["obligation_file"]
+            }
+        }
+    }
+    new_cfg = {"handlers" : { "obligation_file" : { "filename" : "new.log" } } }
+    merged = deep_dict_update(logger_cfg, new_cfg)
+    assert merged['handlers']['obligation_file']['filename'] == "new.log"
+    assert merged['handlers']['obligation_file']['maxBytes'] == 1024
+    assert merged['loggers']['obligation_logger']['level'] == "INFO"
+
+
+
