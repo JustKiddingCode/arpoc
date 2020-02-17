@@ -663,6 +663,9 @@ class App:
         self.oidc_handler: OidcHandler
         self.config: config.OIDCProxyConfig
 
+        self.uid = 0
+        self.gid = 0
+
     def setup_loggers(self) -> None:
         """ Read the loggers configuration and configure the loggers"""
         with importlib.resources.path(
@@ -763,7 +766,8 @@ class App:
                 secrets = yaml.safe_load(ymlfile)
         except FileNotFoundError:
             secrets = dict()
-
+        if secrets is None:
+            secrets = dict()
         return secrets
 
     def save_secrets(self) -> None:
@@ -775,11 +779,13 @@ class App:
         assert isinstance(self.config.proxy, config.ProxyConfig)
         secrets_dir = os.path.dirname(self.config.proxy['secrets'])
         os.makedirs(secrets_dir, exist_ok=True)
-        uid = pwd.getpwnam(self.config.proxy['username'])[2]
-        gid = grp.getgrnam(self.config.proxy['groupname'])[2]
+        self.uid = pwd.getpwnam(self.config.proxy['username'])[2]
+        self.gid = grp.getgrnam(self.config.proxy['groupname'])[2]
 
         for dirpath, _, filenames in os.walk(secrets_dir):
-            os.chown(dirpath, uid, gid)
+            if len(filenames) > 1:
+                raise exceptions.ConfigError("Please specify an own directory for oidproxy secrets")
+            os.chown(dirpath, self.uid, self.gid)
             for filename in filenames:
                 os.chown(os.path.join(dirpath, filename), uid, gid)
 
@@ -894,9 +900,7 @@ class App:
                 'request.dispatch': self.get_routes_dispatcher()
             }
         }
-        uid = pwd.getpwnam(self.config.proxy['username'])[2]
-        gid = grp.getgrnam(self.config.proxy['groupname'])[2]
-        DropPrivileges(cherrypy.engine, uid=uid, gid=gid).subscribe()
+        DropPrivileges(cherrypy.engine, uid=self.uid, gid=self.gid).subscribe()
 
         #### Read AC Rules
         for acl_dir in self.config.access_control['json_dir']:
@@ -907,7 +911,7 @@ class App:
         if self.config.proxy['plain_port']:
             server2 = cherrypy._cpserver.Server()
             server2.socket_port = self.config.proxy['plain_port']
-            server2._socket_host = "0.0.0.0"
+            server2._socket_host = self.config.proxy['address']
             server2.thread_pool = 30
             server2.subscribe()
 
