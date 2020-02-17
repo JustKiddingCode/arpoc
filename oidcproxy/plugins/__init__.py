@@ -116,18 +116,21 @@ class ObligationsDict():
 
     def run_all(self, obligations : List[str], effect : Optional[Effects], context : Dict, cfg : Dict) -> List[bool]:
         results : List[bool] = []
+        LOGGING.debug("Obligations found %s", self._obligations)
         for key in obligations:
             obl = self.get(key)
+
             if obl is not None:
                 obl_cfg = cfg[key] if key in cfg else {}
-                results.append(self._obligations[key](effect, effect, obl_cfg))
+                results.append(obl(effect, context, obl_cfg))
             else:
+                LOGGING.debug("Failed to run obligation %s", key)
                 raise ValueError
         return results
 
     def get(self, key: str, default: Any = None) -> Any:
         try:
-            self.__getitem__(key)
+            return self.__getitem__(key)
         except KeyError:
             return default
 

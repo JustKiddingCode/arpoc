@@ -626,7 +626,8 @@ class ServiceProxy:
                              evaluation_result.obligations)
         LOGGING.debug("Obligations are: %s", obligations)
         obligations_dict = ObligationsDict()
-        obligations_result = obligations_dict.run_all(obligations, effect, context, {}) # TODO cfg obligations
+        obligations_result = obligations_dict.run_all(obligations, effect, context, self.cfg.obligations)
+        
 
         if effect == ac.Effects.GRANT and all(obligations_result):
             return self._proxy(proxy_url, access)
@@ -668,6 +669,7 @@ class App:
 
     def setup_loggers(self) -> None:
         """ Read the loggers configuration and configure the loggers"""
+        print(self.config.misc.log_level)
         with importlib.resources.path(
                 'oidcproxy.resources',
                 'loggers.yml') as loggers_path, open(loggers_path) as ymlfile:
@@ -787,7 +789,7 @@ class App:
                 raise exceptions.ConfigError("Please specify an own directory for oidproxy secrets")
             os.chown(dirpath, self.uid, self.gid)
             for filename in filenames:
-                os.chown(os.path.join(dirpath, filename), uid, gid)
+                os.chown(os.path.join(dirpath, filename), self.uid, self.gid)
 
     def setup_oidc_provider(self) -> None:
         """Setup the connection to all oidc providers in the config """

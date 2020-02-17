@@ -38,6 +38,12 @@ services:
                 enable: true
                 url: http://json-server.example.com/posts/5/
                 priority: 32
+        obligations:
+            obl_log:
+                handlers:
+                    obligation_file:
+                        filename: "obl_test.log"
+
     serviceB:
         origin_URL: http://service-a.example.com
         proxy_URL: /serviceB

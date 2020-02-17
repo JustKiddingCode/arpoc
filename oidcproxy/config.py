@@ -96,6 +96,7 @@ class ServiceConfig:
     proxy_URL: str
     AC: str
     objectsetters: dict = field(default_factory=dict)
+    obligations: dict = field(default_factory=dict)
     authentication: dict = field(default_factory=dict)
 
     def __getitem__(self, key: str) -> Any:
@@ -201,15 +202,18 @@ class OIDCProxyConfig:
 
         if 'proxy' in new_cfg:
             if self.proxy:
-                replace(self.proxy, **new_cfg['proxy'])
+                self.proxy = replace(self.proxy, **new_cfg['proxy'])
             else:
                 self.proxy = ProxyConfig(**new_cfg['proxy'])
 
         if 'misc' in new_cfg:
+            print(self.misc)
+            print(new_cfg['misc'])
             if self.misc:
-                replace(self.misc, **new_cfg['misc'])
+                self.misc = replace(self.misc, **new_cfg['misc'])
             else:
                 self.misc = Misc(**new_cfg['misc'])
+            print(self.misc)
 
 
     def read_file(self, filepath: str) -> None:
