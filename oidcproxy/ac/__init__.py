@@ -5,6 +5,8 @@ Access Control Module for OIDC Proxy
 import os
 import json
 
+import traceback
+
 from abc import ABC
 from enum import Enum
 from typing import List, Union, Dict, Type, Any, Tuple, Callable, Optional, ClassVar, MutableMapping
@@ -12,6 +14,7 @@ from typing import List, Union, Dict, Type, Any, Tuple, Callable, Optional, Clas
 import itertools
 
 import logging
+from collections.abc import Mapping
 
 from dataclasses import dataclass, InitVar, field
 
@@ -109,6 +112,7 @@ class Policy_Set(AC_Entity):
                     LOGGER.warning(
                         "%s requested entity %s, but was not found in container",
                         self.entity_id, e.args[0])
+                    LOGGER.warning(traceback.print_exc())
                     evaluation_result.results[self.entity_id] = None
                     return evaluation_result
 
@@ -155,6 +159,7 @@ class Policy(AC_Entity):
         LOGGER.debug("policy %s before evaluation: %s", self.entity_id,
                      cr.get_effect())
         try:
+            evaluate_to_if_missing = None
             if self._check_match(context):
                 assert self.container is not None
                 try:
@@ -167,19 +172,23 @@ class Policy(AC_Entity):
                     LOGGER.warning(
                         "%s requested entity %s, but was not found in container",
                         self.entity_id, e.args[0])
+                    LOGGER.warning(traceback.print_exc())
                     evaluation_result.results[self.entity_id] = None
 
                 evaluation_result.obligations.extend(self.obligations)
         except lark.exceptions.VisitError as e:
             if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
-                evaluation_result.results[self.entity_id] = None
+                evaluation_result.results[
+                    self.entity_id] = evaluate_to_if_missing
                 evaluation_result.missing_attr.append(e.orig_exc.attr)
                 return evaluation_result
             if e.orig_exc.__class__ == parser.ObjectAttributeMissing:
-                evaluation_result.results[self.entity_id] = None
+                evaluation_result.results[
+                    self.entity_id] = evaluate_to_if_missing
                 return evaluation_result
             if e.orig_exc.__class__ == parser.EnvironmentAttributeMissing:
-                evaluation_result.results[self.entity_id] = None
+                evaluation_result.results[
+                    self.entity_id] = evaluate_to_if_missing
                 return evaluation_result
             raise
 
@@ -207,7 +216,9 @@ class Rule(AC_Entity):
         evaluation_result = evaluation_result if evaluation_result is not None else EvaluationResult(
         )
         try:
+            evaluate_to_if_missing = None
             if self._check_match(context):
+                evaluate_to_if_missing = common.Effects(not self.effect)
                 if self._check_condition(context):
                     evaluation_result.results[self.entity_id] = self.effect
                 else:
@@ -217,14 +228,17 @@ class Rule(AC_Entity):
                 return evaluation_result
         except lark.exceptions.VisitError as e:
             if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
-                evaluation_result.results[self.entity_id] = None
+                evaluation_result.results[
+                    self.entity_id] = evaluate_to_if_missing
                 evaluation_result.missing_attr.append(e.orig_exc.attr)
                 return evaluation_result
             if e.orig_exc.__class__ == parser.ObjectAttributeMissing:
-                evaluation_result.results[self.entity_id] = None
+                evaluation_result.results[
+                    self.entity_id] = evaluate_to_if_missing
                 return evaluation_result
             if e.orig_exc.__class__ == parser.EnvironmentAttributeMissing:
-                evaluation_result.results[self.entity_id] = None
+                evaluation_result.results[
+                    self.entity_id] = evaluate_to_if_missing
                 return evaluation_result
             raise
         return evaluation_result
@@ -370,5 +384,6 @@ def print_sample_ac() -> None:
 }
     """
     print(ac)
+
 
 container = AC_Container()

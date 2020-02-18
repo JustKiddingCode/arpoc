@@ -8,7 +8,6 @@ import oidcproxy.ac
 import oidcproxy.exceptions
 from oidcproxy.ac.common import Effects
 
-
 test_acls = 'oidcproxy.tests.resources.acl'
 
 
@@ -34,12 +33,14 @@ def test_alwaysGrant(benchmark, Container):
     assert evaluation_result.results[
         "com.example.policysets.alwaysGrant"] == Effects.GRANT
 
+
 def test_obligations(Container):
     context = {"subject": {}, "object": {}, "environment": {}}
     print(Container.policy_sets.keys())
     ps = Container.policy_sets["policyset_with_obligation"]
     res = ps.evaluate(context)
     assert res.obligations == ['obl_log_failed']
+
 
 def test_missing_entities(Container):
     context = {"subject": {}, "object": {}, "environment": {}}

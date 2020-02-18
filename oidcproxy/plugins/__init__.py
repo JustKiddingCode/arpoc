@@ -11,11 +11,12 @@ from dataclasses import dataclass, field
 from typing import Any
 import os
 
+from collections.abc import Mapping
+
 from . import _lib
 from oidcproxy.ac.common import Effects
 import oidcproxy.config as config
 from oidcproxy.exceptions import DuplicateKeyError
-
 
 import logging
 LOGGING = logging.getLogger()
@@ -44,7 +45,8 @@ def import_plugins() -> None:
                     if wholepath.endswith(".py"):
                         spec = importlib.util.spec_from_file_location(
                             module_name, wholepath)
-                        if spec is None or not isinstance(spec.loader, importlib.abc.Loader):
+                        if spec is None or not isinstance(
+                                spec.loader, importlib.abc.Loader):
                             raise RuntimeError("Failed to load %s", wholepath)
                         module = importlib.util.module_from_spec(spec)
                         plugins.append(module)
@@ -109,13 +111,16 @@ class ObligationsDict():
                     "key {} is already in target in a plugin".format(
                         plugin.name))
             d[plugin.name] = plugin.run
+
+
 #        def () -> oidcproxy.plugins._lib.Obligation
         T = TypeVar('T', bound='_lib.Obligation')
-        
-        self._obligations : Dict[str,Callable] = d
 
-    def run_all(self, obligations : List[str], effect : Optional[Effects], context : Dict, cfg : Dict) -> List[bool]:
-        results : List[bool] = []
+        self._obligations: Dict[str, Callable] = d
+
+    def run_all(self, obligations: List[str], effect: Optional[Effects],
+                context: Dict, cfg: Dict) -> List[bool]:
+        results: List[bool] = []
         LOGGING.debug("Obligations found %s", self._obligations)
         for key in obligations:
             obl = self.get(key)
@@ -136,6 +141,7 @@ class ObligationsDict():
 
     def __getitem__(self, key: str) -> Any:
         return self._obligations[key]
+
 
 class EnvironmentDict(collections.UserDict):
     def __init__(self, initialdata: Dict = None) -> None:

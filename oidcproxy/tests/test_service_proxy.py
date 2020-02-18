@@ -28,11 +28,14 @@ def setup_proxy_bearer():
     cfg.proxy = oidcproxy.config.ProxyConfig("", "", "testhost.example.com",
                                              ["test@example.com"],
                                              ["testhost.example.com/redirect"])
-    cfg.services['default'] = oidcproxy.config.ServiceConfig(
-        "url_orig", "pathproxied", "policyset", {}, {
-            "type": "Bearer",
-            "token": 1234
-        })
+    cfg.services['default'] = oidcproxy.config.ServiceConfig("url_orig",
+                                                             "pathproxied",
+                                                             "policyset", {},
+                                                             authentication={
+                                                                 "type":
+                                                                 "Bearer",
+                                                                 "token": 1234
+                                                             })
     oidc_handler = oidcproxy.OidcHandler(cfg)
     service_a = oidcproxy.ServiceProxy("default", oidc_handler,
                                        cfg.services['default'])

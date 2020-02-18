@@ -78,6 +78,7 @@ class OidcHandler:
         self._secrets: Dict[str, dict] = dict()
         self._cache = oidcproxy.cache.Cache()
 
+
 #        assert self.cfg.proxy is not None
 
     def get_secrets(self) -> Dict[str, dict]:
@@ -121,15 +122,18 @@ class OidcHandler:
                     registration_token=provider['configuration_token'],
                     **args)
             else:
-                raise oidcproxy.exceptions.OIDCProxyException("Error in the configuration file")
+                raise oidcproxy.exceptions.OIDCProxyException(
+                    "Error in the configuration file")
         except oic.exception.RegistrationError:
             LOGGING.warning("Provider %s returned an error on registration",
-                          name)
+                            name)
             LOGGING.debug("Seems to be permament, so not retrying")
             return
-        except (requests.exceptions.MissingSchema, requests.exceptions.InvalidSchema, requests.exceptions.InvalidURL):
-            raise oidcproxy.exceptions.OIDCProxyException("Error in the configuration file")
- 
+        except (requests.exceptions.MissingSchema,
+                requests.exceptions.InvalidSchema,
+                requests.exceptions.InvalidURL):
+            raise oidcproxy.exceptions.OIDCProxyException(
+                "Error in the configuration file")
 
         self.__oidc_provider[name] = client
         self.__oidc_provider[name].redirect_uris = args["redirect_uris"]
@@ -209,6 +213,7 @@ class OidcHandler:
         """ Maps claims to scopes and checks
             if the scopes were already requested.
             Else start auth procedure to get requested scopes"""
+        cherrypy.session["url"] = cherrypy.url()
         if 'provider' in cherrypy.session:
             provider = cherrypy.session['provider']
             scopes = set(["openid"])
@@ -219,7 +224,6 @@ class OidcHandler:
             LOGGING.debug("Need scopes %s", scopes)
             self._auth(scopes)
         else:
-            cherrypy.session["url"] = cherrypy.url()
             raise cherrypy.HTTPRedirect(self.cfg.proxy.auth)
 
     @staticmethod
@@ -312,7 +316,6 @@ class OidcHandler:
                 return hash_access_token, cache_entry['userinfo']
             return self.refresh_access_token(hash_access_token)
         return None, {}
-
 
     def _get_oidc_client(self, name: str) -> oic.oic.Client:
         return self.__oidc_provider[name]
@@ -493,7 +496,8 @@ class OidcHandler:
                 for key in self.__oidc_provider:
                     provider[key] = self.cfg.openid_providers[key][
                         'human_readable_name']
-                return tmpl.render(auth_page=self.cfg.proxy.auth, provider=provider)
+                return tmpl.render(auth_page=self.cfg.proxy.auth,
+                                   provider=provider)
 
         self._auth()
         return None  # we won't get here
@@ -617,17 +621,19 @@ class ServiceProxy:
             "environment": EnvironmentDict(),
             "access": access
         }
-
+        LOGGING.debug("Container is %s", self.ac)
         proxy_url = self._build_url(url, **kwargs)
         evaluation_result = self.ac.evaluate_by_entity_id(
             self.cfg['AC'], context)
-        (effect, missing, obligations) = (evaluation_result.results[self.cfg['AC']],
-                             evaluation_result.missing_attr,
-                             evaluation_result.obligations)
+        (effect, missing,
+         obligations) = (evaluation_result.results[self.cfg['AC']],
+                         evaluation_result.missing_attr,
+                         evaluation_result.obligations)
         LOGGING.debug("Obligations are: %s", obligations)
         obligations_dict = ObligationsDict()
-        obligations_result = obligations_dict.run_all(obligations, effect, context, self.cfg.obligations)
-        
+        obligations_result = obligations_dict.run_all(obligations, effect,
+                                                      context,
+                                                      self.cfg.obligations)
 
         if effect == ac.Effects.GRANT and all(obligations_result):
             return self._proxy(proxy_url, access)
@@ -643,11 +649,11 @@ class ServiceProxy:
 
 
 class TLSOnlyDispatcher(Dispatcher):
-    def __init__(self, tls_url : str, next_dispatcher : Dispatcher):
+    def __init__(self, tls_url: str, next_dispatcher: Dispatcher):
         self._tls_url = tls_url
         self._next_dispatcher = next_dispatcher
 
-    def __call__(self, path_info : str) -> Dispatcher:
+    def __call__(self, path_info: str) -> Dispatcher:
         if cherrypy.request.scheme == 'https':
             return self._next_dispatcher(path_info)
         return self._next_dispatcher(self._tls_url + path_info)
@@ -667,16 +673,24 @@ class App:
         self.uid = 0
         self.gid = 0
 
+    def cancel_scheduler(self):
+        if not self._scheduler.empty():
+            for event in self._scheduler.queue:
+                self._scheduler.cancel(event)
+        self.thread.join()
+
     def setup_loggers(self) -> None:
         """ Read the loggers configuration and configure the loggers"""
-        print(self.config.misc.log_level)
         with importlib.resources.path(
                 'oidcproxy.resources',
                 'loggers.yml') as loggers_path, open(loggers_path) as ymlfile:
             log_config_str = ymlfile.read()
-            log_config_str = log_config_str.replace('DEFAULTLEVEL', self.config.misc.log_level)
-            log_config_str = log_config_str.replace('ACCESS_LOG', self.config.misc.access_log)
-            log_config_str = log_config_str.replace('ERROR_LOG', self.config.misc.error_log)
+            log_config_str = log_config_str.replace('DEFAULTLEVEL',
+                                                    self.config.misc.log_level)
+            log_config_str = log_config_str.replace(
+                'ACCESS_LOG', self.config.misc.access_log)
+            log_config_str = log_config_str.replace('ERROR_LOG',
+                                                    self.config.misc.error_log)
             log_conf = yaml.safe_load(log_config_str)
         logging.config.dictConfig(log_conf)
 
@@ -786,7 +800,8 @@ class App:
 
         for dirpath, _, filenames in os.walk(secrets_dir):
             if len(filenames) > 1:
-                raise exceptions.ConfigError("Please specify an own directory for oidproxy secrets")
+                raise exceptions.ConfigError(
+                    "Please specify an own directory for oidproxy secrets")
             os.chown(dirpath, self.uid, self.gid)
             for filename in filenames:
                 os.chown(os.path.join(dirpath, filename), self.uid, self.gid)
@@ -842,7 +857,6 @@ class App:
             oidcproxy.ac.print_sample_ac()
             return
 
-
         if args.add_provider and args.client_id and args.client_secret:
             # read secrets
             secrets = self.read_secrets(self.config.proxy['secrets'])
@@ -859,21 +873,24 @@ class App:
             return
 
         if args.daemonize:
-            daemonizer = Daemonizer(cherrypy.engine) 
+            daemonizer = Daemonizer(cherrypy.engine)
             daemonizer.subscribe()
             # check if pid file exists
             try:
                 with open(self.config.misc.pid_file) as pidfile:
                     pid = int(pidfile.read().strip())
                     try:
-                        os.kill(pid,0) # check if running
+                        os.kill(pid, 0)  # check if running
                     except OSError:
-                        PIDFile(cherrypy.engine, self.config.misc.pid_file).subscribe()
+                        PIDFile(cherrypy.engine,
+                                self.config.misc.pid_file).subscribe()
                         # not running
                     else:
                         # running
                         print("PID File %s exists" % self.config.misc.pid_file)
-                        print("Another instance of oidcproxy seems to be running")
+                        print(
+                            "Another instance of oidcproxy seems to be running"
+                        )
                         return
             except FileNotFoundError:
                 PIDFile(cherrypy.engine, self.config.misc.pid_file).subscribe()
@@ -884,6 +901,7 @@ class App:
         #### Setup OIDC Provider
         self.oidc_handler = OidcHandler(self.config)
         cherrypy.engine.subscribe('start', self.setup_oidc_provider, 80)
+        cherrypy.engine.subscribe('stop', self.cancel_scheduler, 80)
         #### Setup Cherrypy
         global_conf = {
             'log.screen': False,
@@ -919,6 +937,5 @@ class App:
 
         cherrypy.engine.start()
         cherrypy.engine.block()
-        self.thread.join()
 
     #    cherrypy.quickstart(None, '/', app_conf)

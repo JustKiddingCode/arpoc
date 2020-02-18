@@ -51,14 +51,17 @@ loggers:
     handlers:
     - default
     level: DEFAULTLEVEL
+    propagate: false
   oidcproxy.ac:
     handlers:
       - default
       - errorfile
     level: DEFAULTLEVEL
+    propagate: false
   oidcproxy:
     handlers:
       - default
       - errorfile
     level: DEFAULTLEVEL
+    propagate: false
 version: 1

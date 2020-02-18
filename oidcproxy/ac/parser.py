@@ -7,6 +7,7 @@ from abc import abstractmethod
 from functools import reduce
 from typing import Any, Dict, List, TypeVar, Union
 
+from collections.abc import Mapping
 import lark.exceptions
 from lark import Lark, Transformer, Tree, tree
 
@@ -136,9 +137,13 @@ class TransformAttr(Transformer):
         self.data = data
 
     def subject_attr(self, args: List) -> Any:
+        LOGGER.debug("data is %s", self.data['subject'])
+        LOGGER.debug("args are %s", str(args[0]))
+        attr_str = str(args[0])
         attr = reduce(
-            lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
-            args[0].split("."), self.data["subject"])
+            lambda d, key: d.get(key, None)
+            if isinstance(d, Mapping) else None, attr_str.split("."),
+            self.data["subject"])
         if attr == None:
             raise SubjectAttributeMissing("No subject_attr %s" % str(args[0]),
                                           args[0])
@@ -146,18 +151,25 @@ class TransformAttr(Transformer):
 
     def access_attr(self, args: List) -> Any:
         attr = reduce(
-            lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
-            args[0].split("."), self.data["access"])
+            lambda d, key: d.get(key, None)
+            if isinstance(d, Mapping) else None, args[0].split("."),
+            self.data["access"])
 
         #        attr = self.data["access"].get(str(args[0]), None)
         return attr
 
     def object_attr(self, args: List) -> Any:
+        LOGGER.debug("data is %s", self.data['object'])
+        LOGGER.debug("args are %s", args)
+        attr_str = str(args[0])
         attr = reduce(
-            lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
-            args[0].split("."), self.data["object"])
+            lambda d, key: d.get(key, None)
+            if isinstance(d, Mapping) else None, attr_str.split("."),
+            self.data["object"])
         if attr == None:
-            raise ObjectAttributeMissing("No object attr %s" % str(args[0]), args[0])
+            raise ObjectAttributeMissing("No object attr %s" % attr_str,
+                                         args[0])
+
 
 #            warnings.warn("No object_attr %s" % str(args[0]),
 #                          ObjectAttributeMissingWarning)
@@ -166,10 +178,12 @@ class TransformAttr(Transformer):
 
     def environment_attr(self, args: List) -> Any:
         attr = reduce(
-            lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
-            args[0].split("."), self.data["environment"])
+            lambda d, key: d.get(key, None)
+            if isinstance(d, Mapping) else None, args[0].split("."),
+            self.data["environment"])
         if attr == None:
-            raise EnvironmentAttributeMissing("No object attr %s" % str(args[0]), args[0])
+            raise EnvironmentAttributeMissing(
+                "No object attr %s" % str(args[0]), args[0])
             #           warnings.warn("No environment_attr %s" % str(args[0]),
             #              EnvironmentAttributeMissingWarning)
 
@@ -192,12 +206,14 @@ class TransformAttr(Transformer):
             return args[0] == "True"
         return int(args[0])
 
+
 class ExistsTransformer(Transformer):
-    def __init__(self, attr_transformer : TransformAttr ):
+    def __init__(self, attr_transformer: TransformAttr):
         super().__init__(self)
         self.attr_transformer = attr_transformer
+
     """ The exists Transformer must run before the normal transformers in order to catch exceptions """
-    def _exists(self, args : List) -> bool:
+    def _exists(self, args: List) -> bool:
         try:
             getattr(self.attr_transformer, args[0].data)(args[0].children)
             return True
@@ -209,13 +225,12 @@ class ExistsTransformer(Transformer):
             return self._exists(args[1:])
         return Tree("single", args)
 
-
-
     def uop(self, args: List) -> Any:
         if (args[0] == "exists"):
             return "exists"
         return Tree("uop", args)
         #return getattr(UOP, str(args[0]))
+
 
 class EvalComplete(Transformer):
     def condition(self, args: List) -> Any:
@@ -284,7 +299,8 @@ class EvalTree(Transformer):
             return args[0]
         raise ValueError
 
-def parse_and_transform(lark_handle : Lark, rule : str, data: Dict) -> bool:
+
+def parse_and_transform(lark_handle: Lark, rule: str, data: Dict) -> bool:
     try:
         ast = lark_handle.parse(rule)
     except (lark.exceptions.UnexpectedCharacters,
@@ -295,6 +311,7 @@ def parse_and_transform(lark_handle : Lark, rule : str, data: Dict) -> bool:
     new_ast = ExistsTransformer(attr_transformer).transform(ast)
     T = attr_transformer * EvalTree() * EvalComplete()
     return T.transform(new_ast)
+
 
 def check_condition(condition: str, data: Dict) -> bool:
     global lark_condition
@@ -307,15 +324,19 @@ def check_condition(condition: str, data: Dict) -> bool:
 def check_target(rule: str, data: Dict) -> bool:
     global lark_target
     LOGGER.debug("Check target rule %s with data %s", rule, data)
-    ret_value = parse_and_transform(lark_target, rule, data)
+    try:
+        ret_value = parse_and_transform(lark_target, rule, data)
+    except Exception as e:
+        LOGGER.debug(e)
+        raise
     LOGGER.debug("Target Rule %s evaluated to %s", rule, ret_value)
     return ret_value
 
 
 if __name__ == "__main__":
-#
+    #
     l = Lark(grammar, start="condition")
-    data = {"subject" : {"email" : "hello"}}
+    data = {"subject": {"email": "hello"}}
     attr_transformer = TransformAttr(data)
     ast = l.parse("exists subject.email")
     new_ast = ExistsTransformer(attr_transformer).transform(ast)

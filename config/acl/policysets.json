@@ -24,7 +24,7 @@
 		"Target": "True",
 		"Policies": ["com.example.policies.loggedIn", "com.example.policies.adminpages"],
 		"PolicySets": [],
-		"Resolver": "ANY",
+		"Resolver": "AND",
 		"Obligations" : ["obl_log"]
 },
 "com.example.policysets.alwaysGrant": {

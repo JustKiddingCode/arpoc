@@ -4,6 +4,7 @@ import collections.abc
 
 import oidcproxy.ac.common
 
+
 class EnvironmentAttribute(ABC):
     target = ""
 
@@ -21,13 +22,15 @@ class ObjectSetter(ABC):
     def run(self, data: Dict) -> Any:
         return None
 
+
 class Obligation(ABC):
     name = ""
 
     def __init__(self) -> None:
         pass
 
-    def run(self, effect : Optional[oidcproxy.ac.common.Effects], context: Dict, cfg : Dict) -> bool:
+    def run(self, effect: Optional[oidcproxy.ac.common.Effects], context: Dict,
+            cfg: Dict) -> bool:
         pass
 
 
@@ -36,5 +39,9 @@ def deep_dict_update(d, u):
         if isinstance(v, collections.abc.Mapping):
             d[k] = deep_dict_update(d.get(k, {}), v)
         else:
-            d[k] = v
+            if v is None:
+                del d[k]
+            else:
+                d[k] = v
+
     return d

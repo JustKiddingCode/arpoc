@@ -43,7 +43,7 @@
 		"Type": "Rule",
 		"Target": "True",
 		"Description": "Allow access when email starts with admin@",
-		"Condition" : "subject.email startswith 'admin@'",
+		"Condition" : "subject.age > 9",
 		"Effect": "GRANT",
 		"Obligations" : []
 },

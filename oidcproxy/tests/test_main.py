@@ -1,7 +1,9 @@
 import oidcproxy
 
 cfg = oidcproxy.config.OIDCProxyConfig(None, None)
-cfg.proxy = oidcproxy.config.ProxyConfig("", "", "testhost.example.com",
+cfg.proxy = oidcproxy.config.ProxyConfig("",
+                                         "",
+                                         "testhost.example.com",
                                          ["test@example.com"],
                                          redirect=["/redirect"])
 cfg.services['default'] = oidcproxy.config.ServiceConfig(
@@ -20,10 +22,14 @@ def test_build_url():
 
 
 def test_build_proxy_url():
-    assert service_a._build_proxy_url("") == "https://testhost.example.com/bar/"
+    assert service_a._build_proxy_url(
+        "") == "https://testhost.example.com/bar/"
     kwargs = {'foo': 'bar', 'bar': 'foo'}
     url = service_a._build_proxy_url("", **kwargs)
-    assert url in ["https://testhost.example.com/bar/?foo=bar&bar=foo","https://testhost.example.com/bar/?bar=foo&foo=bar"]
+    assert url in [
+        "https://testhost.example.com/bar/?foo=bar&bar=foo",
+        "https://testhost.example.com/bar/?bar=foo&foo=bar"
+    ]
 
 
 def test_retry():

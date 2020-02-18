@@ -59,6 +59,7 @@ class ProviderConfig:
 def default_redirect() -> List:
     return ["/secure/redirect_uris"]
 
+
 @dataclass
 class ProxyConfig:
     """ Configuration for the Proxy Setup """
@@ -74,7 +75,7 @@ class ProxyConfig:
     groupname: str = "www-data"
     secrets: str = "/var/lib/oidc-proxy/secrets.yml"
     tls_redirect: str = "/TLSRedirect"
-    auth : str = "/auth"
+    auth: str = "/auth"
     redirect: List[str] = field(default_factory=default_redirect)
     plugin_dirs: List[str] = field(default_factory=list)
 
@@ -86,7 +87,8 @@ class ProxyConfig:
         self.baseuri = "https://{}/".format(self.domainname)
         self.redirect_uris = []
         for redirect_path in self.redirect:
-            self.redirect_uris.append("{}{}".format(self.baseuri, redirect_path))
+            self.redirect_uris.append("{}{}".format(self.baseuri,
+                                                    redirect_path))
 
 
 @dataclass
@@ -115,6 +117,7 @@ class ACConfig:
     def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
 
+
 @dataclass
 class Misc:
     pid_file: str = "/var/run/oidcproxy.pid"
@@ -130,10 +133,10 @@ class OIDCProxyConfig:
                  std_config: Union[None, str] = '/etc/oidc-proxy/config.yml'):
 
         self.openid_providers: Dict[str, ProviderConfig] = {}
-        self.proxy: ProxyConfig = ProxyConfig("","","",[""])
+        self.proxy: ProxyConfig = ProxyConfig("", "", "", [""])
         self.services: Dict[str, ServiceConfig] = {}
         self.access_control = ACConfig()
-        self.misc : Misc = Misc()
+        self.misc: Misc = Misc()
 
         default_paths = [std_config]
         if 'OIDC_PROXY_CONFIG' in os.environ:
@@ -214,7 +217,6 @@ class OIDCProxyConfig:
             else:
                 self.misc = Misc(**new_cfg['misc'])
             print(self.misc)
-
 
     def read_file(self, filepath: str) -> None:
         with open(filepath, 'r') as ymlfile:
