@@ -1,4 +1,5 @@
 import re
+from collections.abc import Mapping
 from functools import reduce
 
 from oidcproxy.plugins._lib import Obligation, Optional, deep_dict_update
@@ -49,7 +50,8 @@ class Log(Obligation):
     def replace_subjectattr(logtext, subject_info):
         regex = r"subject\.(?P<subject>[.\w]+)"
         func = lambda x: reduce(
-            lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
+            lambda d, key: d.get(key, None)
+            if isinstance(d, Mapping) else None,
             x.group('subject').split("."), subject_info)
         return re.sub(regex, func, logtext)
 
@@ -57,7 +59,8 @@ class Log(Obligation):
     def replace_objectattr(logtext, object_info):
         regex = r"object\.(?P<object>[.\w]+)"
         func = lambda x: reduce(
-            lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
+            lambda d, key: d.get(key, None)
+            if isinstance(d, Mapping) else None,
             x.group('object').split("."), object_info)
         return re.sub(regex, func, logtext)
 
@@ -65,7 +68,8 @@ class Log(Obligation):
     def replace_envattr(logtext, env_info):
         regex = r"environment\.(?P<env>[.\w]+)"
         func = lambda x: reduce(
-            lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
+            lambda d, key: d.get(key, None)
+            if isinstance(d, Mapping) else None,
             x.group('env').split("."), env_info)
         return re.sub(regex, func, logtext)
 
@@ -73,7 +77,8 @@ class Log(Obligation):
     def replace_accessattr(logtext, access_info):
         regex = r"access\.(?P<access>[.\w]+)"
         func = lambda x: reduce(
-            lambda d, key: d.get(key, None) if isinstance(d, dict) else None,
+            lambda d, key: d.get(key, None)
+            if isinstance(d, Mapping) else None,
             x.group('access').split("."), access_info)
         return re.sub(regex, func, logtext)
 
