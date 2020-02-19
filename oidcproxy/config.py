@@ -1,4 +1,4 @@
-""" Configuration Module of OIDC Proxy 
+""" Configuration Module of OIDC Proxy
 
 After importing this file you have access to
 the configuration with the `config.cfg` variable.
@@ -8,9 +8,11 @@ import logging
 import os
 from dataclasses import InitVar, asdict, dataclass, field, replace
 from typing import Any, Dict, List, Union, Optional
-from oidcproxy.exceptions import *
 
 import yaml
+
+from oidcproxy.exceptions import *
+
 
 LOGGING = logging.getLogger()
 
@@ -57,9 +59,14 @@ class ProviderConfig:
 
 
 def default_redirect() -> List:
+    """ Default Redirect Path"""
     return ["/secure/redirect_uris"]
 
+def default_json_dir() -> List:
+    """ Default json path for access control entities """
+    return ["/etc/oidc-proxy/acl"]
 
+#pylint: disable=too-many-instance-attributes
 @dataclass
 class ProxyConfig:
     """ Configuration for the Proxy Setup """
@@ -104,11 +111,6 @@ class ServiceConfig:
     def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
 
-
-def default_json_dir() -> List:
-    return ["/etc/oidc-proxy/acl"]
-
-
 @dataclass
 class ACConfig:
     """ Configuration for the access control """
@@ -120,6 +122,7 @@ class ACConfig:
 
 @dataclass
 class Misc:
+    """ Misc Config Class """
     pid_file: str = "/var/run/oidcproxy.pid"
     daemonize: bool = True
     log_level: str = "INFO"
@@ -128,9 +131,10 @@ class Misc:
 
 
 class OIDCProxyConfig:
+    """ Config Container Which for all specific configuration """
     def __init__(self,
-                 config_file: Union[None, str] = None,
-                 std_config: Union[None, str] = '/etc/oidc-proxy/config.yml'):
+                 config_file: Optional[str] = None,
+                 std_config: Optional[str] = '/etc/oidc-proxy/config.yml'):
 
         self.openid_providers: Dict[str, ProviderConfig] = {}
         self.proxy: ProxyConfig = ProxyConfig("", "", "", [""])
@@ -153,45 +157,28 @@ class OIDCProxyConfig:
                     pass
         self.check_config()
 
-    def add_provider(self, name: str, cfg: ProviderConfig) -> None:
-        self.openid_providers[name] = cfg
+    def add_provider(self, name: str, prov_cfg: ProviderConfig) -> None:
+        """ Adds the provider with key <name> to the configuration """
+        self.openid_providers[name] = prov_cfg
 
-    def print_sample_config(self) -> None:
-        provider = ProviderConfig("", "", "", "", "")
-        proxy = ProxyConfig("", "", "", [""], "")
-        service = ServiceConfig("", "", "", {}, {})
-        ac = ACConfig()
-
-        # delete the default values of claim2scope
-        provider_dict = asdict(provider)
-        del provider_dict['claim2scope']
-
-        cfg = {
-            "openid_providers": {
-                "example": provider_dict
-            },
-            "proxy": asdict(proxy),
-            "services": {
-                "example": asdict(service)
-            },
-            "access_control": asdict(ac)
-        }
-        print(yaml.dump(cfg))
 
     def check_config_proxy_url(self) -> None:
-        l: List[str] = []
+        """ Checks for duplicates in the proxy_url """
+        proxy_urls: List[str] = []
         for key, service in self.services.items():
-            if service.proxy_URL in l:
+            if service.proxy_URL in proxy_urls:
                 raise ConfigError()
-            l.append(service.proxy_URL)
+            proxy_urls.append(service.proxy_URL)
 
         assert self.proxy is not None
 
     def check_config(self) -> None:
+        """ Make consistency checks for the oidcproxy config """
         LOGGING.debug("checking config consistency")
         self.check_config_proxy_url()
 
     def merge_config(self, new_cfg: Dict) -> None:
+        """Merges the current configuration with  a new configuration dict  """
         if 'services' in new_cfg:
             for key, val in new_cfg['services'].items():
                 service_cfg = ServiceConfig(**val)
@@ -219,12 +206,14 @@ class OIDCProxyConfig:
             print(self.misc)
 
     def read_file(self, filepath: str) -> None:
+        """ Read the YAML file <filepath> and add the contents to the current configuration """
         with open(filepath, 'r') as ymlfile:
             new_cfg = yaml.safe_load(ymlfile)
 
         self.merge_config(new_cfg)
 
     def print_config(self) -> None:
+        """ Print the current config """
         cfg: Dict[str, Dict] = dict()
         cfg['services'] = dict()
         cfg['openid_providers'] = dict()
@@ -237,8 +226,32 @@ class OIDCProxyConfig:
         cfg['access_control'] = asdict(self.access_control)
         print(yaml.dump(cfg))
 
+    @staticmethod
+    def print_sample_config() -> None:
+        """ Prints a sample config """
+        provider = ProviderConfig("", "", "", "", "")
+        proxy = ProxyConfig("", "", "", [""], "")
+        service = ServiceConfig("", "", "", {}, {})
+        ac_config = ACConfig()
 
-cfg: Union[None, OIDCProxyConfig] = None
+        # delete the default values of claim2scope
+        provider_dict = asdict(provider)
+        del provider_dict['claim2scope']
+
+        cfg = {
+            "openid_providers": {
+                "example": provider_dict
+            },
+            "proxy": asdict(proxy),
+            "services": {
+                "example": asdict(service)
+            },
+            "access_control": asdict(ac_config)
+        }
+        print(yaml.dump(cfg))
+
+
+cfg: Optional[OIDCProxyConfig] = None
 
 if __name__ == "__main__":
     cfg = OIDCProxyConfig()

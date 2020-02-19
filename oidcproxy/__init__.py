@@ -98,7 +98,7 @@ class OidcHandler:
 
         """
         client = oic.oic.Client(client_authn_method=CLIENT_AUTHN_METHOD)
-        registration_response: Union[None, RegistrationResponse]
+        registration_response: RegistrationResponse
         try:
             if provider.registration_url and provider.registration_token:
                 provider_info = client.provider_config(
@@ -649,7 +649,9 @@ class ServiceProxy:
 
 
 class TLSOnlyDispatcher(Dispatcher):
+    """ Dispatcher for cherrypy to force TLS """
     def __init__(self, tls_url: str, next_dispatcher: Dispatcher):
+        super().__init__()
         self._tls_url = tls_url
         self._next_dispatcher = next_dispatcher
 
@@ -674,6 +676,7 @@ class App:
         self.gid = 0
 
     def cancel_scheduler(self):
+        """ Cancels every event in the scheduler queue """
         if not self._scheduler.empty():
             for event in self._scheduler.queue:
                 self._scheduler.cancel(event)
@@ -800,7 +803,7 @@ class App:
 
         for dirpath, _, filenames in os.walk(secrets_dir):
             if len(filenames) > 1:
-                raise exceptions.ConfigError(
+                raise oidcproxy.exceptions.ConfigError(
                     "Please specify an own directory for oidproxy secrets")
             os.chown(dirpath, self.uid, self.gid)
             for filename in filenames:
