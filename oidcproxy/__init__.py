@@ -265,7 +265,7 @@ class OidcHandler:
                     "state": state,
                     "valid_until": valid_until,
                     "userinfo": userinfo,
-                    "evaluation_cache": {}
+                    "scopes" : new_token.scope
                 }, refresh_valid)
             return hash_access_token, userinfo
         except Exception as excep:
@@ -293,8 +293,7 @@ class OidcHandler:
                 access_token_header)
 
             self._cache.put(hash_access_token, {
-                "userinfo": userinfo,
-                "evaluation_cache": {}
+                "userinfo": userinfo
             }, valid_until)
 
             return hash_access_token, userinfo
@@ -448,22 +447,26 @@ class OidcHandler:
                 "state": kwargs['state'],
                 "valid_until": valid_until,
                 "userinfo": dict(userinfo),
-                "evaluation_cache": {}
+                "scopes" : token.scope
             }, refresh_valid)
         # There should be an url in the session so we can redirect
         if "url" in cherrypy.session:
             raise cherrypy.HTTPRedirect(cherrypy.session["url"])
         raise RuntimeError
 
-    def _auth(self, scopes: Union[None, Iterable[str]] = None) -> None:
+    def _auth(self, scopes: Optional[Iterable[str]] = None) -> None:
         if not scopes:
             scopes = ["openid"]
-        if "scopes" in cherrypy.session:
-            # do we have already the requested scopes?
-            scopes_set = set(scopes)
-            scopes_set_session = set(cherrypy.session["scopes"])
-            if scopes_set.issubset(scopes_set_session):
-                return None
+        if "hash_at" in cherrypy.session:
+            hash_at = cherrypy.session["hash_at"]
+            try:
+                scopes_set = set(scopes)
+                scopes_set_session = set(self._cache[hash_at]["scopes"])
+
+                if scopes_set.issubset(scopes_set_session):
+                    return None
+            except KeyError:
+                pass
 
         if "state" in cherrypy.session:
             LOGGING.debug("state is already present")
@@ -471,7 +474,10 @@ class OidcHandler:
         cherrypy.session["state"] = rndstr()
         cherrypy.session["nonce"] = rndstr()
 
-        cherrypy.session["scopes"] = list(scopes)
+
+        # we need to test the scopes later
+        cherrypy.session["scopes"] = scopes
+
         client = self._get_oidc_client(cherrypy.session['provider'])
         args = {
             "client_id": client.client_id,
@@ -617,9 +623,13 @@ class ServiceProxy:
         LOGGING.debug("Kwargs are %s", kwargs)
         _, userinfo = self._oidc_handler.get_userinfo()
 
+        target_url = self._build_url(url, **kwargs)
+
         object_dict = ObjectDict(objsetter=self.cfg['objectsetters'],
                                  initialdata={
-                                     "url": url,
+                                     "path": url,
+                                     "target_url": target_url,
+                                     "service": self.service_name,
                                      **kwargs
                                  })
         access = self.build_access_dict()
@@ -630,7 +640,6 @@ class ServiceProxy:
             "access": access
         }
         LOGGING.debug("Container is %s", self.ac)
-        proxy_url = self._build_url(url, **kwargs)
         evaluation_result = self.ac.evaluate_by_entity_id(
             self.cfg['AC'], context)
         (effect, missing,
@@ -644,7 +653,7 @@ class ServiceProxy:
                                                       self.cfg.obligations)
 
         if effect == ac.Effects.GRANT and all(obligations_result):
-            return self._proxy(proxy_url, access)
+            return self._proxy(target_url, access)
         if len(missing) > 0:
             # -> Are we logged in?
             attr = set(missing)
