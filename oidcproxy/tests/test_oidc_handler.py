@@ -129,9 +129,9 @@ def userinfo():
 @pytest.fixture
 def setup_oidchandler_provider(setup_oidc_handler, mock_client_registration):
     cfg, oidchandler = setup_oidc_handler
-    provider_config_obj = oidcproxy.config.ProviderConfig("https://testhost.example.com",
-        "test", "https://openid-provider.example.com/auth/realms/master",
-        "abcdef")
+    provider_config_obj = oidcproxy.config.ProviderConfig(
+        "https://testhost.example.com", "test",
+        "https://openid-provider.example.com/auth/realms/master", "abcdef")
     oidchandler.register_first_time("test", provider_config_obj)
     cfg.add_provider("test", provider_config_obj)
 
@@ -179,9 +179,9 @@ def mock_introspect_exp(mock_handler):
 def setup_oidchandler_provider_registration(
         setup_oidc_handler, mock_client_registration_special_uri):
     cfg, oidchandler = setup_oidc_handler
-    provider_config_obj = oidcproxy.config.ProviderConfig("https://testhost.example.com",
-        "test", "https://openid-provider.example.com/auth/realms/master", "",
-        "abcdef",
+    provider_config_obj = oidcproxy.config.ProviderConfig(
+        "https://testhost.example.com", "test",
+        "https://openid-provider.example.com/auth/realms/master", "", "abcdef",
         "https://openid-provider.example.com/auth/realms/master/registerme")
     oidchandler.register_first_time("test", provider_config_obj)
 
@@ -259,17 +259,17 @@ def test_register_first_time_config_error(
     configuration_token = ""
     registration_token = ""
     registration_url = ""
-    provider_config_obj = oidcproxy.config.ProviderConfig("https://testhost.example.com",
-        "test", configuration_url, configuration_token, registration_token,
-        registration_url)
+    provider_config_obj = oidcproxy.config.ProviderConfig(
+        "https://testhost.example.com", "test", configuration_url,
+        configuration_token, registration_token, registration_url)
 
     configuration_url = ""
     configuration_token = ""
     registration_token = "abcde"
     registration_url = "https://openid-provider.example.com/auth/realms/master/registerme",
-    provider_config_obj = oidcproxy.config.ProviderConfig("https://testhost.example.com",
-        "test", configuration_url, configuration_token, registration_token,
-        registration_url)
+    provider_config_obj = oidcproxy.config.ProviderConfig(
+        "https://testhost.example.com", "test", configuration_url,
+        configuration_token, registration_token, registration_url)
 
     with pytest.raises(oidcproxy.exceptions.OIDCProxyException):
         oidchandler.register_first_time("test", provider_config_obj)
@@ -291,9 +291,9 @@ def test_register_first_time_lib_error(setup_oidc_handler, caplog,
     configuration_url = "https://openid-provider.example.com/auth/realms/master/"
     configuration_token = ""
     registration_token = "abcde"
-    provider_config_obj = oidcproxy.config.ProviderConfig("https://testhost.example.com",
-        "test", configuration_url, configuration_token, registration_token,
-        registration_url)
+    provider_config_obj = oidcproxy.config.ProviderConfig(
+        "https://testhost.example.com", "test", configuration_url,
+        configuration_token, registration_token, registration_url)
 
     oidchandler.register_first_time("test", provider_config_obj)
     assert "Provider test returned an error on registration" in caplog.text

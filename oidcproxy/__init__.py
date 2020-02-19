@@ -113,7 +113,8 @@ class OidcHandler:
                 assert self.cfg.proxy is not None
                 provider_info = client.provider_config(
                     provider['configuration_url'])
-                redirect_uris = provider.redirect_uris if provider.redirect_uris else self.cfg.proxy['redirect_uris']
+                redirect_uris = provider.redirect_uris if provider.redirect_uris else self.cfg.proxy[
+                    'redirect_uris']
                 args = {
                     "redirect_uris": redirect_uris,
                     "contacts": self.cfg.proxy['contacts']
@@ -266,7 +267,7 @@ class OidcHandler:
                     "state": state,
                     "valid_until": valid_until,
                     "userinfo": userinfo,
-                    "scopes" : new_token.scope
+                    "scopes": new_token.scope
                 }, refresh_valid)
             return hash_access_token, userinfo
         except Exception as excep:
@@ -293,9 +294,8 @@ class OidcHandler:
             valid_until, userinfo = self.get_userinfo_access_token(
                 access_token_header)
 
-            self._cache.put(hash_access_token, {
-                "userinfo": userinfo
-            }, valid_until)
+            self._cache.put(hash_access_token, {"userinfo": userinfo},
+                            valid_until)
 
             return hash_access_token, userinfo
 
@@ -448,7 +448,7 @@ class OidcHandler:
                 "state": kwargs['state'],
                 "valid_until": valid_until,
                 "userinfo": dict(userinfo),
-                "scopes" : token.scope
+                "scopes": token.scope
             }, refresh_valid)
         # There should be an url in the session so we can redirect
         if "url" in cherrypy.session:
@@ -474,7 +474,6 @@ class OidcHandler:
 
         cherrypy.session["state"] = rndstr()
         cherrypy.session["nonce"] = rndstr()
-
 
         # we need to test the scopes later
         cherrypy.session["scopes"] = list(scopes)

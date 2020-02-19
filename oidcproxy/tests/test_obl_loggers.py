@@ -39,9 +39,8 @@ def test_log_run(caplog):
         },
         'object': {
             'path': '/',
-            'target_url' : 'FQDN',
-            'service' : 'Service A'
-
+            'target_url': 'FQDN',
+            'service': 'Service A'
         },
         'environment': {
             'test': 'bla'

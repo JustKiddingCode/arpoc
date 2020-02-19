@@ -57,12 +57,10 @@ class ProviderConfig:
 
         self.redirect_uris = []
         for redirect_path in self.redirect_paths:
-            self.redirect_uris.append("{}{}".format(baseuri,
-                                                    redirect_path))
+            self.redirect_uris.append("{}{}".format(baseuri, redirect_path))
 
     def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
-
 
 
 def default_redirect() -> List:
@@ -211,7 +209,6 @@ class OIDCProxyConfig:
                 self.openid_providers[key] = provider_cfg
         if 'access_control' in new_cfg:
             self.access_control = ACConfig(**new_cfg['access_control'])
-
 
         if 'misc' in new_cfg:
             print(self.misc)
