@@ -6,7 +6,9 @@ openid_providers:
         configuration_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI1ZGYxY2VkMi1jMWY2LTQ5ZmQtYWUxYy00ZDU0MmQ0MWZmNzgifQ.eyJqdGkiOiJiYTA3NjVlZi1jZjQ0LTQ3ZWQtYmRkMC00YzYzMGZiZjljNmEiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTc2NzQ4MDY0LCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJJbml0aWFsQWNjZXNzVG9rZW4ifQ.ZI4DoZF7KCBmLsqKk49C3AqULkUrd2Chf2DEihuLTfE
         special_claim2scope:
             age:
-              - age
+                - age
+        redirect_paths:
+            - secure/keycloak
     second:
         human_readable_name: Keycloak Test Instance 2
         configuration_url: https://openid-provider2.example.com/auth/realms/master/
@@ -22,8 +24,9 @@ proxy:
     keyfile: /etc/ssl/private/key.pem
     certfile: /etc/ssl/private/cert.crt
     domainname: python-proxy.example.com
-    redirect: 
+    redirect:
         - /secure/redirect_uris
+        - /secure/keycloak
         - /redirect
     contacts:
         - info@konstantinzangerle.de

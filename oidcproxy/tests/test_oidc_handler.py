@@ -129,7 +129,7 @@ def userinfo():
 @pytest.fixture
 def setup_oidchandler_provider(setup_oidc_handler, mock_client_registration):
     cfg, oidchandler = setup_oidc_handler
-    provider_config_obj = oidcproxy.config.ProviderConfig(
+    provider_config_obj = oidcproxy.config.ProviderConfig("https://testhost.example.com",
         "test", "https://openid-provider.example.com/auth/realms/master",
         "abcdef")
     oidchandler.register_first_time("test", provider_config_obj)
@@ -179,7 +179,7 @@ def mock_introspect_exp(mock_handler):
 def setup_oidchandler_provider_registration(
         setup_oidc_handler, mock_client_registration_special_uri):
     cfg, oidchandler = setup_oidc_handler
-    provider_config_obj = oidcproxy.config.ProviderConfig(
+    provider_config_obj = oidcproxy.config.ProviderConfig("https://testhost.example.com",
         "test", "https://openid-provider.example.com/auth/realms/master", "",
         "abcdef",
         "https://openid-provider.example.com/auth/realms/master/registerme")
@@ -259,7 +259,7 @@ def test_register_first_time_config_error(
     configuration_token = ""
     registration_token = ""
     registration_url = ""
-    provider_config_obj = oidcproxy.config.ProviderConfig(
+    provider_config_obj = oidcproxy.config.ProviderConfig("https://testhost.example.com",
         "test", configuration_url, configuration_token, registration_token,
         registration_url)
 
@@ -267,7 +267,7 @@ def test_register_first_time_config_error(
     configuration_token = ""
     registration_token = "abcde"
     registration_url = "https://openid-provider.example.com/auth/realms/master/registerme",
-    provider_config_obj = oidcproxy.config.ProviderConfig(
+    provider_config_obj = oidcproxy.config.ProviderConfig("https://testhost.example.com",
         "test", configuration_url, configuration_token, registration_token,
         registration_url)
 
@@ -291,7 +291,7 @@ def test_register_first_time_lib_error(setup_oidc_handler, caplog,
     configuration_url = "https://openid-provider.example.com/auth/realms/master/"
     configuration_token = ""
     registration_token = "abcde"
-    provider_config_obj = oidcproxy.config.ProviderConfig(
+    provider_config_obj = oidcproxy.config.ProviderConfig("https://testhost.example.com",
         "test", configuration_url, configuration_token, registration_token,
         registration_url)
 
@@ -471,9 +471,8 @@ def test_get_access_token_from_code(setup_oidchandler_provider,
     _, oidc_handler = setup_oidchandler_provider
     state = 'abcde'
     code = 'efabc'
-    resp = oidc_handler.get_access_token_from_code(state, code)
-    d_resp = dict(resp)
-    assert dict(d_resp['id_token']) == id_token
+    token = oidc_handler.get_access_token_from_code(state, code)
+    assert dict(token.id_token) == id_token
 
 
 ################

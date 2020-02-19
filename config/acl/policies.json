@@ -2,7 +2,7 @@
 "com.example.policies.adminpages": {
 		"Type": "Policy",
 		"Description": "Default Policy",
-		"Target" : "object.url startswith 'admin'",
+		"Target" : "object.path startswith 'admin'",
 		"Rules" : [ "com.example.rules.is_admin" ],
 		"Resolver": "ANY",
 		"Obligations" : []

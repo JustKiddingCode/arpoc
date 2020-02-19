@@ -113,8 +113,9 @@ class OidcHandler:
                 assert self.cfg.proxy is not None
                 provider_info = client.provider_config(
                     provider['configuration_url'])
+                redirect_uris = provider.redirect_uris if provider.redirect_uris else self.cfg.proxy['redirect_uris']
                 args = {
-                    "redirect_uris": self.cfg.proxy['redirect_uris'],
+                    "redirect_uris": redirect_uris,
                     "contacts": self.cfg.proxy['contacts']
                 }
                 registration_response = client.register(
@@ -476,7 +477,7 @@ class OidcHandler:
 
 
         # we need to test the scopes later
-        cherrypy.session["scopes"] = scopes
+        cherrypy.session["scopes"] = list(scopes)
 
         client = self._get_oidc_client(cherrypy.session['provider'])
         args = {

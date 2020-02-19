@@ -98,7 +98,7 @@ class Log(Obligation):
         print(merged_cfg)
         logging.config.dictConfig(merged_cfg)
 
-        log_format = "{} subject.email accessed object.url ".format(
+        log_format = "{} subject.email accessed object.service [object.path] -- object.target_url ".format(
             str(effect))
         logger.info(Log.replace_attr(log_format, context))
         return True

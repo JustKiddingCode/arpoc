@@ -19,6 +19,7 @@ LOGGING = logging.getLogger()
 @dataclass
 class ProviderConfig:
     """ Configuration for a single Open ID Connect Provider"""
+    baseuri: InitVar[str]
     human_readable_name: str
     configuration_url: str = ""
     configuration_token: str = ""
@@ -26,8 +27,9 @@ class ProviderConfig:
     registration_url: str = ""
     special_claim2scope: InitVar[dict] = None
     claim2scope: dict = field(init=False)
+    redirect_paths: List[str] = field(default_factory=list)
 
-    def __post_init__(self, special_claim2scope: Dict) -> None:
+    def __post_init__(self, baseuri: str, special_claim2scope: Dict) -> None:
         self.claim2scope = {
             "name": ['profile'],
             "family_name": ['profile'],
@@ -53,8 +55,14 @@ class ProviderConfig:
             for key, val in special_claim2scope.items():
                 self.claim2scope[key] = val
 
+        self.redirect_uris = []
+        for redirect_path in self.redirect_paths:
+            self.redirect_uris.append("{}{}".format(baseuri,
+                                                    redirect_path))
+
     def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
+
 
 
 def default_redirect() -> List:
@@ -163,6 +171,13 @@ class OIDCProxyConfig:
         """ Adds the provider with key <name> to the configuration """
         self.openid_providers[name] = prov_cfg
 
+    def check_redirect_uri(self) -> None:
+        """ Checks if every redirect uri in the provider config is also in the proxy list """
+        for _, provider_obj in self.openid_providers.items():
+            for redirect_url in provider_obj.redirect_url:
+                if redirect_url not in self.proxy.redirect:
+                    raise ConfigError()
+
     def check_config_proxy_url(self) -> None:
         """ Checks for duplicates in the proxy_url """
         proxy_urls: List[str] = []
@@ -180,22 +195,23 @@ class OIDCProxyConfig:
 
     def merge_config(self, new_cfg: Dict) -> None:
         """Merges the current configuration with  a new configuration dict  """
+        if 'proxy' in new_cfg:
+            if self.proxy:
+                self.proxy = replace(self.proxy, **new_cfg['proxy'])
+            else:
+                self.proxy = ProxyConfig(**new_cfg['proxy'])
+
         if 'services' in new_cfg:
             for key, val in new_cfg['services'].items():
                 service_cfg = ServiceConfig(**val)
                 self.services[key] = service_cfg
         if 'openid_providers' in new_cfg:
             for key, val in new_cfg['openid_providers'].items():
-                provider_cfg = ProviderConfig(**val)
+                provider_cfg = ProviderConfig(self.proxy.baseuri, **val)
                 self.openid_providers[key] = provider_cfg
         if 'access_control' in new_cfg:
             self.access_control = ACConfig(**new_cfg['access_control'])
 
-        if 'proxy' in new_cfg:
-            if self.proxy:
-                self.proxy = replace(self.proxy, **new_cfg['proxy'])
-            else:
-                self.proxy = ProxyConfig(**new_cfg['proxy'])
 
         if 'misc' in new_cfg:
             print(self.misc)
@@ -230,7 +246,7 @@ class OIDCProxyConfig:
     @staticmethod
     def print_sample_config() -> None:
         """ Prints a sample config """
-        provider = ProviderConfig("", "", "", "", "")
+        provider = ProviderConfig("", "", "", "", "", "")
         proxy = ProxyConfig("", "", "", [""], "")
         service = ServiceConfig("", "", "", {}, {})
         ac_config = ACConfig()

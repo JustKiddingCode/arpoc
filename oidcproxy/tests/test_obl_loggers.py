@@ -38,7 +38,10 @@ def test_log_run(caplog):
             'email': 'test@example.com'
         },
         'object': {
-            'url': '/'
+            'path': '/',
+            'target_url' : 'FQDN',
+            'service' : 'Service A'
+
         },
         'environment': {
             'test': 'bla'
@@ -48,4 +51,4 @@ def test_log_run(caplog):
         }
     }
     Log.run(Effects.GRANT, context, new_cfg)
-    assert "GRANT test@example.com accessed /" in caplog.text
+    assert "GRANT test@example.com accessed Service A [/] -- FQDN" in caplog.text
