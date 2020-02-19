@@ -13,7 +13,6 @@ import yaml
 
 from oidcproxy.exceptions import *
 
-
 LOGGING = logging.getLogger()
 
 
@@ -62,9 +61,11 @@ def default_redirect() -> List:
     """ Default Redirect Path"""
     return ["/secure/redirect_uris"]
 
+
 def default_json_dir() -> List:
     """ Default json path for access control entities """
     return ["/etc/oidc-proxy/acl"]
+
 
 #pylint: disable=too-many-instance-attributes
 @dataclass
@@ -110,6 +111,7 @@ class ServiceConfig:
 
     def __getitem__(self, key: str) -> Any:
         return getattr(self, key)
+
 
 @dataclass
 class ACConfig:
@@ -160,7 +162,6 @@ class OIDCProxyConfig:
     def add_provider(self, name: str, prov_cfg: ProviderConfig) -> None:
         """ Adds the provider with key <name> to the configuration """
         self.openid_providers[name] = prov_cfg
-
 
     def check_config_proxy_url(self) -> None:
         """ Checks for duplicates in the proxy_url """

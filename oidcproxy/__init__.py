@@ -257,7 +257,8 @@ class OidcHandler:
             hash_access_token = hashlib.sha256(
                 str(new_token.access_token).encode()).hexdigest()
             cherrypy.session['hash_at'] = hash_access_token
-            valid_until, refresh_valid = self.get_validity_from_resp(new_token)
+            valid_until, refresh_valid = self.get_validity_from_token(
+                new_token)
 
             self._cache.put(
                 hash_access_token, {
@@ -321,27 +322,31 @@ class OidcHandler:
         return self.__oidc_provider[name]
 
     @staticmethod
-    def get_validity_from_resp(resp: oic.oic.AuthorizationResponse
-                               ) -> Tuple[int, int]:
+    def get_validity_from_token(token: oic.oic.Token) -> Tuple[int, int]:
         """Find the validity of the id_token, access_token and refresh_token """
         # how long is the information valid?
         # oauth has the expires_in (but only RECOMMENDED)
         # oidc has exp and iat required.
         # so if:  iat + expires_in < exp -> weird stuff (but standard compliant)
-        (iat, exp) = (resp['id_token']['iat'], resp['id_token']['exp'])
+        (iat, exp) = (token.id_token['iat'], token.id_token['exp'])
         at_exp = exp
-        if "expires_in" in resp and resp["expires_in"]:
-            at_exp = resp["expires_in"] + iat
+        try:
+            at_exp = token.expires_in + iat
+        except AttributeError:
+            pass
 
         valid_until = min(at_exp, exp)
+        refresh_valid = valid_until
 
-        if "refresh_expires_in" in resp:
+        try:
             refresh_valid = datetime.datetime.now().timestamp(
-            ) + resp['refresh_expires_in']
-        elif "refresh_token" in resp:
-            raise NotImplementedError
-        else:
-            refresh_valid = valid_until
+            ) + token.refresh_expires_in
+        except AttributeError:
+            try:
+                if resp.refresh_token:
+                    raise NotImplementedError
+            except AttributeError:
+                pass
 
         return (valid_until, refresh_valid)
 
@@ -367,7 +372,7 @@ class OidcHandler:
         return userinfo
 
     def get_access_token_from_code(self, state: str,
-                                   code: str) -> oic.oic.AccessTokenResponse:
+                                   code: str) -> oic.oic.Token:
         """ Takes the OIDC Authorization Code,
             Performs the Access Token Request
 
@@ -388,8 +393,10 @@ class OidcHandler:
             request_args=args,
             authn_method="client_secret_basic")
         LOGGING.debug("Access Token Request %s", resp)
+        token = client.get_token(state=aresp["state"])
 
-        return resp
+        assert isinstance(token, oic.oic.Token)
+        return token
 
     @staticmethod
     def check_scopes(request: List, response: List) -> Optional[str]:
@@ -421,19 +428,20 @@ class OidcHandler:
 
         # TODO: Here we should check that state has not been altered!
 
-        resp = self.get_access_token_from_code(kwargs['state'], kwargs['code'])
+        token = self.get_access_token_from_code(kwargs['state'],
+                                                kwargs['code'])
 
-        hash_at = hashlib.sha256(str(resp).encode()).hexdigest()
+        hash_at = hashlib.sha256(str(token).encode()).hexdigest()
         cherrypy.session['hash_at'] = hash_at
 
         # check for scopes:
         response_check = self.check_scopes(cherrypy.session["scopes"],
-                                           resp["scope"])
+                                           token.scope)
         if response_check:
             return response_check
-        cherrypy.session["scopes"] = resp['scope']
+        cherrypy.session["scopes"] = token.scope
 
-        valid_until, refresh_valid = self.get_validity_from_resp(resp)
+        valid_until, refresh_valid = self.get_validity_from_token(token)
         userinfo = self.do_userinfo_request_with_state(state=kwargs["state"])
         self._cache.put(
             hash_at, {
