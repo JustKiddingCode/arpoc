@@ -60,7 +60,8 @@ class PrioritizedItem:
 
 
 class ObjectDict(collections.UserDict):
-    def __init__(self, objsetter: Dict,
+    def __init__(self,
+                 objsetter: Dict,
                  initialdata: Optional[Dict] = None) -> None:
         if not initialdata:
             initialdata = {}

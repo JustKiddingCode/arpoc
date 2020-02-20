@@ -4,8 +4,8 @@ import logging
 
 from ._lib import ObjectSetter
 
-
 LOGGING = logging.getLogger(__name__)
+
 
 #pylint: disable=too-few-public-methods
 class ObjUrlmap(ObjectSetter):
@@ -23,7 +23,8 @@ class ObjUrlmap(ObjectSetter):
             try:
                 match_object = re.match(regex, data['path'])
                 if match_object is not None:
-                    LOGGING.debug("Matched path, dict %s", match_object.groupdict())
+                    LOGGING.debug("Matched path, dict %s",
+                                  match_object.groupdict())
                     data.update(match_object.groupdict())
             except re.error:
                 LOGGING.info("Failed to parse regex %s", regex)

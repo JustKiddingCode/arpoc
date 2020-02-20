@@ -343,7 +343,7 @@ class OidcHandler:
             ) + token.refresh_expires_in
         except AttributeError:
             try:
-                if resp.refresh_token:
+                if token.refresh_token:
                     raise NotImplementedError
             except AttributeError:
                 pass

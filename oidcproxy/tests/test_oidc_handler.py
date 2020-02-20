@@ -6,6 +6,8 @@ from unittest.mock import Mock, PropertyMock, mock_open, patch
 
 import base64
 
+import logging
+
 import datetime
 
 import pytest
@@ -177,7 +179,7 @@ def mock_introspect_exp(mock_handler):
 
 @pytest.fixture
 def setup_oidchandler_provider_registration(
-        setup_oidc_handler, mock_client_registration_special_uri):
+    setup_oidc_handler, mock_client_registration_special_uri):
     cfg, oidchandler = setup_oidc_handler
     provider_config_obj = oidcproxy.config.ProviderConfig(
         "https://testhost.example.com", "test",
@@ -192,41 +194,71 @@ def setup_oidchandler_provider_registration(
 
 @pytest.fixture
 def id_token():
-    now = int(datetime.datetime.now().timestamp())
-    id_token_payload_dict = {
-        "iat": now,
-        "exp": now + 500,
-        "sub": "abcdef",
-        "aud": ["s6BhdRkqt3"],
-        "iss": "https://openid-provider.example.com/auth/realms/master"
-    }
-    return id_token_payload_dict
+    def _foo(iat,
+             exp,
+             sub="abcdef",
+             aud="s6BhdRkqt3",
+             iss="https://openid-provider.example.com/auth/realms/master"):
+        id_token_payload_dict = {
+            "iat": iat,
+            "exp": exp,
+            "sub": sub,
+            "aud": [aud],
+            "iss": iss
+        }
+        return id_token_payload_dict
+
+    return _foo
 
 
 @pytest.fixture
 def id_token_b64(id_token):
-    id_token_header_dict = {"alg": "none", "typ": "jwt"}
-    id_token_header = base64.b64encode(
-        json.dumps(id_token_header_dict).encode())
-    id_token_payload = base64.b64encode(json.dumps(id_token).encode())
-    return "{}.{}".format(id_token_header.decode(), id_token_payload.decode())
+    def _foo(iat,
+             exp,
+             sub="abcdef",
+             aud="s6BhdRkqt3",
+             iss="https://openid-provider.example.com/auth/realms/master"):
+        token = id_token(iat, exp, sub, aud, iss)
+        id_token_header_dict = {"alg": "none", "typ": "jwt"}
+        id_token_header = base64.b64encode(
+            json.dumps(id_token_header_dict).encode())
+        id_token_payload = base64.b64encode(json.dumps(token).encode())
+        return "{}.{}".format(id_token_header.decode(),
+                              id_token_payload.decode())
+
+    return _foo
 
 
 @pytest.fixture
 def mock_token_response(mock_handler, id_token_b64):
-    token_response = {
-        "access_token": "1234567890ABCDEF",
-        "token_type": "Bearer",
-        "refresh_token": "dead",
-        "expires_in": 200,
-        "id_token": id_token_b64,
-        "scope": "openid"
-    }
-    mock_handler.post(
-        "https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/token",
-        json=token_response,
-        headers={'content-type': 'application/json'})
-    return mock_handler
+    def _foo(iat,
+             exp,
+             sub="abcdef",
+             aud="s6BhdRkqt3",
+             iss="https://openid-provider.example.com/auth/realms/master",
+             access_token="1234567890ABCDEF",
+             refresh_token="dead",
+             grant_type='authorization_code'):
+        token = id_token_b64(iat, exp, sub, aud, iss)
+        code_matcher = lambda x: 'grant_type={}'.format(grant_type) in (x.text
+                                                                        or '')
+        token_response = {
+            "access_token": access_token,
+            "token_type": "Bearer",
+            "refresh_token": refresh_token,
+            "expires_in": 200,
+            "id_token": token,
+            "scope": "openid",
+            "refresh_expires_in": 1000
+        }
+        mock_handler.post(
+            "https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/token",
+            json=token_response,
+            headers={'content-type': 'application/json'},
+            additional_matcher=code_matcher)
+        return mock_handler
+
+    return _foo
 
 
 ###########################
@@ -243,7 +275,7 @@ def test_get_secrets(setup_oidchandler_provider):
 
 
 def test_register_first_time_registration(
-        setup_oidchandler_provider_registration):
+    setup_oidchandler_provider_registration):
     assert True
 
 
@@ -252,7 +284,7 @@ def test_register_first_time_configuration(setup_oidchandler_provider):
 
 
 def test_register_first_time_config_error(
-        setup_oidc_handler, caplog, mock_client_registration_special_uri):
+    setup_oidc_handler, caplog, mock_client_registration_special_uri):
     cfg, oidchandler = setup_oidc_handler
 
     configuration_url = ""
@@ -425,11 +457,52 @@ def test_get_access_token_from_headers_mixed(setup_oidc_handler):
 ########################
 # refresh_access_token #
 ########################
+@patch('oidcproxy.cherrypy.session', {
+    "provider": "test",
+    "scopes": ["openid"],
+    "url": "http://test/"
+},
+       create=True)
+def test_refresh_access_token(caplog, setup_oidchandler_provider,
+                              mock_token_response):
+    caplog.set_level(logging.DEBUG)
+    _, oidc_handler = setup_oidchandler_provider
+    userinfo = {"sub": "abcdef", "email": "evil@test.example.com"}
+    now = int(datetime.datetime.now().timestamp())
+    mocker = mock_token_response(now, now + 500)
+    mocker.register_uri(
+        'POST',
+        "https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/userinfo",
+        text=json.dumps(userinfo),
+        headers={'content-type': 'application/json'})
 
+    state = 'abcde'
+    code = 'efabc'
+    with pytest.raises(oidcproxy.cherrypy._cperror.HTTPRedirect):
+        oidc_handler.redirect(state=state, code=code)
 
-@patch('oidcproxy.cherrypy.session', {"provider": "test"}, create=True)
-def test_refresh_access_token(setup_oidchandler_provider):
-    assert False
+    print(oidc_handler._cache.data)
+    dnow = int(datetime.datetime.now().timestamp())
+    future = dnow + 500
+    logging.debug('time warp to: %s', future)
+
+    mock_token_response(future,
+                        future + 500,
+                        access_token="ABCDEF",
+                        refresh_token="DEAF",
+                        grant_type='refresh_token')
+
+    with patch('oic.oic.time_util.utc_time_sans_frac', Mock(return_value=future)),\
+        patch('oic.oic.time_util.time_sans_frac', Mock(return_value=future)),\
+        patch('oic.oauth2.grant.utc_time_sans_frac', Mock(return_value=future)):
+        hash_at = next(iter(oidc_handler._cache.data))
+        oidc_handler.refresh_access_token(hash_at)
+
+        new_hash_at = next(iter(oidc_handler._cache.data))
+        assert hash_at != new_hash_at
+        assert oidc_handler._cache.data[new_hash_at][
+            'valid_until'] == future + 200
+        assert 'oic.oic.message.RefreshAccessTokenRequest' in caplog.text
 
 
 ################
@@ -466,13 +539,15 @@ def test_do_userinfo_request_with_state():
 
 @patch('oidcproxy.cherrypy.session', {"provider": "test"}, create=True)
 def test_get_access_token_from_code(setup_oidchandler_provider,
-                                    mock_token_response, id_token_b64,
-                                    id_token):
+                                    mock_token_response, id_token):
     _, oidc_handler = setup_oidchandler_provider
+    now = int(datetime.datetime.now().timestamp())
+    id_token_dict = id_token(now, now + 500)
+    mocker = mock_token_response(now, now + 500)
     state = 'abcde'
     code = 'efabc'
     token = oidc_handler.get_access_token_from_code(state, code)
-    assert dict(token.id_token) == id_token
+    assert dict(token.id_token) == id_token_dict
 
 
 ################
@@ -495,52 +570,21 @@ def test_check_scopes():
     "url": "http://test/"
 },
        create=True)
-def test_redirect(setup_oidchandler_provider):
-    # copy from test_get_access_token_from_code
+def test_redirect(setup_oidchandler_provider, mock_token_response):
     _, oidc_handler = setup_oidchandler_provider
-    with requests_mock.mock() as m:
-        now = int(datetime.datetime.now().timestamp())
-        id_token_header_dict = {"alg": "none", "typ": "jwt"}
-        id_token_payload_dict = {
-            "iat": now,
-            "exp": now + 500,
-            "sub": "abcdef",
-            "aud": ["s6BhdRkqt3"],
-            "iss": "https://openid-provider.example.com/auth/realms/master"
-        }
+    userinfo = {"sub": "abcdef", "email": "evil@test.example.com"}
+    now = int(datetime.datetime.now().timestamp())
+    mocker = mock_token_response(now, now + 500)
+    mocker.register_uri(
+        'POST',
+        "https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/userinfo",
+        text=json.dumps(userinfo),
+        headers={'content-type': 'application/json'})
 
-        id_token_header = base64.b64encode(
-            json.dumps(id_token_header_dict).encode())
-        id_token_payload = base64.b64encode(
-            json.dumps(id_token_payload_dict).encode())
-        id_token = "{}.{}".format(id_token_header.decode(),
-                                  id_token_payload.decode())
-        print(id_token)
-        token_response = {
-            "access_token": "1234567890ABCDEF",
-            "token_type": "Bearer",
-            "refresh_token": "dead",
-            "expires_in": 200,
-            "id_token": id_token,
-            "scope": "openid",
-            "refresh_expires_in": 300
-        }
-        m.post(
-            "https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/token",
-            json=token_response,
-            headers={'content-type': 'application/json'})
-        # end of copy
-        userinfo = {"sub": "abcdef", "email": "evil@test.example.com"}
-        m.register_uri(
-            'POST',
-            "https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/userinfo",
-            text=json.dumps(userinfo),
-            headers={'content-type': 'application/json'})
-
-        state = 'abcde'
-        code = 'efabc'
-        with pytest.raises(oidcproxy.cherrypy._cperror.HTTPRedirect):
-            oidc_handler.redirect(state=state, code=code)
+    state = 'abcde'
+    code = 'efabc'
+    with pytest.raises(oidcproxy.cherrypy._cperror.HTTPRedirect):
+        oidc_handler.redirect(state=state, code=code)
 
 
 #########

@@ -213,6 +213,7 @@ class ExistsTransformer(Transformer):
         self.attr_transformer = attr_transformer
 
     """ The exists Transformer must run before the normal transformers in order to catch exceptions """
+
     def _exists(self, args: List) -> bool:
         try:
             getattr(self.attr_transformer, args[0].data)(args[0].children)

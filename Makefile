@@ -2,7 +2,7 @@
 
 tests:
 	python3.7-coverage run --include './oidcproxy/*' -m pytest oidcproxy/tests || :
-	python3.7-coverage html
+	python3.7-coverage html --skip-covered
 
 clean:
 	find -type d -name '__pycache__' -exec rm -rf '{}' +

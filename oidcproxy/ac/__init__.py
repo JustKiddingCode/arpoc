@@ -63,10 +63,11 @@ class AC_Entity(ABC):
                 raise ACEntityMissing(entity_id)
             cr.update(entity_id, evaluation_result.results[entity_id])
 
-    def evaluate(self,
-                 context: Dict,
-                 evaluation_result: Optional[EvaluationResult] = None
-                 ) -> EvaluationResult:
+    def evaluate(
+        self,
+        context: Dict,
+        evaluation_result: Optional[EvaluationResult] = None
+    ) -> EvaluationResult:
         pass
 
     def _check_match(self, context: Dict[str, Dict]) -> bool:
@@ -79,10 +80,11 @@ class Policy_Set(AC_Entity):
     policy_sets: List[str]
     policies: List[str]
 
-    def evaluate(self,
-                 context: Dict,
-                 evaluation_result: Optional[EvaluationResult] = None
-                 ) -> EvaluationResult:
+    def evaluate(
+        self,
+        context: Dict,
+        evaluation_result: Optional[EvaluationResult] = None
+    ) -> EvaluationResult:
         """ Evaluate Policy Set"""
         evaluation_result = evaluation_result if evaluation_result is not None else EvaluationResult(
         )
@@ -144,10 +146,11 @@ class Policy(AC_Entity):
     conflict_resolution: str
     rules: List[str]
 
-    def evaluate(self,
-                 context: Dict,
-                 evaluation_result: Optional[EvaluationResult] = None
-                 ) -> EvaluationResult:
+    def evaluate(
+        self,
+        context: Dict,
+        evaluation_result: Optional[EvaluationResult] = None
+    ) -> EvaluationResult:
         evaluation_result = evaluation_result if evaluation_result is not None else EvaluationResult(
         )
         try:
@@ -209,10 +212,11 @@ class Rule(AC_Entity):
     def __post_init__(self, effect: str) -> None:
         self.effect = common.Effects[effect]
 
-    def evaluate(self,
-                 context: Dict,
-                 evaluation_result: Optional[EvaluationResult] = None
-                 ) -> EvaluationResult:
+    def evaluate(
+        self,
+        context: Dict,
+        evaluation_result: Optional[EvaluationResult] = None
+    ) -> EvaluationResult:
         evaluation_result = evaluation_result if evaluation_result is not None else EvaluationResult(
         )
         try:
@@ -283,10 +287,10 @@ class AC_Container:
             self.load_file(f)
 
     def evaluate_by_entity_id(
-            self,
-            entity_id: str,
-            context: Dict[str, MutableMapping],
-            evaluation_result: Optional[EvaluationResult] = None
+        self,
+        entity_id: str,
+        context: Dict[str, MutableMapping],
+        evaluation_result: Optional[EvaluationResult] = None
     ) -> EvaluationResult:
         if evaluation_result is None:
             evaluation_result = EvaluationResult()
@@ -341,8 +345,8 @@ class AC_Container:
             obj: AC_Entity = switcher[definition['Type']](entity_id, **kwargs)
             AC_Entity.container = self
 
-            obj_container: Dict[str, AC_Entity] = switcher_dict[
-                definition['Type']]
+            obj_container: Dict[str,
+                                AC_Entity] = switcher_dict[definition['Type']]
             obj_container[entity_id] = obj
         except KeyError:
             LOGGER.warning("Cannot find ac entity type or cannot initialize")
