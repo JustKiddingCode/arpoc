@@ -145,13 +145,14 @@ class OidcHandler:
         """ Try to create an openid connect client from the secrets that are
             saved in the secrets file"""
         client_secrets = self._secrets[name]
-        self.__oidc_provider[name] = oic.oic.Client(
-            client_authn_method=CLIENT_AUTHN_METHOD)
-        self.__oidc_provider[name].provider_config(provider.configuration_url)
+        client = oic.oic.Client(client_authn_method=CLIENT_AUTHN_METHOD)
+        client.provider_config(provider.configuration_url)
         client_reg = RegistrationResponse(**client_secrets)
-        self.__oidc_provider[name].store_registration_info(client_reg)
-        self.__oidc_provider[name].redirect_uris = client_secrets[
+        client.store_registration_info(client_reg)
+        client.redirect_uris = client_secrets[
             'redirect_uris']
+        self.__oidc_provider[name] = client
+        self._secrets[name] = client_reg.to_dict()
 
     def get_userinfo_access_token(self, access_token: str) -> Tuple[int, Dict]:
         """ Get the user info if the user supplied an access token"""
