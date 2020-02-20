@@ -6,6 +6,7 @@ import time
 from dataclasses import dataclass, field
 from typing import Any, List
 
+import oidcproxy.utils
 
 @dataclass(order=True)
 class CacheItem:
@@ -26,7 +27,7 @@ class Cache(collections.UserDict):
     def expire(self) -> None:
         """ Deletes invalid entries from the cache"""
         while len(
-                self.__valid) > 0 and self.__valid[0].timestamp < time.time():
+                self.__valid) > 0 and self.__valid[0].timestamp < oidcproxy.utils.now():
             elem = heapq.heappop(self.__valid)
             if elem.item in self.data:
                 del self.data[elem.item]

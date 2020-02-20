@@ -6,7 +6,6 @@ import logging.config
 import atexit
 import warnings
 import copy
-import datetime
 
 import argparse
 
@@ -60,6 +59,7 @@ import oidcproxy.exceptions
 import oidcproxy.config as config
 import oidcproxy.pap
 import oidcproxy.cache
+import oidcproxy.utils
 from oidcproxy.plugins import EnvironmentDict, ObjectDict, ObligationsDict
 
 #logging.basicConfig(level=logging.DEBUG)
@@ -191,7 +191,7 @@ class OidcHandler:
                 if 'exp' in introspection_res:
                     valid_until = introspection_res['exp']
                 else:
-                    valid_until = int(datetime.datetime.now().timestamp()) + 30
+                    valid_until = oidcproxy.utils.now() + 30
             userinfo = client.do_user_info_request(access_token=access_token)
         else:
             LOGGING.info(
@@ -205,7 +205,7 @@ class OidcHandler:
         """ checks if the session must be refreshed. If there is no session,
             then False is returned"""
         if 'refresh' in cherrypy.session:
-            now = int(datetime.datetime.now().timestamp())
+            now = oidcproxy.utils.now()
             LOGGING.debug("refresh necessary: %s, now: %s",
                           cherrypy.session['refresh'], now)
             return cherrypy.session['refresh'] < now
@@ -302,7 +302,7 @@ class OidcHandler:
         # check if refresh is needed
         if 'hash_at' in cherrypy.session:
             hash_access_token = cherrypy.session['hash_at']
-            now = datetime.datetime.now().timestamp()
+            now = oidcproxy.utils.now()
             # is the access token still valid?
             try:
                 cache_entry = self._cache[hash_access_token]
@@ -339,8 +339,7 @@ class OidcHandler:
         refresh_valid = valid_until
 
         try:
-            refresh_valid = datetime.datetime.now().timestamp(
-            ) + token.refresh_expires_in
+            refresh_valid = oidcproxy.utils.now() + token.refresh_expires_in
         except AttributeError:
             try:
                 if token.refresh_token:

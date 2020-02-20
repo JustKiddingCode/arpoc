@@ -19,6 +19,8 @@ import oidcproxy
 import oidcproxy.cache
 import oidcproxy.config
 
+import oidcproxy.utils
+
 
 def provider_config():
     return """{"issuer":"https://openid-provider.example.com/auth/realms/master","authorization_endpoint":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/auth","token_endpoint":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/token","token_introspection_endpoint":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/token/introspect","userinfo_endpoint":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/userinfo","end_session_endpoint":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/logout","jwks_uri":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/certs","check_session_iframe":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/login-status-iframe.html","grant_types_supported":["authorization_code","implicit","refresh_token","password","client_credentials"],"response_types_supported":["code","none","id_token","token","id_token token","code id_token","code token","code id_token token"],"subject_types_supported":["public","pairwise"],"id_token_signing_alg_values_supported":["PS384","ES384","RS384","HS256","HS512","ES256","RS256","HS384","ES512","PS256","PS512","RS512"],"id_token_encryption_alg_values_supported":["RSA-OAEP","RSA1_5"],"id_token_encryption_enc_values_supported":["A128GCM","A128CBC-HS256"],"userinfo_signing_alg_values_supported":["PS384","ES384","RS384","HS256","HS512","ES256","RS256","HS384","ES512","PS256","PS512","RS512","none"],"request_object_signing_alg_values_supported":["PS384","ES384","RS384","ES256","RS256","ES512","PS256","PS512","RS512","none"],"response_modes_supported":["query","fragment","form_post"],"registration_endpoint":"https://openid-provider.example.com/auth/realms/master/clients-registrations/openid-connect","token_endpoint_auth_methods_supported":["private_key_jwt","client_secret_basic","client_secret_post","client_secret_jwt"],"token_endpoint_auth_signing_alg_values_supported":["RS256"],"claims_supported":["aud","sub","iss","auth_time","name","given_name","family_name","preferred_username","email"],"claim_types_supported":["normal"],"claims_parameter_supported":false,"scopes_supported":["openid","address","email","microprofile-jwt","offline_access","phone","profile","roles","test","web-origins"],"request_parameter_supported":true,"request_uri_parameter_supported":true,"code_challenge_methods_supported":["plain","S256"],"tls_client_certificate_bound_access_tokens":true,"introspection_endpoint":"https://openid-provider.example.com/auth/realms/master/protocol/openid-connect/token/introspect"}"""
@@ -349,7 +351,7 @@ def test_get_userinfo_access_token_no_exp(setup_oidchandler_provider,
                                           mock_userinfo, userinfo):
     _, oidc_handler = setup_oidchandler_provider
     access_token = setup_jwt
-    now = int(datetime.datetime.now().timestamp())
+    now = oidcproxy.utils.now()
     valid_should = now + 30
 
     valid, resp_userinfo = oidc_handler.get_userinfo_access_token(access_token)
@@ -468,7 +470,7 @@ def test_refresh_access_token(caplog, setup_oidchandler_provider,
     caplog.set_level(logging.DEBUG)
     _, oidc_handler = setup_oidchandler_provider
     userinfo = {"sub": "abcdef", "email": "evil@test.example.com"}
-    now = int(datetime.datetime.now().timestamp())
+    now = oidcproxy.utils.now()
     mocker = mock_token_response(now, now + 500)
     mocker.register_uri(
         'POST',
@@ -482,7 +484,7 @@ def test_refresh_access_token(caplog, setup_oidchandler_provider,
         oidc_handler.redirect(state=state, code=code)
 
     print(oidc_handler._cache.data)
-    dnow = int(datetime.datetime.now().timestamp())
+    dnow = oidcproxy.utils.now()
     future = dnow + 500
     logging.debug('time warp to: %s', future)
 
@@ -541,7 +543,7 @@ def test_do_userinfo_request_with_state():
 def test_get_access_token_from_code(setup_oidchandler_provider,
                                     mock_token_response, id_token):
     _, oidc_handler = setup_oidchandler_provider
-    now = int(datetime.datetime.now().timestamp())
+    now = oidcproxy.utils.now()
     id_token_dict = id_token(now, now + 500)
     mocker = mock_token_response(now, now + 500)
     state = 'abcde'
@@ -573,7 +575,7 @@ def test_check_scopes():
 def test_redirect(setup_oidchandler_provider, mock_token_response):
     _, oidc_handler = setup_oidchandler_provider
     userinfo = {"sub": "abcdef", "email": "evil@test.example.com"}
-    now = int(datetime.datetime.now().timestamp())
+    now = oidcproxy.utils.now()
     mocker = mock_token_response(now, now + 500)
     mocker.register_uri(
         'POST',
