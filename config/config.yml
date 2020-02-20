@@ -3,7 +3,7 @@ openid_providers:
     default:
         human_readable_name: Keycloak Test Instance 1
         configuration_url: https://openid-provider.example.com/auth/realms/master/
-        configuration_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI1ZGYxY2VkMi1jMWY2LTQ5ZmQtYWUxYy00ZDU0MmQ0MWZmNzgifQ.eyJqdGkiOiJiYTA3NjVlZi1jZjQ0LTQ3ZWQtYmRkMC00YzYzMGZiZjljNmEiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTc2NzQ4MDY0LCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJJbml0aWFsQWNjZXNzVG9rZW4ifQ.ZI4DoZF7KCBmLsqKk49C3AqULkUrd2Chf2DEihuLTfE
+        configuration_token: eyJhbGciOiJIUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI1ZGYxY2VkMi1jMWY2LTQ5ZmQtYWUxYy00ZDU0MmQ0MWZmNzgifQ.eyJqdGkiOiIyZDM4Y2UxZC1kNWI5LTQxOWUtYjk0Zi1lNTU0NjM4MTAxMWMiLCJleHAiOjAsIm5iZiI6MCwiaWF0IjoxNTgyMjA5MDcyLCJpc3MiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJhdWQiOiJodHRwczovL29wZW5pZC1wcm92aWRlci5leGFtcGxlLmNvbS9hdXRoL3JlYWxtcy9tYXN0ZXIiLCJ0eXAiOiJJbml0aWFsQWNjZXNzVG9rZW4ifQ.MaCbmnpR7WDL86Z0wvTmDxqRFYvnGGHSymtkrl72tEg
         special_claim2scope:
             age:
                 - age

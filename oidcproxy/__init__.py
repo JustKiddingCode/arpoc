@@ -575,15 +575,16 @@ class ServiceProxy:
         cherrypy.response.status = resp.status_code
         return resp
 
-    def _build_url(self, url: str, **kwargs: Any) -> str:
+    def _build_url(self, url: str, kwargs: Any) -> str:
         url = "{}/{}".format(self.cfg['origin_URL'], url)
         if kwargs:
             url = "{}?{}".format(url, urllib.parse.urlencode(kwargs))
         return url
 
-    def _build_proxy_url(self, url: str = '', **kwargs: Any) -> str:
+    def _build_proxy_url(self, path: str = '', kwargs: Any = None) -> str:
+        kwargs = {} if kwargs is None else kwargs
         this_url = "{}{}/{}".format(self._oidc_handler.cfg.proxy['baseuri'],
-                                    self.cfg['proxy_URL'][1:], url)
+                                    self.cfg['proxy_URL'][1:], path)
         if kwargs:
             this_url = "{}?{}".format(this_url, urllib.parse.urlencode(kwargs))
         return this_url
@@ -594,8 +595,9 @@ class ServiceProxy:
         return "<h1>Forbidden</h1><br>%s" % message
 
     @staticmethod
-    def build_access_dict() -> Dict:
+    def build_access_dict(query_dict: Optional[Dict] = None) -> Dict:
         """Creates the access dict for the evaluation context """
+        query_dict = query_dict if query_dict is not None else {}
         method = cherrypy.request.method
         headers = copy.copy(cherrypy.request.headers)
         headers.pop('host', None)
@@ -607,10 +609,10 @@ class ServiceProxy:
         if cherrypy.request.method in cherrypy.request.methods_with_bodies:
             request_body = cherrypy.request.body.read()
 
-        return {"method": method, "body": request_body, "headers": headers}
+        return {"method": method, "body": request_body, "headers": headers, "query_dict" : query_dict}
 
     @cherrypy.expose
-    def index(self, *args: Any, url: str = '', **kwargs: Any) -> str:
+    def index(self, *args: Any, **kwargs: Any) -> str:
         """
             Connects to the origin_URL of the proxied service.
             Important: If a request parameter "url" is in the REQUEST, it will
@@ -618,15 +620,18 @@ class ServiceProxy:
             /serviceA/urlinformation?url=test will translate to:
             <ServiceA>/test
         """
-        LOGGING.debug("Incoming Request %s", url)
-        LOGGING.debug("Kwargs are %s", kwargs)
+        del kwargs['_']
         _, userinfo = self._oidc_handler.get_userinfo()
+        #called_url = cherrypy.url(qs=cherrypy.request.query_string)
+        called_url_wo_qs = cherrypy.url()
 
-        target_url = self._build_url(url, **kwargs)
+        path = called_url_wo_qs[len(self._build_proxy_url()):]
+        #LOGGING.debug("Called url was %s ", called_url)
+        target_url = self._build_url(path, kwargs)
 
         object_dict = ObjectDict(objsetter=self.cfg['objectsetters'],
                                  initialdata={
-                                     "path": url,
+                                     "path": path,
                                      "target_url": target_url,
                                      "service": self.service_name,
                                      **kwargs
@@ -757,7 +762,7 @@ class App:
                                controller=service_proxy_obj,
                                action='index')
             dispatcher.connect(name,
-                               service_cfg['proxy_URL'] + "/{url:.*?}",
+                               service_cfg['proxy_URL'] + "{_:/.*?}",
                                controller=service_proxy_obj,
                                action='index')
         pap = oidcproxy.pap.PolicyAdministrationPoint()

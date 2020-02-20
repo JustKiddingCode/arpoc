@@ -15,9 +15,9 @@ service_a = oidcproxy.ServiceProxy("default", oidc_handler,
 
 
 def test_build_url():
-    assert service_a._build_url("") == "foo/"
+    assert service_a._build_url("", {}) == "foo/"
     kwargs = {'foo': 'bar', 'bar': 'foo'}
-    url = service_a._build_url("", **kwargs)
+    url = service_a._build_url("", kwargs)
     assert url == "foo/?foo=bar&bar=foo" or url == "foo/?bar=foo&foo=bar"
 
 
@@ -25,7 +25,7 @@ def test_build_proxy_url():
     assert service_a._build_proxy_url(
         "") == "https://testhost.example.com/bar/"
     kwargs = {'foo': 'bar', 'bar': 'foo'}
-    url = service_a._build_proxy_url("", **kwargs)
+    url = service_a._build_proxy_url("", kwargs)
     assert url in [
         "https://testhost.example.com/bar/?foo=bar&bar=foo",
         "https://testhost.example.com/bar/?bar=foo&foo=bar"
