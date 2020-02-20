@@ -3,7 +3,6 @@
 # Python imports
 import logging
 import logging.config
-import atexit
 import warnings
 import copy
 
@@ -142,10 +141,10 @@ class OidcHandler:
         self._secrets[name] = registration_response.to_dict()
 
     def create_client_from_secrets(self, name: str,
-                                   provider: config.ProviderConfig,
-                                   client_secrets: Dict) -> None:
+                                   provider: config.ProviderConfig) -> None:
         """ Try to create an openid connect client from the secrets that are
             saved in the secrets file"""
+        client_secrets = self._secrets[name]
         self.__oidc_provider[name] = oic.oic.Client(
             client_authn_method=CLIENT_AUTHN_METHOD)
         self.__oidc_provider[name].provider_config(provider.configuration_url)
@@ -153,7 +152,6 @@ class OidcHandler:
         self.__oidc_provider[name].store_registration_info(client_reg)
         self.__oidc_provider[name].redirect_uris = client_secrets[
             'redirect_uris']
-        self._secrets[name] = client_secrets
 
     def get_userinfo_access_token(self, access_token: str) -> Tuple[int, Dict]:
         """ Get the user info if the user supplied an access token"""
@@ -837,15 +835,14 @@ class App:
         #        atexit.register(app.save_secrets) TODO
         # Read secrets
         secrets = self.read_secrets(self.config.proxy['secrets'])
-
+        self.oidc_handler._secrets = secrets
         for name, provider in self.config.openid_providers.items():
             # check if the client is/was already registered
-            try:
+            if name in secrets.keys():
                 self.retry(self.oidc_handler.create_client_from_secrets,
                            (requests.exceptions.RequestException,
-                            oic.exception.CommunicationError), name, provider,
-                           secrets[name])
-            except KeyError:
+                            oic.exception.CommunicationError), name, provider)
+            else:
                 self.retry(self.oidc_handler.register_first_time,
                            (requests.exceptions.RequestException,
                             oic.exception.CommunicationError), name, provider)
@@ -926,6 +923,7 @@ class App:
         self.oidc_handler = OidcHandler(self.config)
         cherrypy.engine.subscribe('start', self.setup_oidc_provider, 80)
         cherrypy.engine.subscribe('stop', self.cancel_scheduler, 80)
+        cherrypy.engine.subscribe('stop', self.save_secrets, 80)
         #### Setup Cherrypy
         global_conf = {
             'log.screen': False,
