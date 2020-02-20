@@ -24,6 +24,21 @@ def test_any_of_any_none():
     assert not cr.check_break()
     assert cr.get_effect() == None
 
+def test_str():
+    cr = AnyOfAny()
+    cr.update("this_rule01", Effects.DENY)
+    str_cr = str(cr)
+    assert 'Results:DENY' in str_cr
+    assert 'this_rule01' in str_cr
+    assert 'Effects.DENY: False' in str_cr
+    assert 'Break:False' in str_cr
+    cr.update("this_rule02", Effects.GRANT)
+    str_cr = str(cr)
+    assert 'Results:GRANT' in str_cr
+    assert 'this_rule01' in str_cr
+    assert 'Effects.DENY: False' in str_cr
+    assert 'Break:True' in str_cr
+
 
 def test_any_of_any_2_rules():
     cr = AnyOfAny()
