@@ -3,6 +3,7 @@ from typing import Any
 
 from . import _lib
 
+import oidcproxy.utils
 
 class EnvAttrTime(_lib.EnvironmentAttribute):
     """ Returns the current time in HH:MM:SS format """
@@ -11,8 +12,8 @@ class EnvAttrTime(_lib.EnvironmentAttribute):
 
     @staticmethod
     def run() -> Any:
-        now = datetime.datetime.now()
-        return "{}:{}:{}".format(now.hour, now.minute, now.second)
+        now = oidcproxy.utils.now_object()
+        return "{:02d}:{:02d}:{:02d}".format(now.hour, now.minute, now.second)
 
 
 class EnvAttrDateTime(_lib.EnvironmentAttribute):
@@ -22,8 +23,8 @@ class EnvAttrDateTime(_lib.EnvironmentAttribute):
 
     @staticmethod
     def run() -> Any:
-        now = datetime.datetime.now()
-        return "{}-{}-{} {}:{}:{}".format(now.year, now.month, now.day,
+        now = oidcproxy.utils.now_object()
+        return "{:04d}-{:02d}-{:02d} {:02d}:{:02d}:{:02d}".format(now.year, now.month, now.day,
                                           now.hour, now.minute, now.second)
 
 
@@ -34,7 +35,7 @@ class EnvAttrTimeHour(_lib.EnvironmentAttribute):
 
     @staticmethod
     def run() -> Any:
-        now = datetime.datetime.now()
+        now = oidcproxy.utils.now_object()
         return now.hour
 
 
@@ -45,7 +46,7 @@ class EnvAttrTimeMinute(_lib.EnvironmentAttribute):
 
     @staticmethod
     def run() -> Any:
-        now = datetime.datetime.now()
+        now = oidcproxy.utils.now_object()
         return now.minute
 
 
@@ -56,5 +57,5 @@ class EnvAttrTimeSecond(_lib.EnvironmentAttribute):
 
     @staticmethod
     def run() -> Any:
-        now = datetime.datetime.now()
+        now = oidcproxy.utils.now_object()
         return now.second
