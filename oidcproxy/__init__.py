@@ -833,7 +833,6 @@ class App:
         """Setup the connection to all oidc providers in the config """
         assert isinstance(self.config, config.OIDCProxyConfig)
 
-        #        atexit.register(app.save_secrets) TODO
         # Read secrets
         secrets = self.read_secrets(self.config.proxy['secrets'])
         self.oidc_handler._secrets = secrets
@@ -880,19 +879,28 @@ class App:
             oidcproxy.ac.print_sample_ac()
             return
 
+        #### Create secrets dir and change ownership (perm)
+        self.create_secrets_dir()
+
+        self.oidc_handler = OidcHandler(self.config)
+
         if args.add_provider and args.client_id and args.client_secret:
             # read secrets
             secrets = self.read_secrets(self.config.proxy['secrets'])
 
+            provider_cfg = self.config.openid_providers[args.add_provider]
+            redirect_uris = provider_cfg.redirect_uris or self.config.proxy['redirect_uris']
+
             # add secrets
             secret_dict = {
                 "client_id": args.client_id,
-                "client_secret": args.client_secret
+                "client_secret": args.client_secret,
+                "redirect_uris": args.redirect_uris
             }
             secrets[args.add_provider] = secret_dict
-            # save secrets
-            with open(self.config.proxy['secrets'], 'w') as ymlfile:
-                yaml.safe_dump(secrets, ymlfile)
+            self.oidc_handler._secrets = secrets
+            self.oidc_handler.create_client_from_secrets(args.add_provider, provider_cfg)
+            self.save_secrets()
             return
 
 
@@ -927,11 +935,7 @@ class App:
             except FileNotFoundError:
                 PIDFile(cherrypy.engine, self.config.misc.pid_file).subscribe()
 
-        #### Create secrets dir and change ownership (perm)
-        self.create_secrets_dir()
-
         #### Setup OIDC Provider
-        self.oidc_handler = OidcHandler(self.config)
         cherrypy.engine.subscribe('start', self.setup_oidc_provider, 80)
         cherrypy.engine.subscribe('stop', self.cancel_scheduler, 80)
         cherrypy.engine.subscribe('stop', self.save_secrets, 80)
