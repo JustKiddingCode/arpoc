@@ -1,12 +1,14 @@
 import re
 from collections.abc import Mapping
 from functools import reduce
+from copy import deepcopy
 
 from oidcproxy.plugins._lib import Obligation, Optional, deep_dict_update
 
 from oidcproxy.ac.common import Effects
 
 from typing import Dict
+
 
 import logging
 """
@@ -93,9 +95,9 @@ class Log(Obligation):
 
     @staticmethod
     def run(effect: Optional[Effects], context: Dict, cfg: Dict) -> bool:
-        merged_cfg = deep_dict_update(logger_cfg, cfg)
+        copy_logger_cfg = deepcopy(logger_cfg)
+        merged_cfg = deep_dict_update(copy_logger_cfg, cfg)
         logger = logging.getLogger("obligation_logger")
-        print(merged_cfg)
         logging.config.dictConfig(merged_cfg)
 
         log_format = "{} subject.email accessed object.service [object.path] -- object.target_url ".format(

@@ -51,3 +51,47 @@ def test_log_run(caplog):
     }
     Log.run(Effects.GRANT, context, new_cfg)
     assert "GRANT test@example.com accessed Service A [/] -- FQDN" in caplog.text
+
+def test_logfailed(caplog):
+    context = {
+        'subject': {
+            'email': 'test@example.com'
+        },
+        'object': {
+            'path': '/',
+            'target_url': 'FQDN',
+            'service': 'Service A'
+        },
+        'environment': {
+            'test': 'bla'
+        },
+        'access': {
+            'test': 'blub'
+        }
+    }
+    LogFailed.run(Effects.GRANT, context, new_cfg)
+    assert "GRANT test@example.com accessed Service A [/] -- FQDN" not in caplog.text
+    LogFailed.run(Effects.DENY, context, new_cfg)
+    assert "DENY test@example.com accessed Service A [/] -- FQDN" in caplog.text
+
+def test_logsuccessful(caplog):
+    context = {
+        'subject': {
+            'email': 'test@example.com'
+        },
+        'object': {
+            'path': '/',
+            'target_url': 'FQDN',
+            'service': 'Service A'
+        },
+        'environment': {
+            'test': 'bla'
+        },
+        'access': {
+            'test': 'blub'
+        }
+    }
+    LogSuccessful.run(Effects.GRANT, context, new_cfg)
+    assert "GRANT test@example.com accessed Service A [/] -- FQDN" in caplog.text
+    LogSuccessful.run(Effects.DENY, context, new_cfg)
+    assert "DENY test@example.com accessed Service A [/] -- FQDN" not in caplog.text
