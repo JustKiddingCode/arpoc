@@ -20,7 +20,6 @@ from dataclasses import dataclass, InitVar, field
 
 import lark.exceptions
 
-from .conflict_resolution import *
 from oidcproxy.exceptions import *
 
 #import oidcproxy
@@ -28,6 +27,7 @@ from oidcproxy.exceptions import *
 import oidcproxy.ac.common as common
 import oidcproxy.ac.parser as parser
 
+from .conflict_resolution import *
 #logging.basicConfig(level=logging.DEBUG)
 
 LOGGER = logging.getLogger(__name__)
@@ -64,61 +64,53 @@ class AC_Entity(ABC):
             cr.update(entity_id, evaluation_result.results[entity_id])
 
     def evaluate(
-        self,
-        context: Dict,
-        evaluation_result: Optional[EvaluationResult] = None
-    ) -> EvaluationResult:
-        pass
-
-    def _check_match(self, context: Dict[str, Dict]) -> bool:
-        pass
-
-
-@dataclass
-class Policy_Set(AC_Entity):
-    conflict_resolution: str
-    policy_sets: List[str]
-    policies: List[str]
-
-    def evaluate(
-        self,
-        context: Dict,
-        evaluation_result: Optional[EvaluationResult] = None
+            self,
+            context: Dict,
+            evaluation_result: Optional[EvaluationResult] = None
     ) -> EvaluationResult:
         """ Evaluate Policy Set"""
         evaluation_result = evaluation_result if evaluation_result is not None else EvaluationResult(
         )
         try:
-            cr = cr_switcher[self.conflict_resolution]()
+            cr_str = getattr(self, "conflict_resolution")
+            cr_obj = cr_switcher[cr_str]()
         except KeyError:
             raise NotImplementedError(
-                "Conflict Resolution %s is not implemented" %
-                self.conflict_resolution)
+                "Conflict Resolution %s is not implemented" % cr_str)
+        except AttributeError:
+            # This happens if we are evaluating a rule here
+            pass
+
         try:
             if self._check_match(context):
-                try:
-                    assert self.container is not None
-                    for policy_set_id in self.policy_sets:
+                assert self.container is not None
+                if hasattr(self, "policy_sets"):
+                    for policy_set_id in getattr(self, "policy_sets"):
                         self._evaluate(policy_set_id,
                                        self.container.policy_sets,
-                                       evaluation_result, cr, context)
-                        if cr.check_break():
+                                       evaluation_result, cr_obj, context)
+                        if cr_obj.check_break():
                             break
-
-                    for policy_id in self.policies:
+                if hasattr(self, "policies"):
+                    for policy_id in getattr(self, "policies"):
                         self._evaluate(policy_id, self.container.policies,
-                                       evaluation_result, cr, context)
-                        if cr.check_break():
+                                       evaluation_result, cr_obj, context)
+                        if cr_obj.check_break():
                             break
-                except ACEntityMissing as e:
-                    LOGGER.warning(
-                        "%s requested entity %s, but was not found in container",
-                        self.entity_id, e.args[0])
-                    LOGGER.warning(traceback.print_exc())
-                    evaluation_result.results[self.entity_id] = None
-                    return evaluation_result
-
+                if hasattr(self, "rules"):
+                    for rule_id in getattr(self, "rules"):
+                        self._evaluate(rule_id, self.container.rules,
+                                       evaluation_result, cr_obj, context)
+                        if cr_obj.check_break():
+                            break
                 evaluation_result.obligations.extend(self.obligations)
+        except ACEntityMissing as excep:
+            LOGGER.warning(
+                "%s requested entity %s, but was not found in container",
+                self.entity_id, excep.args[0])
+            LOGGER.warning(traceback.format_exc())
+            evaluation_result.results[self.entity_id] = None
+            return evaluation_result
         except lark.exceptions.VisitError as e:
             if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
                 evaluation_result.results[self.entity_id] = None
@@ -134,7 +126,7 @@ class Policy_Set(AC_Entity):
             raise
 
         # Update Evaluation Result
-        evaluation_result.results[self.entity_id] = cr.get_effect()
+        evaluation_result.results[self.entity_id] = cr_obj.get_effect()
         return evaluation_result
 
     def _check_match(self, context: Dict) -> bool:
@@ -142,66 +134,18 @@ class Policy_Set(AC_Entity):
 
 
 @dataclass
+class Policy_Set(AC_Entity):
+    conflict_resolution: str
+    policy_sets: List[str]
+    policies: List[str]
+
+
+
+@dataclass
 class Policy(AC_Entity):
     conflict_resolution: str
     rules: List[str]
 
-    def evaluate(
-        self,
-        context: Dict,
-        evaluation_result: Optional[EvaluationResult] = None
-    ) -> EvaluationResult:
-        evaluation_result = evaluation_result if evaluation_result is not None else EvaluationResult(
-        )
-        try:
-            cr = cr_switcher[self.conflict_resolution]()
-        except KeyError:
-            raise NotImplementedError(
-                "Conflict Resolution %s is not implemented" %
-                self.conflict_resolution)
-        LOGGER.debug("policy %s before evaluation: %s", self.entity_id,
-                     cr.get_effect())
-        try:
-            evaluate_to_if_missing = None
-            if self._check_match(context):
-                assert self.container is not None
-                try:
-                    for rule_id in self.rules:
-                        self._evaluate(rule_id, self.container.rules,
-                                       evaluation_result, cr, context)
-                        if cr.check_break():
-                            break
-                except ACEntityMissing as e:
-                    LOGGER.warning(
-                        "%s requested entity %s, but was not found in container",
-                        self.entity_id, e.args[0])
-                    LOGGER.warning(traceback.print_exc())
-                    evaluation_result.results[self.entity_id] = None
-
-                evaluation_result.obligations.extend(self.obligations)
-        except lark.exceptions.VisitError as e:
-            if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
-                evaluation_result.results[
-                    self.entity_id] = evaluate_to_if_missing
-                evaluation_result.missing_attr.append(e.orig_exc.attr)
-                return evaluation_result
-            if e.orig_exc.__class__ == parser.ObjectAttributeMissing:
-                evaluation_result.results[
-                    self.entity_id] = evaluate_to_if_missing
-                return evaluation_result
-            if e.orig_exc.__class__ == parser.EnvironmentAttributeMissing:
-                evaluation_result.results[
-                    self.entity_id] = evaluate_to_if_missing
-                return evaluation_result
-            raise
-
-        LOGGER.debug("policy %s evaluated to %s", self.entity_id,
-                     cr.get_effect())
-        evaluation_result.results[self.entity_id] = cr.get_effect()
-        return evaluation_result
-
-    def _check_match(self, context: Dict[str, Dict]) -> bool:
-        return parser.check_target(self.target, context)
 
 
 @dataclass
@@ -250,8 +194,6 @@ class Rule(AC_Entity):
     def _check_condition(self, context: Dict[str, Dict]) -> bool:
         return parser.check_condition(self.condition, context)
 
-    def _check_match(self, context: Dict[str, Dict]) -> bool:
-        return parser.check_target(self.target, context)
 
 
 class AC_Container:
@@ -355,6 +297,40 @@ class AC_Container:
             LOGGER.warning("Probably error in AC Entity Definition")
             LOGGER.warning('Error at: %s with parameters %s',
                            definition['Type'], str(kwargs))
+
+    def check(self) -> bool:
+        consistent = True
+        for key, entity in itertools.chain(self.policy_sets.items(), self.policies.items(), self.rules.items()):
+            if hasattr(entity, "conflict_resolution"):
+                cr_str = getattr(entity, "conflict_resolution")
+                if cr_str not in cr_switcher:
+                    print("Conflict Resolution %s not found requested by %s" % (cr_str, key))
+            if hasattr(entity, "policy_sets"):
+                for policy_set in getattr(entity, "policy_sets"):
+                    if policy_set not in self.policy_sets:
+                        consistent = False
+                        print("Could not find policy set %s requested by %s" % (policy_set, key))
+            if hasattr(entity, "policies"):
+                for policy in getattr(entity, "policies"):
+                    if policy not in self.policies:
+                        consistent = False
+                        print("Could not find policy %s requested by %s" % (policy, key))
+            if hasattr(entity, "rules"):
+                for rule in getattr(entity, "rules"):
+                    if rule not in self.rules:
+                        consistent = False
+                        print("Could not find rule %s requested by %s" % (policy, key))
+            if not parser.parseable(parser.lark_target, entity.target):
+                consistent = False
+                print("Target rule is not parseable: %s in %s" % (entity.target, key))
+            if hasattr(entity, "condition"):
+                if not parser.parseable(parser.lark_condition, getattr(entity, "condition")):
+                    consistent = False
+                    print("Target rule is not parseable: %s in %s" % (getattr(entity, "condition"), key))
+
+        return consistent
+
+
 
 
 def print_sample_ac() -> None:

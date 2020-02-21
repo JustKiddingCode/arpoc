@@ -300,6 +300,14 @@ class EvalTree(Transformer):
             return args[0]
         raise ValueError
 
+def parseable(lark_handle: Lark, rule: str) -> bool:
+    try:
+        lark_handle.parse(rule)
+        return True
+    except (lark.exceptions.UnexpectedCharacters,
+            lark.exceptions.UnexpectedEOF):
+        return False
+
 
 def parse_and_transform(lark_handle: Lark, rule: str, data: Dict) -> bool:
     try:

@@ -114,6 +114,71 @@ def test_loggedInAdmin(benchmark, Container):
                                   context)
     assert evaluation_result.results[test] == Effects.GRANT
 
+def test_missing_target_attributes(Container):
+
+    context = { "subject": { }, "object": { }, "environment": {} }
+
+    test = "policy_target_missing_subject_attr"
+    evaluation_result = Container.policies[test].evaluate(context)
+    assert evaluation_result.results[test] is None
+    assert "missing" in evaluation_result.missing_attr
+
+    test = "policy_target_missing_object_attr"
+    evaluation_result = Container.policies[test].evaluate(context)
+    assert evaluation_result.results[test] is None
+
+    test = "policy_target_missing_environment_attr"
+    evaluation_result = Container.policies[test].evaluate(context)
+    assert evaluation_result.results[test] is None
+
+    test = "policyset_contain_missing_target_policy"
+    evaluation_result = Container.policy_sets[test].evaluate(context)
+    assert evaluation_result.results[test] is Effects.GRANT
+    assert "missing" in evaluation_result.missing_attr
+
+def test_missing_attributes_rules(Container):
+
+    context = { "subject": { }, "object": { }, "environment": {} }
+
+    test = "rule_target_missing_subject_attr"
+    evaluation_result = Container.rules[test].evaluate(context)
+    assert evaluation_result.results[test] is None
+    assert "missing" in evaluation_result.missing_attr
+
+    test = "rule_target_missing_object_attr"
+    evaluation_result = Container.rules[test].evaluate(context)
+    assert evaluation_result.results[test] is None
+
+    test = "rule_target_missing_environment_attr"
+    evaluation_result = Container.rules[test].evaluate(context)
+    assert evaluation_result.results[test] is None
+
+    test = "rule_condition_missing_subject_attr"
+    evaluation_result = Container.rules[test].evaluate(context)
+    assert evaluation_result.results[test] is Effects.DENY
+    assert "missing" in evaluation_result.missing_attr
+
+    test = "rule_condition_missing_object_attr"
+    evaluation_result = Container.rules[test].evaluate(context)
+    assert evaluation_result.results[test] is Effects.DENY
+
+    test = "rule_condition_missing_environment_attr"
+    evaluation_result = Container.rules[test].evaluate(context)
+    assert evaluation_result.results[test] is Effects.DENY
+
+    test = "policy_contain_rule_missing_subject_attr_condition"
+    evaluation_result = Container.policies[test].evaluate(context)
+    assert evaluation_result.results[test] is Effects.DENY
+    assert "missing" in evaluation_result.missing_attr
+
+    test = "policy_contain_rule_missing_subject_attr_target"
+    evaluation_result = Container.policies[test].evaluate(context)
+    assert evaluation_result.results[test] is Effects.GRANT
+    assert "missing" in evaluation_result.missing_attr
+
+
+def test_check(Container):
+    assert not Container.check()
 
 def test_normalUser_wants_admin(benchmark, Container):
     context = {

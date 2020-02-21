@@ -27,36 +27,5 @@
 		"Resolver": "AND",
 		"Obligations" : []
 
-},
-
-"policyset_dummy" : {
-		"Type": "PolicySet",
-		"Description": " ",
-		"Target": "True",
-		"Policies": ["policy_dummy"],
-		"PolicySets": [],
-		"Resolver": "AND",
-		"Obligations" : []
-
-},
-
-"policy_dummy": {
-		"Type": "Policy",
-		"Description": " ",
-		"Target" : "True",
-		"Rules" : [ "rule_dummy" ],
-		"Resolver": "AND",
-		"Obligations" : []
-
-},
-"rule_dummy": {
-		"Type": "Rule",
-		"Target": "True",
-		"Description": "Dummy Rule",
-		"Condition" : "True",
-		"Effect": "GRANT",
-		"Obligations" : []
-
 }
-
 }

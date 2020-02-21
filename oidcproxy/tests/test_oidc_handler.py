@@ -28,7 +28,7 @@ def provider_config():
 
 @pytest.fixture
 def client_secrets():
-    secrets_string = """default:
+    secrets_string = """test:
   client_id: e506b29d-e92c-4db9-974f-0d8e8a1406c5
   client_id_issued_at: 1578579842
   client_secret: 723d86e0-5388-4bb1-a286-c964e2187586
@@ -336,9 +336,8 @@ def test_register_first_time_lib_error(setup_oidc_handler, caplog,
 def test_create_client_from_secrets(setup_oidchandler_provider, client_secrets,
                                     mock_openid_config):
     cfg, provider = setup_oidchandler_provider
-
-    provider.create_client_from_secrets("test", cfg.openid_providers['test'],
-                                        client_secrets['default'])
+    provider._secrets = client_secrets
+    provider.create_client_from_secrets("test", cfg.openid_providers['test'])
 
 
 #############################

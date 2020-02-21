@@ -860,6 +860,7 @@ class App:
         parser.add_argument('--client-id')
         parser.add_argument('--client-secret')
         parser.add_argument('-d', '--daemonize', action='store_true')
+        parser.add_argument('--check-ac', action='store_true')
 
         args = parser.parse_args()
 
@@ -892,6 +893,15 @@ class App:
             # save secrets
             with open(self.config.proxy['secrets'], 'w') as ymlfile:
                 yaml.safe_dump(secrets, ymlfile)
+            return
+
+
+        #### Read AC Rules
+        for acl_dir in self.config.access_control['json_dir']:
+            ServiceProxy.ac.load_dir(acl_dir)
+
+        if args.check_ac:
+            ServiceProxy.ac.check()
             return
 
         if args.daemonize:
@@ -945,9 +955,6 @@ class App:
         }
         DropPrivileges(cherrypy.engine, uid=self.uid, gid=self.gid).subscribe()
 
-        #### Read AC Rules
-        for acl_dir in self.config.access_control['json_dir']:
-            ServiceProxy.ac.load_dir(acl_dir)
 
         #### Start Web Server
         cherrypy.tree.mount(None, '/', app_conf)
