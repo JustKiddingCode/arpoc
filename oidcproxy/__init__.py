@@ -619,7 +619,10 @@ class ServiceProxy:
             /serviceA/urlinformation?url=test will translate to:
             <ServiceA>/test
         """
-        del kwargs['_']
+        try:
+            del kwargs['_']
+        except KeyError:
+            pass
         _, userinfo = self._oidc_handler.get_userinfo()
         #called_url = cherrypy.url(qs=cherrypy.request.query_string)
         called_url_wo_qs = cherrypy.url()
