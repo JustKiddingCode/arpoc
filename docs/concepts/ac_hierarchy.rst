@@ -36,6 +36,20 @@ The process of evaluation of a rule R is as follows:
 #. Check the target specifier. If False, abort
 #. Check condition specifier. If True return Effect, else return the inverse of Effect.
 
+.. uml::
+   :scale: 60%
+
+   caption Sequence diagram for policy set evaluation
+   skinparam DiagramBorderThickness 2
+   !include docs/concepts/seq_ps_evaluation.puml
+
+.. uml::
+   :scale: 60%
+
+   caption Sequence diagram for policy evaluation
+   skinparam DiagramBorderThickness 2
+   !include docs/concepts/seq_p_evaluation.puml
+
 Improvements
 ************
 

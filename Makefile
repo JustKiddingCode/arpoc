@@ -5,9 +5,10 @@ tests:
 	python3.7-coverage html --skip-covered
 
 clean:
-	find -type d -name '__pycache__' -exec rm -rf '{}' +
+	find -type d -name '__pycache__' -exec rm -rf '{}' + || :
 	rm -rf deb_dist _build htmldoc latexdoc oidc_proxy.egg-info _templates _static dist
 	rm oidc-proxy*.tar.gz
+	rm -rf pdfdoc htmldoc
 
 doc:
 	PYTHONPATH=. python3 oidcproxy/config.py > docs/gen/sample_config.yml

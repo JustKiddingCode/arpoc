@@ -1,0 +1,22 @@
+[-> PolicySet: evaluate
+PolicySet -> ConflictResolution: init
+PolicySet -> Parser: check_target
+Parser -> PolicySet
+loop foreach policy set
+   PolicySet -> ConflictResolution: check break
+   ConflictResolution -> PolicySet
+   PolicySet -> PolicySetB: evaluate
+   activate PolicySetB
+   return result
+   PolicySet -> ConflictResolution: result
+   ConflictResolution -> PolicySet
+end
+loop foreach policy
+   PolicySet -> ConflictResolution: check break
+   ConflictResolution -> PolicySet
+   PolicySet -> Policy: evaluate
+   Policy -> PolicySet: result
+end
+PolicySet -> ConflictResolution: get_result
+ConflictResolution -> PolicySet: result
+PolicySet ->[ : result

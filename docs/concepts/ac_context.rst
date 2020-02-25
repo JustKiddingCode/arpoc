@@ -1,6 +1,8 @@
 Attribut Retrieval
 ======================
 
+.. _concepts_attribute_retrival_subject:
+
 Subject
 *******
 
@@ -10,7 +12,9 @@ The subject dictionary is equal to the information from the OpenID Connect
 Userinfo Endpoint.
 The scopes are requested on-demand. If an access control rule tries to access
 a not existing claim, this claim is saved and - if the evaluation was not
-successful (`GRANT`) - the scopes are requested from the userinfo endpoint.
+successful (`GRANT`) - the scopes providing the missing claims
+are requested from the userinfo endpoint.
+For self-defined scopes the user can provide a mapping from claim to scope.
 
 Object
 *******

@@ -176,6 +176,19 @@ Examples
    subject.age > 18
    subject.email in object.allowed
 
+
+Obligations
+************
+
+To run an action every time an ac entity got evaluated, you can use obligations.
+An obligation is run after the whole access control hierarchy is evaluated
+but before the actual access.
+If an obligation fails, the access is denied.
+
+There are some obligations included to log access, but you can write your own
+using the plugin system.
+More information about obligations can be found in :ref:`implementation_plugin`
+
 Grammar Reference
 *****************
 
@@ -184,4 +197,5 @@ statements. The grammar is parsed using lark.
 
 .. literalinclude:: /oidcproxy/resources/grammar.lark
    :language: jsgf
+
 
