@@ -21,8 +21,8 @@ GOV_ID_CARD(oidcprovider, OIDC Provider)
 
 user -> [OIDC]: Request
 OIDC -> user: Response
-OIDC <-- environment: Environment Attributes
-OIDC <-- objinf
+OIDC <-- environment: Environment\nAttributes
+OIDC <-- objinf: Object\nAttributes
 obligations <-- OIDC
 oidcprovider <-- OIDC
 acentities --> OIDC: Rules

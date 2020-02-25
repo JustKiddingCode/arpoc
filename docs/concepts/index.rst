@@ -2,8 +2,10 @@ Concepts
 ===================
 
 .. toctree::
-        caching
         ac_hierarchy
         ac_context
+        caching
+        interface
+        policy_information
 
 

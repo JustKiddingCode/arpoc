@@ -170,7 +170,7 @@ Statements can me connected using "and" and "or".
 Examples
 ***************
 
-.. code-block:: txt
+.. code-block:: text
 
    '/group1' in subject.groups
    subject.age > 18

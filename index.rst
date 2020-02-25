@@ -16,6 +16,7 @@ Welcome to OIDC Proxy's documentation!
    :caption: Contents:
    
    docs/concepts/index.rst
+   docs/implementation/index.rst
    docs/admin/index.rst
    docs/api/modules.rst
 
