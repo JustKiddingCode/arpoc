@@ -23,7 +23,7 @@ You will need:
 
 ### Edit the sample configuration
 
-Fill in the right values for <keyfile>, <certfile>, <domainname>, <redirect>
+Fill in the right values for `<keyfile>`, `<certfile>`, `<domainname>`, `<redirect>`
 urls (path the openid connect providers will redirect the user to, with a leading
 slash) and the contacts field (at least on valid mail adress).
 
