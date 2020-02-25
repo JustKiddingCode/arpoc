@@ -7,9 +7,9 @@ write access rules for services you want to protect.
 
 You will need:
 
-* A domain name <domain>
-* A tls keypair (<fullchain>, <privkey>)
-* A server with python (3.7 or newer) <python3>
+* A domain name `<domain>`
+* A tls keypair (`<fullchain>`, `<privkey>`)
+* A server with python (3.7 or newer) `<python3>`
 
 ### Install
 
