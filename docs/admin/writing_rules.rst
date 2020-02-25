@@ -13,6 +13,7 @@ or authorisation.
 Nonetheless you need to specify a policy set, a policy and a rule for the service.
 
 .. code-block:: json
+        :linenos:
 
         {
         "com.example.policysets.default": {
@@ -21,25 +22,42 @@ Nonetheless you need to specify a policy set, a policy and a rule for the servic
                 "Target": "True",
                 "Policies": ["com.example.policies.default"],
                 "PolicySets": [],
-                "Resolver": "ANY"
+                "Resolver": "ANY",
+                "Obligations": []
         },
         "com.example.policies.default": {
                 "Type": "Policy",
                 "Description": "Default Policy",
                 "Target" : "True",
                 "Rules" : [ "com.example.rules.default"],
-                "Resolver": "ANY"
+                "Resolver": "ANY",
+                "Obligations": []
         },
         "com.example.rules.default" : {
                 "Type": "Rule",
                 "Target": "True",
                 "Description": "Default Rule",
                 "Condition" : "True",
-                "Effect": "GRANT"
+                "Effect": "GRANT",
+                "Obligations": []
         }
         }
 
-Now let's do more complicated stuff.
+The lines 2, 11 and 19 specify the entity id for ac entity. Please make sure,
+that an entity id only occurs once, especially when using multiple files.
+The type parameter is either `PolicySet`, `Policy` or `Rule`.
+The description can be any string. The target can condition parameter must
+be in the syntax described in :ref:`admin_condition_language`.
+The parameters `Policies`, `PolicySets` and `Rules` can contain list of strings
+with the entity ids of *other* entities ids.
+The resolver resolves combines the results of underneath ac entities to a single
+result (either GRANT or DENY).
+With obligations you can specify tasks that are run after the evaluation, but
+before the access.
+The effect of a rule is either "GRANT" or "DENY", indicating that an access
+should be granted or not.
+
+After the syntax should be clear, let's do more complicated stuff.
 Suppose we wan't a public available website, but the subfolder '/admin'
 should be only accessible by an user that has an email that starts with 'admin@'.
 So we add a *rule* with the target specifier `object.url startswith '/admin'`.
@@ -96,8 +114,11 @@ By now, you should understand the idea behind the access control entity hierarch
 and how they get to the result.
 Let's look more on the details of the condition and target language.
 
+.. _admin_condition_language:
+
 Condition and target language
 -----------------------------
+
 
 The language is similar to Python.
 You have four dictionaries (subject, object, environment and access) and can

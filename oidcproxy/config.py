@@ -247,6 +247,7 @@ class OIDCProxyConfig:
         proxy = ProxyConfig("", "", "", [""], "")
         service = ServiceConfig("", "", "", {}, {})
         ac_config = ACConfig()
+        misc = Misc()
 
         # delete the default values of claim2scope
         provider_dict = asdict(provider)
@@ -260,7 +261,8 @@ class OIDCProxyConfig:
             "services": {
                 "example": asdict(service)
             },
-            "access_control": asdict(ac_config)
+            "access_control": asdict(ac_config),
+            "misc": asdict(misc)
         }
         print(yaml.dump(cfg))
 

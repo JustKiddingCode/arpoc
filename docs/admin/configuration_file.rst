@@ -20,9 +20,9 @@ access the registration data from the OpenID Connect Registration Endpoint.
 
 .. literalinclude:: /docs/gen/sample_config.yml
    :linenos:
-   :lineno-start: 4
+   :lineno-start: 10
    :language: yaml
-   :lines: 4-10
+   :lines: 10-17
 
 proxy
 -----
@@ -37,9 +37,9 @@ protocol.
 
 .. literalinclude:: /docs/gen/sample_config.yml
    :linenos:
-   :lineno-start: 11
+   :lineno-start: 12
    :language: yaml
-   :lines: 11-27
+   :lines: 18-35
 
 services
 --------
@@ -52,9 +52,9 @@ The `AC` key must specify a valid policy set that will evaluated on every access
 
 .. literalinclude:: /docs/gen/sample_config.yml
    :linenos:
-   :lineno-start: 28
+   :lineno-start: 36
    :language: yaml
-   :lines: 28-34
+   :lines: 36-43
 
 access_control
 --------------
@@ -67,3 +67,14 @@ control entities.
    :lineno-start: 1
    :language: yaml
    :lines: 1-3
+
+misc
+--------------
+
+Other config option that hadn't fit into the other sections
+
+.. literalinclude:: /docs/gen/sample_config.yml
+   :linenos:
+   :lineno-start: 1
+   :language: yaml
+   :lines: 4-9

@@ -871,7 +871,6 @@ class App:
 
         assert self.config.proxy is not None
 
-        self.setup_loggers()
 
         #### Read Configuration
         if args.print_sample_config:
@@ -881,6 +880,7 @@ class App:
         if args.print_sample_ac:
             oidcproxy.ac.print_sample_ac()
             return
+        self.setup_loggers()
 
         #### Create secrets dir and change ownership (perm)
         self.create_secrets_dir()

@@ -30,7 +30,7 @@ slash) and the contacts field (at least on valid mail adress).
 
 ### Add an openid connect provider
 
-You need the configuration url (should end with .well-known/openid/configuration).
+You need the configuration url (should end with .well-known/openid/configuration, cut this part of, it is added automatically).
 You also need either:
 
 * A configuration token

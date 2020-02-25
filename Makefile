@@ -10,7 +10,7 @@ clean:
 	rm oidc-proxy*.tar.gz
 
 doc:
-	python3 oidcproxy/config.py > docs/gen/sample_config.yml
+	PYTHONPATH=. python3 oidcproxy/config.py > docs/gen/sample_config.yml
 	sphinx-apidoc -o docs/api oidcproxy -f
 
 htmldoc: doc
