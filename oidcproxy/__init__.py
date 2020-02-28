@@ -59,6 +59,7 @@ import oidcproxy.ac as ac
 import oidcproxy.exceptions
 import oidcproxy.config as config
 import oidcproxy.pap
+import oidcproxy.special_pages
 import oidcproxy.cache
 import oidcproxy.utils
 from oidcproxy.plugins import EnvironmentDict, ObjectDict, ObligationsDict
@@ -149,6 +150,9 @@ class App:
             if service_cfg.origin_URL == "pap":
                 pap = oidcproxy.pap.PolicyAdministrationPoint('pap', self.oidc_handler, service_cfg)
                 dispatcher.connect('pap', service_cfg.proxy_URL, controller=pap, action='index')
+            elif service_cfg.origin_URL == "userinfo":
+                userinfo_page = oidcproxy.special_pages.Userinfo('userinfo', self.oidc_handler, service_cfg)
+                dispatcher.connect('userinfo', service_cfg.proxy_URL, controller=userinfo_page, action='index')
             else:
                 service_proxy_obj = ServiceProxy(name, self.oidc_handler,
                                                  service_cfg)
@@ -167,10 +171,6 @@ class App:
                                i,
                                controller=self.oidc_handler,
                                action='redirect')
-        dispatcher.connect('userinfo',
-                           '/userinfo',
-                           controller=self.oidc_handler,
-                           action='userinfo')
         # Test auth required
         dispatcher.connect('auth',
                            "%s" % self.config.proxy.auth,

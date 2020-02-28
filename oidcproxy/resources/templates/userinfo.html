@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- The CSS and the collapsable items are based mainly on: https://www.thecssninja.com/css/css-tree-menu-->
+		<head>
+				<meta charset="utf-8" />
+				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+				<title>OIDC Proxy</title>
+		</head>
+		<body>
+				<h1>Userinfo</h1>
+				<ul> {%- for key, value in userinfo.items() %}
+						<li> {{ key }} : {{ value }} </li>
+				     {%- endfor -%}
+				</ul>
+		</body>
+</html>
