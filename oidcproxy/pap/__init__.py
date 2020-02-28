@@ -1,10 +1,12 @@
-from jinja2 import Environment, FileSystemLoader
 
 from dataclasses import dataclass, field
-from typing import List, Tuple, Union, Optional
+from typing import List, Tuple, Union, Optional, Dict
 
 import os
 
+from jinja2 import Environment, FileSystemLoader
+
+from oidcproxy.base import ServiceProxy
 import oidcproxy.ac as ac
 
 env = Environment(loader=FileSystemLoader(
@@ -49,11 +51,11 @@ def create_PAPNode_Policy_Set(policy_set: ac.Policy_Set) -> PAPNode:
                    policy_sets, policies, None)
 
 
-class PolicyAdministrationPoint:
+class PolicyAdministrationPoint(ServiceProxy):
     #    def __init__(self):
     #        pass
 
-    def index(self) -> str:
+    def _proxy(self, url: str, access: Dict) -> str:
         tmpl = env.get_template('pap.html')
         s = []
         for ps in ac.container.policy_sets:

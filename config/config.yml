@@ -35,6 +35,10 @@ proxy:
     https_only: True
 
 services:
+    pap:
+        origin_URL: pap
+        proxy_URL: /pap
+        AC: 'com.example.policysets.alwaysGrant'
     serviceA:
         origin_URL: http://service-a.example.com
         proxy_URL: /serviceA
