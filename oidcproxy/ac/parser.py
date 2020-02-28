@@ -5,7 +5,7 @@ import re
 import warnings
 from abc import abstractmethod
 from functools import reduce
-from typing import Any, Dict, List, TypeVar, Union
+from typing import Any, Dict, List, TypeVar, Union, Callable
 
 from collections.abc import Mapping
 import lark.exceptions
@@ -31,6 +31,23 @@ class BinaryOperator:
     def eval(cls, op1: Any, op2: Any) -> Any:
         pass
 
+    @classmethod
+    def __str__(cls):
+        return cls.__class__.__name__
+
+    @classmethod
+    def __call__(cls,*args):
+        cls.eval(*args)
+
+class BinaryOperatorAnd(BinaryOperator):
+    @classmethod
+    def eval(cls, op1: Any, op2: Any) -> bool:
+        return op1 and op2
+
+class BinaryOperatorOr(BinaryOperator):
+    @classmethod
+    def eval(cls, op1: Any, op2: Any) -> bool:
+        return op1 or op2
 
 class BinarySameTypeOperator(BinaryOperator):
     @classmethod
@@ -169,11 +186,6 @@ class TransformAttr(Transformer):
         if attr == None:
             raise ObjectAttributeMissing("No object attr %s" % attr_str,
                                          args[0])
-
-
-#            warnings.warn("No object_attr %s" % str(args[0]),
-#                          ObjectAttributeMissingWarning)
-
         return attr
 
     def environment_attr(self, args: List) -> Any:
@@ -233,65 +245,78 @@ class ExistsTransformer(Transformer):
         #return getattr(UOP, str(args[0]))
 
 
-class EvalComplete(Transformer):
+class TopLevelTransformer(Transformer):
     def condition(self, args: List) -> Any:
+        if isinstance(args[0], Tree):
+            return Tree("condition", args)
         if len(args) == 1:
-            return args[0]
+            return bool(args[0])
         raise ValueError
         #return Tree("condition", args)
 
     def target(self, args: List) -> Any:
+        if isinstance(args[0], Tree):
+            return Tree("target", args)
         if len(args) == 1:
-            return args[0]
+            return bool(args[0])
         raise ValueError
-
-
-class EvalTree(Transformer):
-    def cbop(self, args: List) -> str:
-        return str(args[0])
-
-    def lbop(self, args: List) -> str:
-        return str(args[0])
 
     def statement(self, args: List) -> Any:
+        if isinstance(args[0], Tree):
+            return Tree("statement", args)
         if len(args) == 1:
-            return args[0]
+            return bool(args[0])
         raise ValueError
-#        return Tree("statement", args)
+
+class OperatorTransformer(Transformer):
+    def cbop(self, args: List) -> Callable:
+        LOGGER.debug("cbop got called")
+        str_op = str(args[0])
+        op = binary_operators.get(str_op, None)
+        if op is None:
+            raise NotImplementedError()
+        return op
+
+    def lbop(self, args: List) -> Callable:
+        str_op = str(args[0])
+        if str_op == 'and':
+            return BinaryOperatorAnd
+        elif str_op == 'or':
+            return BinaryOperatorOr
+        else:
+            raise NotImplementedError
+
+    def uop(self, args: List) -> Any:
+        return getattr(UOP, str(args[0]))
+
+
+class MiddleLevelTransformer(Transformer):
+
 
     def comparison(self, args: List) -> bool:
         # xor check for none attributes
         if bool(args[0] == None) ^ bool(args[2] == None):
             return False
-        op = binary_operators.get(args[1], None)
-        if op is None:
-            raise NotImplementedError()
 #        assert op is not None  # for mypy
         LOGGER.debug("{} {} {}".format(args[0], args[1], args[2]))
-        return op.eval(args[0], args[2])
+        return args[1].eval(args[0], args[2])
 
     def linked(self, args: List) -> bool:
+        if isinstance(args[0], Tree) or isinstance(args[2], Tree):
+            return Tree("linked", args)
         allowed_types = (bool, dict, list, str, float, int)
         if args[0] is None:
             args[0] = False
-        if args[1] is None:
-            args[1] = False
+        assert issubclass(args[1], BinaryOperator)
         if isinstance(args[0], allowed_types) and isinstance(
                 args[2], allowed_types):
-            if args[1] == "and":
-                return bool(args[0] and args[2])
-            elif args[1] == "or":
-                return bool(args[0] or args[2])
-            else:
-                raise NotImplementedError
+            return args[1].eval(args[0], args[2])
         LOGGER.debug("Types are %s and %s", type(args[0]), type(args[2]))
         raise ValueError
 
 
 #        return Tree("linked", args)
 
-    def uop(self, args: List) -> Any:
-        return getattr(UOP, str(args[0]))
 
     def single(self, args: List) -> Any:
         if len(args) == 2:
@@ -318,7 +343,7 @@ def parse_and_transform(lark_handle: Lark, rule: str, data: Dict) -> bool:
     # Eval exists
     attr_transformer = TransformAttr(data)
     new_ast = ExistsTransformer(attr_transformer).transform(ast)
-    T = attr_transformer * EvalTree() * EvalComplete()
+    T = attr_transformer * OperatorTransformer() * MiddleLevelTransformer() * TopLevelTransformer()
     return T.transform(new_ast)
 
 
@@ -350,12 +375,12 @@ if __name__ == "__main__":
     ast = l.parse("exists subject.email")
     new_ast = ExistsTransformer(attr_transformer).transform(ast)
     print(new_ast)
-    T = attr_transformer * EvalTree() * EvalComplete()
+    T = attr_transformer * OperatorTransformer() * MiddleLevelTransformer() * TopLevelTransformer()
     print(T.transform(new_ast))
     ast = l.parse("exists subject.notexisting")
     new_ast = ExistsTransformer(attr_transformer).transform(ast)
     print(new_ast)
-    T = attr_transformer * EvalTree() * EvalComplete()
+    T = attr_transformer * OperatorTransformer() * MiddleLevelTransformer() * TopLevelTransformer()
     print(T.transform(new_ast))
     print(ast)
     new_ast = ExistsTransformer(attr_transformer).transform(ast)

@@ -177,8 +177,7 @@ def test_lists():
 
 def test_nested_lists():
     context = {"subject": {}, "object": {}, "environment": {}}
-    assert check_condition("['5', 4, True, [True,False]]",
-                           context) == ['5', 4, True, [True, False]]
+    assert check_condition("['5', 4, True, [True,False]]", context)
 
 
 def tests_broken_conditions():
