@@ -174,6 +174,10 @@ class Rule(AC_Entity):
                         not self.effect)
                 evaluation_result.obligations.extend(self.obligations)
                 return evaluation_result
+
+            evaluation_result.results[self.entity_id] = None
+            return evaluation_result
+
         except lark.exceptions.VisitError as e:
             if e.orig_exc.__class__ == parser.SubjectAttributeMissing:
                 evaluation_result.results[

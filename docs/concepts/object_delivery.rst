@@ -8,7 +8,7 @@ Object delivery
    !include docs/overview.plantuml
    
    hide user
-   hide OIDC
+   hide oidcprovider
    hide acentities
    hide objinf
    hide obligations
