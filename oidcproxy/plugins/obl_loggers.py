@@ -95,13 +95,20 @@ class Log(Obligation):
 
     @staticmethod
     def run(effect: Optional[Effects], context: Dict, cfg: Dict) -> bool:
-        copy_logger_cfg = deepcopy(logger_cfg)
-        merged_cfg = deep_dict_update(copy_logger_cfg, cfg)
+        if 'logger_cfg' in cfg:
+            copy_logger_cfg = deepcopy(logger_cfg)
+            merged_cfg = deep_dict_update(copy_logger_cfg, cfg)
+        else:
+            merged_cfg = logger_cfg
         logger = logging.getLogger("obligation_logger")
         logging.config.dictConfig(merged_cfg)
 
-        log_format = "{} subject.email accessed object.service [object.path] -- object.target_url ".format(
-            str(effect))
+        if 'log_format' in cfg:
+            log_format = cfg['log_format']
+        else:
+            log_format = "{} subject.email accessed object.service [object.path] -- object.target_url"
+
+        log_format = log_format.format(str(effect))
         logger.info(Log.replace_attr(log_format, context))
         return True
 

@@ -54,9 +54,10 @@ services:
                 priority: 32
         obligations:
             obl_log:
-                handlers:
-                    obligation_file:
-                        filename: "/var/log/oidcproxy/obl_test.log"
+                logger_cfg:
+                    handlers:
+                        obligation_file:
+                            filename: "/var/log/oidcproxy/obl_test.log"
 
     serviceB:
         origin_URL: http://service-a.example.com
