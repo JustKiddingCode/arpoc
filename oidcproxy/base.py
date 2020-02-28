@@ -40,7 +40,7 @@ from cherrypy.process.plugins import DropPrivileges, Daemonizer, PIDFile
 
 from jinja2 import Environment, FileSystemLoader
 
-from jwkest import jwt
+from jwkest import jwt, BadSyntax
 
 #### Own Imports
 
@@ -149,10 +149,19 @@ class OidcHandler:
         # TODO: allow issuer parameter in header here
         userinfo = {}
         LOGGING.debug(access_token)
-        access_token_obj = jwt.JWT()
-        access_token_obj.unpack(access_token)
-        LOGGING.debug(access_token_obj.payload())
-        issuer = access_token_obj.payload()['iss']
+        try:
+            access_token_obj = jwt.JWT()
+            access_token_obj.unpack(access_token)
+            LOGGING.debug(access_token_obj.payload())
+            issuer = access_token_obj.payload()['iss']
+        except BadSyntax:
+            LOGGING.debug("Decoding Access Token failed")
+            if 'x-oidcproxy-issuer' in cherrypy.request.headers:
+                LOGGING.debug("issuer hint found")
+                issuer = cherrypy.request.headers['x-oidcproxy-issuer']
+            else:
+                raise Exception("400 - Bad Request") # TODO 
+
         # check if issuer is in provider list
         client = None
         for _, obj in self.__oidc_provider.items():

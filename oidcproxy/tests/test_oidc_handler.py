@@ -358,6 +358,19 @@ def test_get_userinfo_access_token_no_exp(setup_oidchandler_provider,
     assert valid > valid_should - 10
     assert dict(resp_userinfo) == userinfo
 
+def test_get_userinfo_access_token_no_jwt(setup_oidchandler_provider, mock_userinfo, mock_introspect_exp, userinfo):
+    _, oidc_handler = setup_oidchandler_provider
+    with pytest.raises(Exception):
+        oidc_handler.get_userinfo_access_token("test")
+
+
+@patch('oidcproxy.cherrypy.request.headers', {'x-oidcproxy-issuer':"https://openid-provider.example.com/auth/realms/master" }, create=True)
+def test_get_userinfo_access_token_no_jwt_with_hint(setup_oidchandler_provider, mock_userinfo, mock_introspect_exp, userinfo):
+    _, oidc_handler = setup_oidchandler_provider
+    valid, resp_userinfo = oidc_handler.get_userinfo_access_token("test")
+    assert valid == 100
+    assert dict(resp_userinfo) == userinfo
+
 
 def test_get_userinfo_access_token(setup_oidchandler_provider, setup_jwt,
                                    mock_userinfo, mock_introspect_exp,
