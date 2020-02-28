@@ -189,13 +189,3 @@ There are some obligations included to log access, but you can write your own
 using the plugin system.
 More information about obligations can be found in :ref:`implementation_plugin`
 
-Grammar Reference
-*****************
-
-This is the actual grammar that is used to parse the condition and target
-statements. The grammar is parsed using lark.
-
-.. literalinclude:: /oidcproxy/resources/grammar.lark
-   :language: jsgf
-
-

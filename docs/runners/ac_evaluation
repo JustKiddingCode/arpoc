@@ -1,0 +1,30 @@
+#!/usr/bin/env python3
+
+from oidcproxy.ac.parser import *
+
+l = Lark(grammar, start="condition")
+rule = "subject.email == 'email@example.com' and exists object.var"
+ast = l.parse(rule)
+tree.pydot__tree_to_png(ast, "docs/gen/ac_eval_before_transformers.png")
+
+
+data = {"subject": {"email":"email@example.com"}, "object": {}}
+attr_transformer = TransformAttr(data)
+
+ast = ExistsTransformer(attr_transformer).transform(ast)
+tree.pydot__tree_to_png(ast, "docs/gen/ac_eval_after_exists.png")
+
+ast = attr_transformer.transform(ast)
+tree.pydot__tree_to_png(ast, "docs/gen/ac_eval_after_attr.png")
+
+ast = OperatorTransformer().transform(ast)
+tree.pydot__tree_to_png(ast, "docs/gen/ac_eval_after_op.png")
+
+ast = MiddleLevelTransformer().transform(ast)
+tree.pydot__tree_to_png(ast, "docs/gen/ac_eval_after_mlt.png")
+
+ast = TopLevelTransformer().transform(ast)
+tree.pydot__tree_to_png(ast, "docs/gen/ac_eval_after_tlt.png")
+
+ast = MiddleLevelTransformer().transform(ast)
+tree.pydot__tree_to_png(ast, "docs/gen/ac_eval_after_tlt_mlt.png")

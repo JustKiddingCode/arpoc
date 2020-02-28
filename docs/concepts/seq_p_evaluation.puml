@@ -1,18 +1,21 @@
 [-> Policy: evaluate
 activate Policy
-Policy -> ConflictResolution
-Policy -> Parser: check_target(str)
-Parser -> Policy: result : True/False/None
+Policy -> ConflictResolution **
+Policy -> Parser ++ : check_target(str)
+return result : True/False/None
 loop foreach rule
-   Policy -> ConflictResolution: check_break
-   ConflictResolution -> Policy
-   Policy -> Rule : evaluate
-   Rule -> Parser: check_target(str)
-   Parser -> Rule: result
-   Rule -> Parser: check_condition(str)
-   Parser -> Rule: result
-   Rule -> Policy: effect
-   Policy -> ConflictResolution: effect
+   Policy -> ConflictResolution ++: check_break
+   return
+   Policy -> Rule ++: evaluate
+   Rule -> Parser ++: check_target(str)
+   return result
+   Rule -> Parser ++: check_condition(str)
+   return result
+   return effect
+   Policy -> ConflictResolution ++: effect
+   return
 end
+Policy -> ConflictResolution ++: get_effect
+return effect
 Policy ->[: effect
 deactivate Policy

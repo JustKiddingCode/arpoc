@@ -7,10 +7,11 @@ tests:
 clean:
 	find -type d -name '__pycache__' -exec rm -rf '{}' + || :
 	rm -rf deb_dist _build htmldoc latexdoc oidc_proxy.egg-info _templates _static dist
-	rm oidc-proxy*.tar.gz
+	rm -f oidc-proxy*.tar.gz
 	rm -rf pdfdoc htmldoc
 
 doc:
+	PYTHONPATH=. run-parts docs/runners
 	PYTHONPATH=. python3 oidcproxy/config.py > docs/gen/sample_config.yml
 	sphinx-apidoc -o docs/api oidcproxy -f
 

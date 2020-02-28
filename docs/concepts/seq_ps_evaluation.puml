@@ -1,22 +1,25 @@
-[-> PolicySet: evaluate
-PolicySet -> ConflictResolution: init
-PolicySet -> Parser: check_target
-Parser -> PolicySet
+[-> PolicySet : evaluate
+activate PolicySet
+PolicySet -> ConflictResolution **: init
+PolicySet -> Parser ++: check_target
+return result
 loop foreach policy set
-   PolicySet -> ConflictResolution: check break
-   ConflictResolution -> PolicySet
-   PolicySet -> PolicySetB: evaluate
-   activate PolicySetB
+   PolicySet -> ConflictResolution ++: check break
+   return
+   PolicySet -> PolicySetB ++: evaluate
    return result
-   PolicySet -> ConflictResolution: result
-   ConflictResolution -> PolicySet
+   PolicySet -> ConflictResolution ++: result
+   return
 end
 loop foreach policy
-   PolicySet -> ConflictResolution: check break
-   ConflictResolution -> PolicySet
-   PolicySet -> Policy: evaluate
-   Policy -> PolicySet: result
+   PolicySet -> ConflictResolution ++: check break
+   return
+   PolicySet -> Policy ++: evaluate
+   return result
+   PolicySet -> ConflictResolution ++: result
+   return
 end
-PolicySet -> ConflictResolution: get_result
-ConflictResolution -> PolicySet: result
-PolicySet ->[ : result
+PolicySet -> ConflictResolution ++: get_result
+return
+PolicySet -->[ : result
+deactivate PolicySet
