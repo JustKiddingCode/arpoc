@@ -342,8 +342,10 @@ class OidcHandler:
         except AttributeError:
             try:
                 if token.refresh_token:
-                    raise NotImplementedError
+                    refresh_valid = valid_until
+                    # TODO: add token introspection for the refresh_token (if jwt)
             except AttributeError:
+                # we don't have a refresh token
                 pass
 
         return (valid_until, refresh_valid)
