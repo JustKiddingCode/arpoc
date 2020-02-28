@@ -2,12 +2,14 @@ from oidcproxy.plugins.obl_loggers import *
 from oidcproxy.ac.common import Effects
 
 new_cfg = {
-    "handlers": {
-        "obligation_file": None
-    },
-    "loggers": {
-        "obligation_logger": {
-            "handlers": []
+    "logger_cfg": { 
+        "handlers": {
+            "obligation_file": None
+        },
+        "loggers": {
+            "obligation_logger": {
+                "handlers": []
+            }
         }
     }
 }

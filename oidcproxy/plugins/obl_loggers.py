@@ -97,9 +97,9 @@ class Log(Obligation):
     def run(effect: Optional[Effects], context: Dict, cfg: Dict) -> bool:
         if 'logger_cfg' in cfg:
             copy_logger_cfg = deepcopy(logger_cfg)
-            merged_cfg = deep_dict_update(copy_logger_cfg, cfg)
+            merged_cfg = deep_dict_update(copy_logger_cfg, cfg['logger_cfg'])
         else:
-            merged_cfg = logger_cfg
+            merged_cfg = deepcopy(logger_cfg)
         logger = logging.getLogger("obligation_logger")
         logging.config.dictConfig(merged_cfg)
 
