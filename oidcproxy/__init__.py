@@ -137,8 +137,12 @@ class App:
 
     def tls_redirect(self, *args: Any, **kwargs: Any) -> None:
         url = cherrypy.url(qs=cherrypy.request.query_string)
-        url = url.replace('http','https',1)
-        raise cherrypy.HTTPRedirect(url)
+        # find starting / of path
+        index = url.index('/', len('http://')) +1
+        path = url[index:]
+        https_url = "{}{}".format(self.config.proxy.baseuri, path)
+
+        raise cherrypy.HTTPRedirect(https_url)
 
     def get_routes_dispatcher(self) -> cherrypy.dispatch.RoutesDispatcher:
         """ Setups the Cherry Py dispatcher
