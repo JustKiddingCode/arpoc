@@ -638,9 +638,8 @@ class ServiceProxy:
                                      "path": path,
                                      "target_url": target_url,
                                      "service": self.service_name,
-                                     **kwargs
                                  })
-        access = self.build_access_dict()
+        access = self.build_access_dict(query_dict=kwargs)
         context = {
             "subject": userinfo,
             "object": object_dict,

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- The CSS and the collapsable items are based mainly on: https://www.thecssninja.com/css/css-tree-menu-->
+		<head>
+				<meta charset="utf-8" />
+				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+				<title>OIDC Proxy</title>
+				<style>
+/* Just some base styles not needed for example to function */
+				*, html { font-family: Verdana, Arial, Helvetica, sans-serif; }
+				body, form, ul, li, p, h1, h2, h3, h4, h5
+						{
+						margin: 0;
+/*						padding: 0;*/
+				}
+				p
+						{
+						font-size: 1em;
+						margin: 0 0 1em 0;
+				}
+				html { font-size: 100%; /* IE hack */ }
+				body { font-size: 1em; /* Sets base font size to 16px */ }
+				table { font-size: 100%; /* IE hack */ }
+				input, select, textarea, th, td { font-size: 1em; }
+				/* CSS Tree menu styles */
+				ul.tree
+						{
+						padding: 0 0 0 30px;
+						width: 700px;
+				}
+				li
+						{
+						position: relative;
+						/*		margin-left: -15px;
+						list-style: none;*/
+				}
+				li input
+						{
+						position: absolute;
+						left: 0;
+						margin-left: 0;
+						opacity: 0;
+						z-index: 2;
+						cursor: pointer;
+						height: 1em;
+						width: 1em;
+						top: 0;
+				}
+				li input + ul
+						{
+/*						background: url(toggle-small-expand.png) 40px 0 no-repeat;*/
+						margin: -0.938em 0 0 -44px; /* 15px */
+						height: 1em;
+				}
+				li input + ul > li { display: none; margin-left: -14px !important; padding-left: 1px; }
+				li label
+						{
+/*						background: url(folder-horizontal.png) 15px 1px no-repeat;*/
+						cursor: pointer;
+						display: block;
+/*						padding-left: 37px;*/
+				}
+				li input:checked + ul
+						{
+/*						background: url(toggle-small.png) 40px 5px no-repeat;*/
+						margin: -1.25em 0 0 -44px; /* 20px */
+						padding: 1.563em 0 0 80px;
+						height: auto;
+				}
+				li input:checked + ul > li { display: block; margin: 0 0 0.125em;  /* 2px */}
+				li input:checked + ul > li:last-child { margin: 0 0 0.063em; /* 1px */ }
+
+				.ac_DENY {
+						color: red;
+						font-weight: bold;
+				}
+				.ac_GRANT {
+						color: green;
+						font-weight: bold;
+				}
+				.ac_None {
+						color: grey;
+						font-weight: bold;
+				}
+				</style>
+		</head>
+		<body>
+				<h1> Policy Administration Point </h1>
+
+<form method="POST">
+		<label for "entity">Entity ID: </label>
+		<select name="entity">
+		{% if pap_nodes %}
+				{% set root_entity = (pap_nodes | first).ID %}
+		{% else %}
+				{% set root_entity = "" %}
+		{% endif %}
+
+		{%- for entity_id in entity_ids %}
+				{% if root_entity == entity_id %}
+						<option value="{{ entity_id }}" selected="selected"> {{ entity_id }} </option>
+				{% else %}
+						<option value="{{ entity_id }}"> {{ entity_id }} </option>
+				{% endif %}
+		{% endfor %}
+		</select> <br/>
+
+		<label for "service">Service: </label>
+		<select name="service">
+		{% if object %}
+				{% set service = object['service'] %}
+		{% else %}
+				{% set service = "" %}
+		{% endif %}
+		{%- for service_key in services %}
+				{% if service_key == service %}
+						<option value="{{ service_key }}" selected="selected"> {{ service_key }} </option>
+				{% else %}
+						<option value="{{ service_key }}"> {{ service_key }} </option>
+				{% endif %}
+		{% endfor %}
+		</select> <br/>
+
+
+		<label for="subject">Subject Dictionary:</label><br/>
+		<textarea name="subject">{{ subject }}</textarea><br/>
+
+		<label for="object">Object Dictionary:</label><br/>
+		<textarea name="object">{{ object }} </textarea><br/>
+		<input type="checkbox" name="object_setters" value="true" />Use object setters </input><br/>
+
+		<label for="environment">Environment Dictionary:</label><br/>
+		<textarea name="environment">{{ environment }}</textarea><br/>
+		<input type="checkbox" name="environment_setters" value="true" />Use environment setters </input><br/>
+
+
+		<label for="access">Access Dictionary:</label><br/>
+		<textarea name="access">{{ access }}</textarea>
+
+		<br/>
+		<input type="submit" value="Evaluate" />
+</form>
+
+				<ul class="tree">
+{%- for root in pap_nodes recursive -%}
+{% if root.node_type == "policy set" %}
+						<li>
+								<label for="{{root.ID}}" class="ac_{{ result.results[root.ID] | string()}}" > ID: {{ root.ID }}</label>
+								<input type="checkbox" checked id="{{root.ID}}" />
+								<ul>
+										<li> Type: {{ root.node_type }} </li>
+										<li> Resolver: {{ root.resolver }} </li>
+										<li> Target: {{ root.target }} </li>
+										<li> Policies:  <ul>{{ loop(root.policies) }}</ul> </li>
+										<li> Policy Sets: <ul>{{ loop(root.policy_sets) }}</ul> </li>
+								</ul>
+						</li>
+{% elif root.node_type == "policy" %}
+						<li>
+								<label for="{{root.ID}}" class="ac_{{ result.results[root.ID] | string()}}"> ID: {{ root.ID }}</label>
+								<input type="checkbox" checked id="{{root.ID}}" />
+								<ul>
+										<li> Type: {{ root.node_type }} </li>
+										<li> Resolver: {{ root.resolver }} </li>
+										<li> Target: {{ root.target }} </li>
+										<li> Rules:  <ul> {{ loop(root.rules) }}</ul> </li>
+								</ul>
+						</li>
+{% else %}
+						<li>
+								<label for="{{root.ID}}" class="ac_{{ result.results[root.ID] | string()}}"> ID: {{ root.ID }}</label>
+								<input type="checkbox" checked id="{{root.ID}}" />
+								<ul>
+										<li> Type: {{ root.node_type }} </li>
+										<li> Resolver: {{ root.resolver }} </li>
+										<li> Target: {{ root.target }} </li>
+										<li> Effect: {{ root.effect }} </li>
+										<li> Condition: {{ root.condition }} </li>
+								</ul>
+						</li>
+{% endif %}
+{%- endfor -%}
+				</ul>
+		</body>
+</html>

@@ -154,6 +154,7 @@ class App:
             if service_cfg.origin_URL == "pap":
                 pap = oidcproxy.pap.PolicyAdministrationPoint('pap', self.oidc_handler, service_cfg)
                 dispatcher.connect('pap', service_cfg.proxy_URL, controller=pap, action='index')
+                dispatcher.connect('pap', service_cfg.proxy_URL + "{_:/.*?}", controller=pap, action='index')
             elif service_cfg.origin_URL == "userinfo":
                 userinfo_page = oidcproxy.special_pages.Userinfo('userinfo', self.oidc_handler, service_cfg)
                 dispatcher.connect('userinfo', service_cfg.proxy_URL, controller=userinfo_page, action='index')

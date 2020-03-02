@@ -44,6 +44,9 @@ def test_time_comp():
     context = {"subject": {}, "object": {}, "environment": {"time": "10:28"}}
     assert check_condition(
         "environment.time < '10:30' and environment.time > '10:20'", context)
+    context = {"subject": {}, "object": {}, "environment": {"time": "10:35"}}
+    assert not check_condition(
+        "environment.time < '10:30' and environment.time > '10:20'", context)
 
 
 def test_subject_attr():
@@ -58,6 +61,7 @@ def test_subject_attr():
     }
     assert check_condition('exists subject.email', context)
     assert not check_condition('exists subject.NotExisting', context)
+
 
 
 def test_environment_attr():
