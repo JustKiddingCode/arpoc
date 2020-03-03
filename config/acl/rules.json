@@ -54,5 +54,15 @@
 		"Condition" : "environment.time < '10:30' and environment.time > '10:20'",
 		"Effect": "GRANT",
 		"Obligations" : []
+},
+"com.example.rules.check_mail" : {
+		"Type": "Rule",
+		"Target": "True",
+		"Description": "Allow kit mail adresses",
+		"Condition" : "subject.email matches '\\\\w+@(student\\\\.|partner\\\\.)?kit.edu'",
+		"Effect": "GRANT",
+		"Obligations" : []
 }
+
+
 }

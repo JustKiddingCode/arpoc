@@ -7,6 +7,8 @@ from abc import abstractmethod
 from functools import reduce
 from typing import Any, Dict, List, TypeVar, Union, Callable
 
+from ast import literal_eval
+
 from collections.abc import Mapping
 import lark.exceptions
 from lark import Lark, Tree, tree
@@ -129,7 +131,9 @@ class matches(BinaryStringOperator):
     @classmethod
     def eval(cls, op1: str, op2: str) -> bool:
         super().eval(op1, op2)
-        return re.fullmatch(op2, op1) != None
+        LOGGER.debug("regex matching op1: '%s', op2: '%s'", op1, op2)
+        LOGGER.debug("result is %s", re.fullmatch(op2, op1))
+        return re.fullmatch(op2, op1) is not None
 
 
 binary_operators = {
@@ -212,9 +216,9 @@ class TransformAttr(MyTransformer):
         if isinstance(args[0], (list, )):
             return args[0]
         if args[0].type == "SINGLE_QUOTED_STRING":
-            return str(args[0][1:-1])
+            return str(literal_eval(args[0]))
         if args[0].type == "DOUBLE_QUOTED_STRING":
-            return str(args[0][1:-1])
+            return str(literal_eval(args[0]))
         if args[0].type == "BOOL":
             return args[0] == "True"
         return int(args[0])
