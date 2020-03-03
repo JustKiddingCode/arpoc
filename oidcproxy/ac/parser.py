@@ -9,7 +9,8 @@ from typing import Any, Dict, List, TypeVar, Union, Callable
 
 from collections.abc import Mapping
 import lark.exceptions
-from lark import Lark, Transformer, Tree, tree
+from lark import Lark, Tree, tree
+from oidcproxy.ac.lark_adapter import MyTransformer
 
 from oidcproxy.exceptions import *
 
@@ -148,7 +149,7 @@ class UOP:
         return elem != None
 
 
-class TransformAttr(Transformer):
+class TransformAttr(MyTransformer):
     def __init__(self, data: Dict):
         super().__init__(self)
         self.data = data
@@ -219,7 +220,7 @@ class TransformAttr(Transformer):
         return int(args[0])
 
 
-class ExistsTransformer(Transformer):
+class ExistsTransformer(MyTransformer):
     def __init__(self, attr_transformer: TransformAttr):
         super().__init__(self)
         self.attr_transformer = attr_transformer
@@ -245,7 +246,7 @@ class ExistsTransformer(Transformer):
         #return getattr(UOP, str(args[0]))
 
 
-class TopLevelTransformer(Transformer):
+class TopLevelTransformer(MyTransformer):
     def condition(self, args: List) -> Any:
         if isinstance(args[0], Tree):
             return Tree("condition", args)
@@ -268,7 +269,7 @@ class TopLevelTransformer(Transformer):
             return bool(args[0])
         raise ValueError
 
-class OperatorTransformer(Transformer):
+class OperatorTransformer(MyTransformer):
     def cbop(self, args: List) -> Callable:
         LOGGER.debug("cbop got called")
         str_op = str(args[0])
@@ -290,7 +291,7 @@ class OperatorTransformer(Transformer):
         return getattr(UOP, str(args[0]))
 
 
-class MiddleLevelTransformer(Transformer):
+class MiddleLevelTransformer(MyTransformer):
 
 
     def comparison(self, args: List) -> bool:
@@ -343,7 +344,7 @@ def parse_and_transform(lark_handle: Lark, rule: str, data: Dict) -> bool:
     # Eval exists
     attr_transformer = TransformAttr(data)
     new_ast = ExistsTransformer(attr_transformer).transform(ast)
-    T = attr_transformer * OperatorTransformer() * MiddleLevelTransformer() * TopLevelTransformer()
+    T = attr_transformer + OperatorTransformer() + MiddleLevelTransformer() + TopLevelTransformer()
     return T.transform(new_ast)
 
 

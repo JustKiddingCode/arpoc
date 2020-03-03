@@ -21,7 +21,6 @@ from dataclasses import dataclass, InitVar, field
 import lark.exceptions
 
 from oidcproxy.exceptions import *
-
 #import oidcproxy
 #import oidcproxy.ac
 import oidcproxy.ac.common as common
