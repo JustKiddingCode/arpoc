@@ -1,18 +1,7 @@
-Policy Information Point
-========================
+.. _implementation_plugin:
 
-.. uml::
-   :scale: 40 %
-
-   !include docs/overview.plantuml
-   
-   hide user
-   hide oidcprovider
-   hide object
-   hide obligations
-   hide objinf
-   hide environment
-
+Parser
+===================
 
 .. uml::
    :scale: 40 %
@@ -23,32 +12,12 @@ Policy Information Point
    remove oidcproxy.ac.Policy_Set
    remove oidcproxy.ac.AC_Entity
    remove oidcproxy.ac.Rule
-   remove oidcproxy.ac.common.Effects
+   remove oidcproxy.ac.AC_Container
    remove oidcproxy.ac.EvaluationResult
    remove oidcproxy.ac.conflict_resolution.AnyOfAny
    remove oidcproxy.ac.conflict_resolution.And
    remove oidcproxy.ac.conflict_resolution.ConflictResolution
-   remove oidcproxy.ac.lark_adapter.CombinedTransformer
-   remove oidcproxy.ac.lark_adapter.MyTransformer
-   remove oidcproxy.ac.parser.BinaryNumeralOperator
-   remove oidcproxy.ac.parser.BinaryOperator
-   remove oidcproxy.ac.parser.BinaryOperatorAnd
-   remove oidcproxy.ac.parser.BinaryOperatorIn
-   remove oidcproxy.ac.parser.BinaryOperatorOr
-   remove oidcproxy.ac.parser.BinarySameTypeOperator
-   remove oidcproxy.ac.parser.BinaryStringOperator
-   remove oidcproxy.ac.parser.Equal
-   remove oidcproxy.ac.parser.ExistsTransformer
-   remove oidcproxy.ac.parser.Greater
-   remove oidcproxy.ac.parser.Lesser
-   remove oidcproxy.ac.parser.MiddleLevelTransformer
-   remove oidcproxy.ac.parser.NotEqual
-   remove oidcproxy.ac.parser.OperatorTransformer
-   remove oidcproxy.ac.parser.TopLevelTransformer
-   remove oidcproxy.ac.parser.TransformAttr
-   remove oidcproxy.ac.parser.UOP
-   remove oidcproxy.ac.parser.matches
-   remove oidcproxy.ac.parser.startswith
+   remove oidcproxy.ac.common.Effects
    remove oidcproxy.base.OidcHandler
    remove oidcproxy.base.ServiceProxy
    remove oidcproxy.base.TLSOnlyDispatcher
@@ -91,10 +60,3 @@ Policy Information Point
    remove oidcproxy.plugins.obl_loggers.LogSuccessful
    remove oidcproxy.special_pages.Userinfo
 
-
-The policy information point (PIP) has the purpose to receive ac entities and
-make them available to the proxy. The class that handles this task is the `AC_Container`.
-Currently, the only location policies can be retrieved from is the local disk.
-The `AC_Container` allows to get the ac entities by their ids, to add more ac
-entities directly or by their path and furthermore to evaluate policy sets
-with given data.

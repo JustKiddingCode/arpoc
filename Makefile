@@ -20,6 +20,7 @@ htmldoc: doc
 
 pdfdoc: doc
 	sphinx-build -c docs -b latex . latexdoc
+	cd latexdoc; for i in plantuml*.pdf; do pdfcrop $$i $$i; done
 	cd latexdoc && latexmk --pdf OIDCProxy.tex
 	cp latexdoc/OIDCProxy.pdf ./doc.pdf
 

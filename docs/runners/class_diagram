@@ -1,0 +1,14 @@
+#!/bin/bash
+
+source /home/justkidding/.local/share/virtualenvs/pylint-b0C_0gT4/bin/activate
+
+pyreverse -o plantuml oidcproxy -m y -f OTHER
+
+mv packages.plantuml docs/gen/
+mv classes.plantuml docs/gen/
+
+for i in $(grep -Po '(?<=class )[\w_\.]*' docs/gen/classes.plantuml)
+do
+		echo hide $i
+done > docs/gen/hide_classes.plantuml
+

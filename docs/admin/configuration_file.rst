@@ -56,6 +56,13 @@ The `AC` key must specify a valid policy set that will evaluated on every access
    :language: yaml
    :lines: 36-43
 
+Special pages
+^^^^^^^^^^^^^^
+
+You can currently add two special pages: `userinfo` and `pap`.
+To do this, supply either `userinfo` or `pap` as value for the `origin_URL`.
+All other values have the same purpose as for proxying a webpage.
+
 access_control
 --------------
 

@@ -2,11 +2,10 @@ Caching
 ============================
 
 
-You could think of several scenarios where cahing could be used.
+There are several scenarios where caching could be used in the context of a
+reverse proxy.
 In the following we discuss two scenarios: Caching of the access control
 entities evaluation and caching of the access control context.
-With access control context we mean the attributes about the user, the accessed
-object, the environment attributes and information about the access itself.
 
 Caching of the access control evaluation results between two different contexts is pointless.
 Even if the subject attributes have not changed, the environment or

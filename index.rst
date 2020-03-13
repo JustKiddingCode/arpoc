@@ -12,7 +12,7 @@ Welcome to OIDC Proxy's documentation!
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
    
    docs/concepts/index.rst

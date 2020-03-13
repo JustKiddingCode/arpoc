@@ -1,7 +1,7 @@
-from enum import Enum
+import enum
 
 
-class Effects(Enum):
+class Effects(enum.Enum):
     """ The effects a access control rule can have """
     GRANT = True
     DENY = False
