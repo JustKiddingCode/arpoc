@@ -49,6 +49,7 @@ extensions = [
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
     'sphinxcontrib.plantuml',
+    'sphinxcontrib.bibtex',
     'm2r',
 ]
 

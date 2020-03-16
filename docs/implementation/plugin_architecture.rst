@@ -133,7 +133,32 @@ data as input.
 One object setter can set as many attributes of the object as needed, though
 object setters running later will override the values of previous ones.
 
-Included object setters are:
+We included two object setters: `urlmap` and `json`.
 
-* TODO
-* TODO
+urlmap
+^^^^^^^^^
+
+The `urlmap` object setter takes a list regular expressions and matches each
+against the target path.
+For example, if a service offers information about musicians and the url syntax
+is `artist`/`album`/`title` the regex `(?P<artist>[\w ]+)/(?P<album>[\w ]+)/(?P<track>[\w ]+)`
+would set `Rise Against` as artist, `Appeal to Reason` as album and `Entertainment` as track
+for the path `Rise Against/Appeal to Reason/Entertainment`.
+Note that the regex must match the whole path, so a regex that sets a value only
+based on the first folder, must end on something like `.*` to match.
+
+json
+^^^^^^^^^^
+
+The `json` setter calls an URL, parses the results it gets as json, and adds the key
+value pairs to the object data.
+The json setter adds the the current object dictionary as request parameters.
+For example, consider a read request from the Bell LaPadula Modell :cite:`belllapadula`.
+A read request in the Bell La Padula modell is only possible if the subject's privilege level
+is higher or equal to the object's privilege level.
+The condition of a rule could look like: `subject.privilege >= object.privilege`.
+To get the privilege of an object, the service provider can set up an endpoint
+that maps the target path to the object's privilege. 
+The endpoint can return a simple string as `{'privilege' : 5 }`.
+In the configuration of our proxy
+the user must enable the json object setter and enter the endpoint URL.

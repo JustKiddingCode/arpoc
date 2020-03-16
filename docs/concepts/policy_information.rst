@@ -95,6 +95,19 @@ Policy Information Point
 The policy information point (PIP) has the purpose to receive ac entities and
 make them available to the proxy. The class that handles this task is the `AC_Container`.
 Currently, the only location policies can be retrieved from is the local disk.
-The `AC_Container` allows to get the ac entities by their ids, to add more ac
-entities directly or by their path and furthermore to evaluate policy sets
+The ac entities must be in the JSON format.
+In the JSON file a mapping from entity id (as string) to a dictionary is expected.
+The expected keys in the dictionary are: `Type`, `Description`, `Target`, `Policies`
+`PolicySets`, `Rules`, `Resolver`, `Obligations`, `Effect` and `Condition`.
+`PolicySets`, `Policies`, `Rules` and `Obligations` are expected as array of strings, the
+remaining keys are expected to be strings. The use of the keys is identical to
+their description in TODOREF.
+
+.. literalinclude:: /docs/gen/ac_sample.json
+   :linenos:
+
+The AC Container allows to load a single json file or a directory of json files.
+After the entity ids were loaded from disk, the `AC_Container` allows to 
+get the ac entities by their ids.
+Furthermore the AC Container allows to evaluate policy sets by their ID
 with given data.

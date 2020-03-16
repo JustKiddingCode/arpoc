@@ -27,7 +27,8 @@ knows about him, or to give information about the internal data like the ac enti
 to users.
 For this included webservices we use so-called "special pages".
 A special page is protected like a normal webpage, but the content is generated
-by the proxy itself. Special pages are referenced to by a string, e.g. "userinfo"
+by the proxy itself. Special pages are referenced to by a string, which is not an URL,
+e.g. "userinfo"
 for information about the user and bound into the path tree like normal webpages,
 i.e. the administrator can decide on the path where this special page will be
 available.
