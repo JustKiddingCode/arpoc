@@ -6,40 +6,38 @@ General Implementation
 This section describes the libraries and frameworks we used to built our reverse
 proxy.
 
-Python3
--------
+Python 3
+--------
 
-The reverse proxy was developed using Python3 :cite:`python3`.
-Python include a large library and many libraries are written for Python Applications.
-
-https://www.python.org/
+The reverse proxy was developed using Python 3 :cite:`python3`.
+Python includes a large library and many libraries are written for Python applications.
+In the follow sections we name the most import python-native libraries we use.
 
 argparse
 ^^^^^^^^^^^
 
-For command line arguments we used argparse.
+For command line arguments we use argparse (:cite:`argparse`). This way, users can display all
+recognized command line parameters with `--help`.
 
-https://docs.python.org/3/library/argparse.html
-
-logger
+logging
 ^^^^^^^^^^^
 
-https://docs.python.org/3/library/logging.html
-
+Almost every library uses the python-native logging library :cite:`logging`.
+The default log level we capture is `INFO`. However, this can be changed
+in the configuration file as well as the log file.
 
 typing
 ^^^^^^^^^^^
 
-
-https://docs.python.org/3/library/typing.html
-
-
-
+Our complete project uses Python type hints. This way static sanity checks can be
+done to reduce the amount of bugs in the source code. An example for such a static
+code check application is MyPy. The type hints are done with the typing module (:cite:`typing`)
 
 json
 ^^^^^^^^^^^
 
-https://docs.python.org/3/library/json.htm
+All AC entities use the JSON format. The file can be parsed into dictionaries with
+the json module (:cite:`json`).
 
 
 pytest
