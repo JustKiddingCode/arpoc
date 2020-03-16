@@ -103,10 +103,14 @@ If an obligation does not return `True` then access is denied.
 The obligation class must set the class attribute `name` and can referenced
 by it from the access control entities.
 
-Included obligations are:
-
-* TODO
-* TODO
+In some businesses traceability is a big concern. These businesses can use
+our log obligations.
+We include obligations for logging: log every access (`obl_log`), log only successful
+accesses (`obl_log_successful`), log denied accesses (`obl_log_failed`).
+Since we use the Python Logging module, the loggers can perform various tasks,
+from writing to a file on a local disk, writing to the system log, to writing a
+mail. The default configuration of the logger can either be used without changes, with changes
+like a changed filename, or completely changed.
 
 Environment setters
 -------------------
