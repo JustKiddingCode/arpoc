@@ -117,10 +117,16 @@ by the class attribute `target`.
 The return value of the environment setter is then used every time
 the environment attribute is requested.
 
-Included environment setters are:
+We include environment setters for time related attributes, in parentheses
+the attribute key: time in "hh:mm:ss" format (`time`),
+time and day in "YYYY-MM-DD HH:MM:SS" format (`datetime`), only hours as integers (`time_hour`), only minutes
+as integer (`time_minute`), only seconds as integers (`time_second`). These 
+environment setters do not use a timezone, i.e. they are given UTC.
 
-* TODO
-* TODO
+For an application example consider a company that wants to protect its employees for
+overwork. This company can limit the time that a webservice is available via this
+rule: `environment.time_hour >= 8 and environment.time_hour < 18`. This rule
+would only evaluate to true between 08:00 and 17:59.
 
 Object setters
 --------------
