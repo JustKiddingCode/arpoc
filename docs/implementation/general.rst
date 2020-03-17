@@ -46,6 +46,11 @@ pytest
 pyyaml
 ------
 
+We want to make the configuration as easy as possible. Therefore, our configuration
+file is in YAML (todo: ref) syntax. To parse the configuration file, we use
+pyyaml (:cite:`pyyaml`). PyYAML parses the configuration into a dictionary which
+we use in our `config` module.
+
 
 jinja2
 -------
@@ -72,7 +77,7 @@ After parsing the requests the URL request must handled by the application.
 The connector between CherryPy and the application is the dispatcher.
 Based on the URL that was requested, the dispatcher selects a method and calls
 it. We used the `RoutesDispatcher` (:cite:`cherrypy_routes`) that assigns
-the methods with RegEx matches.
+the methods with matches.
 Every service gets connected with an instance of a `ServiceProxy` (todo: link) class,
 special pages with their class, and pages to require authentication or redirect
 pages for the OpenID connect provider with the `OIDCHandler` (todo: link) object. 
