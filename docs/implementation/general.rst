@@ -53,11 +53,24 @@ jinja2
 cherrypy
 --------
 
-Cherrypy is "a minimalist python web framework" (TODO: Quote from website).
-Dispatcher
-Used plugins: dropprivileges, daemonizer, pidfile
-
-https://cherrypy.org/
+A reverse proxy is not different to a normal webserver in tasks like session
+handling, listening on ports or parsing HTTP requests. The only difference is
+that the objects it serves are not files or outputs of applications on the server
+but the output of another webserver.
+For all tasks of a normal HTTP server we use cherrypy (:cite:`cherrypy`).
+Cherrypy is "a minimalist python web framework" (:cite:`cherrypy`).
+To increase the security of our application, we run the webserver with reduced
+privileges. We do this by using the `dropprivileges` plugin (:cite:`cherrypy_dropprivileges`).
+Also the use case for our webserver is to run as a daemon. This is done with the
+`daemonizer` plugin (:cite:`cherrypy_daemonizer`).
+After parsing the requests the URL request must handled by the application.
+The connector between CherryPy and the application is the dispatcher.
+Based on the URL that was requested, the dispatcher selects a method and calls
+it. We used the `RoutesDispatcher` (:cite:`cherrypy_routes`) that assigns
+the methods with RegEx matches.
+Every service gets connected with an instance of a `ServiceProxy` (todo: link) class,
+special pages with their class, and pages to require authentication or redirect
+pages for the OpenID connect provider with the `OIDCHandler` (todo: link) object. 
 
 OpenID Connect pyoidc
 ---------------------

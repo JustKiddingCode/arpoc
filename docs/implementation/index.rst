@@ -8,5 +8,7 @@ Implementation Notes
         plugin_architecture
         ac_entity_evaluation
         special_pages
+        serviceproxy
+        oidchandler
 
 
