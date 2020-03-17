@@ -62,6 +62,12 @@ https://cherrypy.org/
 OpenID Connect pyoidc
 ---------------------
 
+All subject attributes are claims of the openid connect provider.
+Therefore we need to communicate with OpenID Connect Provider, act as
+a relying party and comply with the respective standards.
+The library pyoidc (:cite:`pyoidc`) enables us to comply with the standard
+without implementing it on our own.
+
 pyjwkest
 ----------------------
 
