@@ -50,6 +50,11 @@ pyyaml
 jinja2
 -------
 
+Every object that is created via our reverse proxy and not requested from a web
+server should be in HTML format so web browsers can render it.
+To seperate data and code, we use a template engine to create HTML output.
+For this we use jinja (:cite:`jinja`).
+
 cherrypy
 --------
 
