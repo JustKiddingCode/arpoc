@@ -65,7 +65,20 @@ OpenID Connect pyoidc
 pyjwkest
 ----------------------
 
+If the user does a request with an access token included, we need to contact
+the issuer of this access token to ensure, that the access token is valid.
+Because many issuers (TODO: cite/prove) use JWTs we can parse them and contact
+the issuer that is stated inside the JWT.
+`pyoidc` uses for this task the library `pyjwkest` (:cite:`pyjwkest`) 
+which we use as well.
+
 requests
 --------
 
-
+In the object delivery phase, we need to request the object from a different web
+server, copy the response header and data and transmit the object to the requesting
+users. This would require building a HTTP request, including encoding characters
+to comply standars, opening a connection to the web server, and parsing the
+response.
+Furthermore, we would need to implement TLS certificate checks.
+All this tasks are performed by the requests library (:cite:`requests`).
