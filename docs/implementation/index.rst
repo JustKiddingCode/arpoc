@@ -10,6 +10,8 @@ Implementation Notes
         special_pages
         serviceproxy
         oidchandler
+        cache
+        app
         code_quality
 
 
