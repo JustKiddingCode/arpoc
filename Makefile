@@ -13,6 +13,9 @@ clean:
 doc:
 	PYTHONPATH=. run-parts docs/runners
 	PYTHONPATH=. python3 oidcproxy/config.py > docs/gen/sample_config.yml
+	plantuml -tsvg docs/gen/classes.plantuml
+	inkscape docs/gen/classes.svg --export-pdf=docs/gen/classes.pdf
+	pdfjam --paper a3 --landscape docs/gen/classes.pdf --outfile docs/gen/classes_a3.pdf
 	sphinx-apidoc -o docs/api oidcproxy -f
 
 htmldoc: doc
@@ -22,6 +25,7 @@ pdfdoc: doc
 	sphinx-build -c docs -b latex . latexdoc
 	cd latexdoc; for i in plantuml*.pdf; do pdfcrop $$i $$i; done
 	cd latexdoc && latexmk --pdf OIDCProxy.tex
+	pdfunite latexdoc/OIDCProxy.pdf docs/gen/classes_a3.pdf doc_classdiagram.pdf
 	cp latexdoc/OIDCProxy.pdf ./doc.pdf
 
 codelines:

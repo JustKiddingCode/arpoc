@@ -1,6 +1,18 @@
 Cache
 ======
 
+Our reverse proxy is supposed to run continously for multiple days or even multiple
+months. Keeping track of all subject attributes would lead to huge memory consumption,
+even when the data will never be touched again.
+Therefore we use a cache system. In the cache every item gets inserted with their
+maximum life period and gets deleted once this period is over.
+We use hexadecimal representation of the SHA-256 hash of the access token as key
+and store the user information and the OpenID Connect Provider.
+The cache stores the data as `CacheItem` objects with a minimum heap structure,
+i.e. the smallest `timestamp` is on first position.
+The `expire` function removes every item from the cache once the `timestamp` is
+smaller than the current timestamp, i.e. the CacheItem's lifetime period is over.
+
 .. uml::
    :scale: 40 %
 
