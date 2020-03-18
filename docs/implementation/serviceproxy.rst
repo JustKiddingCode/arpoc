@@ -3,6 +3,17 @@
 ServiceProxy
 ============
 
+The task of a `ServiceProxy`  object is to proxy a specific service.
+In the initialisation of an object, the configuration of the service is given
+to the object as well as an instance of the `OidcHandler` class. 
+The configuration must contain an URL and the string of an policy set.
+Through the CherryPy dispatcher the proxy URL gets connected to the `ServiceProxy`'s
+`index` method.
+The `index` method first builds the access control context, evaluates the policy
+set, runs the obligations and then, if the policy set evaluated to `GRANT` and
+all obligations returned `true` it gathers the object and delivers it.
+Else an error message with the HTTP status code 403 (`Forbidden`) is returned.
+
 .. uml::
    :scale: 40 %
 
