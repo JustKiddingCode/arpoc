@@ -6,6 +6,51 @@ General Implementation
 This section describes the libraries and frameworks we used to built our reverse
 proxy.
 
+.. uml::
+   :width:  40%
+
+   [pyoidc]
+   [cherrypy]
+   [pyyaml]
+   [argparse]
+   [json]
+   [jinja2]
+   [ARPOC]
+   [requests]
+   [pyjwkest]
+   [logging]
+   
+   Actor User
+   Actor Administrator
+   
+   node "OIDC Provider" as oidcp
+   node Webservice
+   database "AC Entities" as ace
+   database Templates
+   database Configuration
+   database Logs
+   
+   User -- cherrypy
+   Administrator -- argparse
+   argparse -- ARPOC
+   cherrypy -- ARPOC
+   ARPOC -- pyoidc
+   pyoidc -- oidcp
+   ARPOC - json
+   json - ace
+   jinja2 - ARPOC
+   Templates - jinja2
+   Administrator - Configuration
+   Configuration -- pyyaml
+   pyyaml -- ARPOC
+   ARPOC -- requests
+   requests -- Webservice
+   ARPOC -- pyjwkest : JWT
+   logging -- ARPOC
+   Logs -- logging
+
+   Caption Overview over the used libraries
+
 Python 3
 --------
 
@@ -26,12 +71,6 @@ Almost every library uses the python-native logging library :cite:`logging`.
 The default log level we capture is `INFO`. However, this can be changed
 in the configuration file as well as the log file.
 
-typing
-^^^^^^^^^^^
-
-Our complete project uses Python type hints. This way static sanity checks can be
-done to reduce the amount of bugs in the source code. An example for such a static
-code check application is MyPy. The type hints are done with the typing module (:cite:`typing`)
 
 json
 ^^^^^^^^^^^
@@ -39,9 +78,6 @@ json
 All AC entities use the JSON format. The file can be parsed into dictionaries with
 the json module (:cite:`json`).
 
-
-pytest
-------
 
 pyyaml
 ------
@@ -82,7 +118,7 @@ Every service gets connected with an instance of a `ServiceProxy` (todo: link) c
 special pages with their class, and pages to require authentication or redirect
 pages for the OpenID connect provider with the `OIDCHandler` (todo: link) object. 
 
-OpenID Connect pyoidc
+pyoidc
 ---------------------
 
 All subject attributes are claims of the openid connect provider.

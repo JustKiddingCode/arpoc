@@ -10,5 +10,6 @@ Implementation Notes
         special_pages
         serviceproxy
         oidchandler
+        code_quality
 
 
