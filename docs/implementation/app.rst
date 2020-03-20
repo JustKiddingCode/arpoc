@@ -2,6 +2,12 @@
 App
 =======
 
+The entire functionality has to be bundlet at one point. This is the `App` class.
+The `App` class reads in the command line arguments, reads the configuration, 
+creates the `ServiceProxy` objects, connects them with the `OidcHandler`, starts
+the `cherrypy` instance and coordinates the application flow.
+
+
 .. uml::
    :scale: 40 %
 
