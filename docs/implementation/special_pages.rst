@@ -13,7 +13,7 @@ userinfo
    Screenshot of the userinfo special page
 
 The userinfo prints the information that is available for the access control evaluation
-in the subject dictionary. It is the same the reverse proxy gets from the openid connect
+in the subject dictionary. It is the same the reverse proxy gets from the OpenID Connect
 provider via the userinfo endpoint.
 
 Policy Administration Point
@@ -23,19 +23,20 @@ Policy Administration Point
 The PAP provides information about all access control entities and can furthermore
 be used to run the evaluation process with self-defined context data.
 The view mode enables the user to collapse certain AC entities, like shown in the
-next figure.
+next figure with the `com.example.rules.is_workingtime` entity.
 
 .. figure:: /docs/pap_view.png
    :scale: 80%
 
    Screenshot of the view functionality of the PAP
 
+The testbed mode allow to evaluate AC entities with arbitrary AC context.
 The evaluation results are presented on an AC entity level, i.e. for every entity
 the result is shown: green for granted, red for denied, grey for no evaluation because
-of none matching target specifier.
+of the target specifier did not match.
 
 .. figure:: /docs/pap_testbed.png
-   :scale: 80%
+   :scale: 70%
 
    Screenshot of the testing functionality of the PAP
 

@@ -2,14 +2,17 @@ Caching
 ============================
 
 Reverse proxies should deliver their websites as fast as possible.
-This means that the latency should be as low as possible.
+This means that the latency should be as low as possible and is usually done
+by caching. With caching we mean to save the results of an action, like requesting a
+specific resource or calculating or performing a CPU-intensive task.
 
 There are several scenarios where caching could be used in the context of a
 reverse proxy.
 In the following we discuss two scenarios: Caching of the access control
 entities evaluation and caching of the access control context.
 
-Caching of the access control evaluation results between two different contexts is pointless.
+Caching of the access control evaluation results between two different accesses
+is infeasible.
 Even if the subject attributes have not changed, the environment or
 information about the object could have changed. Therefore the reverse proxy
 must evaluate the hierarchy every time and request environment variables or

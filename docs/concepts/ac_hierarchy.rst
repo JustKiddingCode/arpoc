@@ -15,17 +15,16 @@ AC Entities
    remove objinf
    remove environment
 
-AC Entities allow users to granularly specify which conditions have to be
-met to allow or deny the access.
-It follows the concepts of XACML, while focusing on increased readability and
+AC Entities allow users to granularly specify conditions and circumstances
+that have to be met to allow or deny the access.
+It follows the concepts of XACML, while we focused on increased readability and
 easier creation. The user defines rules, policies or policy sets, which
 in turn can define other objects like effects, obligations and conflict resolutions.
 We first start with AC Effects, then explain the access control hierarchy focus
 on conflict resolution and explain the evaluation process in depth.
-Then we explain the access control language, i.e. the language conditions can
-be specified in. The last element of ac entities are obligations and we
-explain how obligations can be used to ensure
-conditions are met after an access control decision.
+Then we explain the access control language, i.e. the language the user can specify
+the conditions with. The last element of AC entities are `obligations`, a way
+the user can ensure that actions are taken after an access control decision.
 
 Effects
 ========================
@@ -189,19 +188,34 @@ Access Control Hierarchy
    remove oidcproxy.special_pages.Userinfo
 
 We use three levels of access control entities.
-The highest are policy sets, then policies and then rules.
-Every entity (policy set, policy, rule) has an unique id, and a target.
+The highest in the hierarchy are policy sets, then policies and then rules.
+Every entity (policy set, policy, rule) has an unique id (`entity_id`), 
+a target,
+and a list of obligations (`obligations`).
 In the evaluation process, an entity is only evaluated if the target is evaluated to true.
-The id is used by other entities to link to each other.
+The entity id is used by other entities to link to each other.
 Every entity can furthermore provide a description which is used merely for
 display purpose.
 
-Every policy set can contain other policy sets and/or policies.
-Every policy can contain one or more rules.
+Definition contain relation
+  An access control entity A contains a different access control entity B if
+  B's id is listed in A's:
+
+    * `policy_sets` if B is a policy set
+    * `policies` if B is a policy
+    * `rules` if B is a rule
+
+  We say an access control entity B is contained in A if A contains B.
+  Policy sets and policies can only be contained in policy sets, while rules
+  can only be contained in policies.
+
 Policies and policy sets specify a conflict resolution which is used to determine
 the effect the policy has after the containing rules are evaluated.
 
-Rules have a condition and an effect.
+Rules specify their condition in the access control language and an effect.
+If a rules get evaluated and their target matched, the condition is evaluated
+and if the condition got evaluated to `true`, their effect is returned if the
+condition evaluated to `false` the opposite of their effect is returned.
 
 Conflict Resolution
 ===================
@@ -281,30 +295,33 @@ Conflict Resolution
    remove oidcproxy.plugins.obl_loggers.LogSuccessful
    remove oidcproxy.special_pages.Userinfo
 
-In the evaluation process of a policy or a policy set `A`,the conflict resolver
+In the evaluation process of a policy or a policy set `A`, the conflict resolver
 of `A` gets notified each time an ac entity contained in `A` finished its evaluation
 process.
 The conflict resolution is called with the entity id and the result of the evaluation.
-It can then decide if the evaluation process must carry on or the result will not
-change with other evaluation.
-
-We use two conflict resolution algorithm: `ANY` and `AND`.
-
-The `ANY` algorithm evaluates to `GRANT` as soon as any of the contained ac entities
-evaluated to `GRANT`. After the first `GRANT` is transmitted to the conflict 
-resolution, `check_break` will return `True` and `get_result` will return `GRANT`.
-If none of the ac entity evaluated to `DENY` or `GRANT`, the conflict resolution
-will return `None`. If no ac entity evaluated to `GRANT` but at least one entity
-evaluated to `DENY`, `DENY` is returend.
-
-The `AND` algorithm evalutes to `GRANT` only if at least one of the contained ac entities
-evaluated to `GRANT` and every other entity evaluated to `GRANT` or  `None`. 
-After the first `DENY` is transmitted to the conflict resolution, `check_break`
-will return `True` and `get_result` returns `DENY`.
+It can then decide if the evaluation process must continue or the result is fixed,
+i.e. will not change with further evaluation.
 
 
 Evaluation Process
 ==================
+
+Each service specifies a policy set which is evaluated in order to decide if
+access is granted or denied.
+We start at the bottom of the hierarchy, the rules, continue with policies and
+end with policy sets.
+
+The process of evaluation of a rule R is as follows:
+
+#. Check the target specifier. If False, abort
+#. Check condition specifier. If True return Effect, else return the inverse of Effect.
+
+The process of evaluation of a policy P is as follows:
+
+#. Check the target specifier. If False, abort
+#. For every rule R contained in P: Evaluate R.
+#. Let `Res` be the list of results of every rule R in P:
+   Run the conflict resolution A specified with `Res` and get result for policy P.
 
 The process of evaluation of a policy set A is as follows:
 
@@ -314,26 +331,15 @@ The process of evaluation of a policy set A is as follows:
 #. Let `Res` be the list of results of every policy set and every policy in A:
    Run the conflict resolution A specified with `Res` and get result for policy set A.
 
-The process of evaluation of a policy P is as follows:
-
-#. Check the target specifier. If False, abort
-#. For every rule R contained in P: Evaluate R.
-#. Let `Res` be the list of results of every rule R in P:
-   Run the conflict resolution A specified with `Res` and get result for policy P.
-
-The process of evaluation of a rule R is as follows:
-
-#. Check the target specifier. If False, abort
-#. Check condition specifier. If True return Effect, else return the inverse of Effect.
-
 
 Improvements
 ------------
 
-To increase speed, two mechanisms apply:
-The resolver gets the result as soon as as a policy is evaluated.
-The resolver can abort the evaluation process if the result is fixed.
-This can be useful if, e.g. the access is denied, as soon as one rule denied
+To increase speed of the evaluation process we applied the following mechanism:
+The resolver gets the result of a contained AC entity 
+as soon as the AC entity finished evaluation.
+The resolver can then abort the evaluation process if the result is fixed.
+This can be useful if, e.g. the access should denied, as soon as one rule denied
 the access.
 
 We describe the algorithm more formally with the next two sequence diagrams.
@@ -354,54 +360,43 @@ the evaluation of a policy including more details of the evaluation of a rule.
    skinparam DiagramBorderThickness 2
    !include docs/concepts/seq_p_evaluation.puml
 
-Error Handling
-^^^^^^^^^^^^^^^^^^
-
-TODO: Move into Implementation chapter
-In the evaluation of an ac entity two errors can occur: a missing AC entity or
-missing attributes of the subject, object, environment or access.
-
-
-Missing ac entities
-"""""""""""""""""""
-
-If an ac entity is missing, e.g. a typing error, a log message is generated
-with the log level `Warning`.
-The referencing entity evaluates to `None` in this case. Note that this is only
-true if the missing entity type is called for evaluation, i.e. if the conflict
-resolution algorithm already decided the result of the policy, a missing rule
-will not change this result.
-
-Missing attributes
-""""""""""""""""""
-
-If the evaluation tries to access an argument that is not provided by the corresponding
-dictionary, an exception of one of the following types is raised:
-
-* SubjectAttributeMissing
-* ObjectAttributeMissing
-* EnvironmentAttributeMissing
-* AccessAttributeMissing
-
-The evaluation process catches these exceptions sets his result to None
-and if an subject attribute was missing, adds the key to a list.
-After all AC entities are evaluated, the ac entity that started the evaluation
-has a list of all subject attributes that are missing.
 
 Access Control Language
 =======================
 
+Parser
+------
+
+The parser has the task to turn a string of the language into a boolean value.
+The parser is given only the string and the evaluation context.
+We define two functions: `check_target` and `check_conditition` which either
+transform a target string into a boolean value or a condition string.
+
+
+Language description
+--------------------
+
 To specify the conditions that have to be met for an access, we wanted a language
-that was simple to read and write, give us the possibility to combine conditions,
-support multiple comparisons of strings as well as integers
+that was simple to read and write, give us the possibility to combine conditions
+and support multiple comparisons of strings as well as integers
 (equals, not equal, greater/lesser (or equal), string startswith, string matches regex).
 It should also support complex datatypes, such as dictionaries and lists, next to
 basic datatypes (integers and strings).
-Because python is a widely known language,
-the syntax should be easy to learn for people with background in python.
+Because Python is a widely known language and we implemented `arpoc` with Python
+the syntax should be easy to learn for people with background in Python.
+At the end of the evaluation a boolean value (`true` or `false`) should be returned.
+This section focuses on the description of the abstract syntax tree (AST).
+The transformation into a boolean value is descrbide in :ref:`ac_entity_evaluation`.
 
-Now we explain the structure of our language. We start from the top of our
-abstract syntax tree (AST).
+The following text is the actual grammar that is used to parse the condition and target
+statements. The grammar is parsed using lark, which uses a syntax similar
+to the EBNF (TODO:ref).
+
+.. literalinclude:: /oidcproxy/resources/grammar.lark
+   :language: jsgf
+   :linenos:
+
+We start from the top of our abstract syntax tree (AST).
 The root of an AST is either a `condition` or a `target`. Both link directly to
 a `statement` (l.2).
 
@@ -423,27 +418,7 @@ Comparson operators are `>`, `<`, `==`, `!=`, `startswith`, `matches` (l.32).
 `single` is either directly an attribut or an attribut with an unary operator (uop) (l.7).
 The only unary operator currently allowed is  `exists`.
 
-After the rule is parsed, we must return, given the abstract syntax tree and the attributes,
-a boolean value. We explain this in :ref:`ac_entity_evaluation`
 
-Parser
-------
-
-The parser has the task to turn a string of the language into a boolean value.
-The parser is given only the string and the evaluation context.
-We define two functions: `check_target` and `check_conditition` which either
-transform a target string into a boolean value or a condition string.
-
-Grammar Reference
------------------
-
-This is the actual grammar that is used to parse the condition and target
-statements. The grammar is parsed using lark, which uses a syntax similar
-to the EBNF.
-
-.. literalinclude:: /oidcproxy/resources/grammar.lark
-   :language: jsgf
-   :linenos:
 
 Obligations
 ============
@@ -462,10 +437,9 @@ Obligations
    remove environment
 
 Obligations are actions that must be executed successfully after the evaluation
-of AC hierarchy. Every AC entity can specify a set of obligations which must
-be executed if the target specifier of that entity was matched.
-Obligations are called in the same way as the environment attribute setter,
-i.e. all obligations inherit from the same class and are collected in a mapping
+of the AC hierarchy. Every AC entity can specify a set of obligations which must
+be executed if the target specifier of that entity matched.
+All obligations inherit from the same class and are collected in a mapping
 from name to class.
 After the access control decision, all obligations are run, i.e. the run method
 of the Obligation object is executed with the effect, with the access control context

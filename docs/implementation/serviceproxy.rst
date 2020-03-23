@@ -91,3 +91,13 @@ Else an error message with the HTTP status code 403 (`Forbidden`) is returned.
    remove oidcproxy.plugins.obl_loggers.LogSuccessful
    remove oidcproxy.special_pages.Userinfo
 
+requests
+--------
+
+In the object delivery phase, we need to request the object from a different web
+server, copy the response header and data and transmit the object to the requesting
+users. This would require building a HTTP request, including encoding characters
+to comply standars, opening a connection to the web server, and parsing the
+response.
+Furthermore, we would need to implement TLS certificate checks.
+All these tasks are performed by the requests library (:cite:`requests`).

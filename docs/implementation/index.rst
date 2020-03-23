@@ -5,13 +5,15 @@ Implementation Notes
 
 .. toctree::
         general
-        plugin_architecture
-        ac_entity_evaluation
-        special_pages
-        serviceproxy
+        app
+        config
+        pip
         oidchandler
         cache
-        app
+        serviceproxy
+        ac_entity_evaluation
+        plugin_architecture
+        special_pages
         code_quality
 
 

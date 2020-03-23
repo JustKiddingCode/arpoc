@@ -5,6 +5,7 @@ OidcHandler
 
 The `OidcHandler` gets either called from a `ServiceProxy` instance or from
 an `App` instance.
+
 A `ServiceProxy` instance either wants subject attributes (`get_userinfo`)
 or returns with an request for specific claims (`need_claims`). 
 In the `get_userinfo` method it is checked if the user supplied an access token
@@ -21,6 +22,10 @@ was found, or the user gets redirected either to a list of OpenID connect provid
 where he can choose his provider, or he gets redirected to the OpenID connect provider
 if only one is supported.
 
+The App instance calls the `OidcHandler` to setup the connection with the OpenID
+Connect Providers. Either the client id and client secret were already found
+(`create_client_from_secrets`) or the client (our proxy) must register
+at the provider (`register_first_time`).
 
 .. uml::
    :scale: 40 %
@@ -99,3 +104,21 @@ if only one is supported.
    remove oidcproxy.plugins.obl_loggers.LogSuccessful
    remove oidcproxy.special_pages.Userinfo
 
+pyoidc
+---------------------
+
+All subject attributes are claims of an OpenID Connect provider.
+Therefore we need to communicate with OpenID Connect Provider, act as
+a relying party and comply with the respective standards.
+The library `pyoidc` (:cite:`pyoidc`) enables us to comply with the standard
+without implementing it on our own.
+
+pyjwkest
+----------------------
+
+If the user does a request with an access token included, we need to contact
+the issuer of this access token to ensure that the access token is valid.
+Because many issuers (TODO: cite/prove) use JWTs we can parse them and contact
+the issuer that is stated inside the JWT.
+`pyoidc` uses for this task the library `pyjwkest` (:cite:`pyjwkest`) 
+which we use as well.

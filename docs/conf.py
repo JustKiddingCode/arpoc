@@ -21,7 +21,7 @@ sys.path.insert(1, os.path.abspath('..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'OIDC Proxy'
+project = 'ARPOC'
 copyright = '2019, Konstantin Zangerle'
 author = 'Konstantin Zangerle'
 
@@ -140,7 +140,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'OIDCProxy.tex', 'OIDC Proxy Documentation',
+    (master_doc, 'OIDCProxy.tex', 'ARPOC Documentation',
      'Konstantin Zangerle', 'manual'),
 ]
 
@@ -150,7 +150,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'oidcproxy', 'OIDC Proxy Documentation',
+    (master_doc, 'ARPOC', 'ARPOC Documentation',
      [author], 1)
 ]
 
@@ -161,8 +161,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'OIDCProxy', 'OIDC Proxy Documentation',
-     author, 'OIDCProxy', 'One line description of project.',
+    (master_doc, 'OIDCProxy', 'ARPOC Documentation',
+     author, 'ARPOC', 'Authorisation Reverse Proxy with OpenID Connect',
      'Miscellaneous'),
 ]
 

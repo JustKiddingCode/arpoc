@@ -8,7 +8,7 @@
 !includeurl ICONURL/font-awesome-5/clipboard_list.puml
 !define ICONURL https://raw.githubusercontent.com/Roemer/plantuml-office/master/office2014
 !includeurl ICONURL/Concepts/service_application.puml
-OFF_SERVICE_APPLICATION(OIDC,OIDC Proxy)
+OFF_SERVICE_APPLICATION(OIDC,ARPOC)
 FA5_CLIPBOARD_LIST(obligations, Obligations)
 
 GOV_WORLD(environment,Environment)
@@ -18,12 +18,12 @@ GOV_DATABASE(objinf, Object Information)
 GOV_FILE(object, Object)
 GOV_ID_CARD(oidcprovider, OIDC Provider)
 
-user -> OIDC: Request\n(Access Attributes)
+user -> OIDC: Request\n & Access Attributes
 OIDC -> user: Response
 OIDC <-- environment: Environment\nAttributes
 OIDC <-- objinf: Object\nAttributes
 obligations <-- OIDC
-oidcprovider <-- OIDC
+oidcprovider <-- OIDC: userinfo request
 oidcprovider --> OIDC: user attributes
 acentities --> OIDC: Rules
 OIDC -> object

@@ -13,14 +13,15 @@ Plugin Architecture
    hide acentities
    hide object
 
-We used a modular design, so that users can modify the behaviour to their needs.
+Access control rules must be tailored to fit the individual needs.
+Therefore we used a modular design, so that users can modify the behaviour to their needs.
 As above figure illustrates, there are three possibilities to use plugins:
 
 * Obligations
 * Environment setters
 * Object Setters
 
-For each type the plugin must inherit from a specific class and the python
+For each type the plugin must inherit from a specific class and the Python
 module must be placed in specific configurable folder.
 
 .. uml::
@@ -99,15 +100,15 @@ Obligations
 
 An obligation plugin gets the result of the access control evaluation and the
 context data and must return a boolean.
-If an obligation does not return `True` then access is denied.
+If a single obligation does not return `True` then access is denied.
 The obligation class must set the class attribute `name` and can referenced
 by it from the access control entities.
 
 In some businesses traceability is a big concern. These businesses can use
 our log obligations.
-We include obligations for logging: log every access (`obl_log`), log only successful
+We include the following obligations: log every access (`obl_log`), log only successful
 accesses (`obl_log_successful`), log denied accesses (`obl_log_failed`).
-Since we use the Python Logging module, the loggers can perform various tasks,
+Since we use the Python Logging module (:cite:`logging`), the loggers can perform various tasks,
 from writing to a file on a local disk, writing to the system log, to writing a
 mail. The default configuration of the logger can either be used without changes, with changes
 like a changed filename, or completely changed.
@@ -121,11 +122,11 @@ by the class attribute `target`.
 The return value of the environment setter is then used every time
 the environment attribute is requested.
 
-We include environment setters for time related attributes, in parentheses
-the attribute key: time in "hh:mm:ss" format (`time`),
+We include the following environment setters for time related attributes
+(in parentheses the attribute key): time in "hh:mm:ss" format (`time`),
 time and day in "YYYY-MM-DD HH:MM:SS" format (`datetime`), only hours as integers (`time_hour`), only minutes
 as integer (`time_minute`), only seconds as integers (`time_second`). These 
-environment setters do not use a timezone, i.e. they are given UTC.
+environment setters do not use a timezone, i.e. they are given in UTC.
 
 For an application example consider a company that wants to protect its employees for
 overwork. This company can limit the time that a webservice is available via this
@@ -148,12 +149,12 @@ We included two object setters: `urlmap` and `json`.
 urlmap
 ^^^^^^^^^
 
-The `urlmap` object setter takes a list regular expressions and matches each
+The `urlmap` object setter takes a list of regular expressions and matches each
 against the target path.
 For example, if a service offers information about musicians and the url syntax
-is `artist`/`album`/`title` the regex `(?P<artist>[\w ]+)/(?P<album>[\w ]+)/(?P<track>[\w ]+)`
-would set `Rise Against` as artist, `Appeal to Reason` as album and `Entertainment` as track
-for the path `Rise Against/Appeal to Reason/Entertainment`.
+is `artist`/`album`/`title` the regex could be `(?P<artist>[\w ]+)/(?P<album>[\w ]+)/(?P<track>[\w ]+)`.
+For the path `Rise Against/Appeal to Reason/Entertainment` the objectsetter
+would set `Rise Against` as artist, `Appeal to Reason` as album and `Entertainment` as track.
 Note that the regex must match the whole path, so a regex that sets a value only
 based on the first folder, must end on something like `.*` to match.
 

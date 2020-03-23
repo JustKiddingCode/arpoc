@@ -11,15 +11,26 @@ Attribut Retrieval
    hide obligations
    hide acentities
 
+
+Our access control decisions are based on attributes. We provide a reverse
+proxy with Attribute Based Access Control (ABAC).
+This section describes how these attributes are gathered and the different
+kinds of attributes. We call the set of all attributes access control context.
+
+Definition Access Control Context
+  We call the mapping from `subject`, `object`, `environment` and `access` to
+  their respective mapping from key to value Access Control Context (AC Context).
+  We call the key of a value in one of the four mappings `attribute key`.
+
 .. _concepts_attribute_retrival_subject:
 
 Subject
 *******
 
-The subject dictionary is filled with attributes or as they are called in the
-OpenID Connect Context `claims`.
-The subject dictionary is equal to the information from the OpenID Connect
-Userinfo Endpoint.
+The subject dictionary is filled with attributes or - as they are called in the
+OpenID Connect Context -  `claims`.
+The contents of the subject dictionary and the information from the OpenID Connect
+Userinfo Endpoint are the same.
 The scopes are requested on-demand. If an access control rule tries to access
 a not existing claim, this claim is saved and - if the evaluation was not
 successful (`GRANT`) - the scopes providing the missing claims
@@ -28,7 +39,6 @@ For self-defined scopes the user can provide a mapping from claim to scope.
 
 Object
 *******
-
 
 .. uml::
    :scale: 40 %
@@ -116,11 +126,12 @@ The object dictionary is initialized with the following keys:
 
 
 The rest of the object dictionary is populated using so-called `objectsetters`.
-The objectsetters can be freely implemented and activated using the configuration
-file. All object setters are run when the first ac entities requests a 
+The `objectsetters` can be implemented and activated using the configuration
+file with the plugin system. 
+All object setters are run when the first ac entities requests a
 key that is not in the dictionary.
 
-Each service can influence the order when an objectsetter is run.
+Each service can define the order the objectsetters are run.
 In the initalization step, every subclass of the class ObjectSetter is collected
 and added to a priority queue, with the priority specified in the service
 configuration.
@@ -243,7 +254,7 @@ Environment
    remove oidcproxy.special_pages.Userinfo
 
 The environment variables are also populated with plugins. In contrast to the
-objectsetters, each environment plugin specifies the attribute it sets 
+objectsetters, each environment plugin specifies the attribute key it sets
 (`target` attribut) and the plugin is only called when this attribute is requested.
 
 .. uml::

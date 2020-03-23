@@ -3,7 +3,11 @@
 AC Entity Evaluation
 ====================
 
-Consider the figure below.
+After the parser created the AST, we want a boolean value.
+
+The following figure shows the AST for the condition `subject.email == 'email@example.com' and exists object.var`.
+We show the transformation process with the AC context that only contains the key `email` in the subject mapping
+with the value `email@example.com`.
 
 .. figure:: /docs/gen/ac_eval_before_transformers.png
 
@@ -18,7 +22,7 @@ the leave arbitrarily.
 Broadly classified, there are the attributes transformer, operator transformers,
 middle level and top level transformers. To increase performance of the tree evaluation,
 all transformers are combined and called as needed.
-For didactic reasons, we show the result of every transformer seperately.
+To illustrate the how the system works, we show the result of every transformer seperately.
 
 .. uml::
    :scale: 40 %
@@ -110,6 +114,26 @@ If the dictionary typ is a mapping, i.e. we can access elements with a key,
 we return this dictionary lookup. This lambda function is executed for every element
 in the split-up key list by the reduce function.
 The start dictionary is in this case the subject atribute dictionary.
+If the function was not able to find a attribute an exception is raised.
+
+This is why we have the special `exists` transformer. 
+The `exists` tranformer is run before all other transformers.
+It transforms a `uop` node to the *string* `exists` if and only if the text in the token
+is literally 'exists'. Furthermore a `single` node is transformed if and only if
+the first child is the *string* `exists`.
+The attributes are substituted using the previously described transformer functions
+but the exeptions thrown by missing attributes are catched and in the case of
+an exception  exists evaluated to *False* else to *True*.
+
+.. figure:: /docs/gen/ac_eval_after_exists.png
+
+   AST after the run of the exists transformer 
+
+.. figure:: /docs/gen/ac_eval_after_attr.png
+
+   AST after the run of the attribute transformer
+
+
 
 Operator transformers replace the Token object with a function reference.
 Every operator is implemented in its own class. Through inheritance, some
@@ -182,48 +206,88 @@ This function reference is then executed by the middle level transformers.
    remove oidcproxy.plugins.obl_loggers.LogSuccessful
    remove oidcproxy.special_pages.Userinfo
 
-In our example, `comparison`, `single` and `linked` are middle level transformers.
-For the linked statement its important that it does not change the tree if
-the children are not already transformed.
-Top level transformers, like statement,  condition or target,
-then pass the results of middle level transformers through, but forcing the value
-to be boolean.
-
-
-A special case is however the `exists` operator. Normally, missing attributes throw an
-exception. This however, ends the evaluation of the tree and therefore is not
-suited to what the user would expect with this operator.
-For this, we used a special transformer that is run before all other transformers.
-It transforms a `uop` node to the *string* `exists` if and only if the text in the token
-is literally 'exists'. Furthermore a `single` node is transformed if and only if
-the first child is the *string* `exists`.
-The attributes are substituted using the previously described transformer functions
-but the exeptions thrown by missing attributes are catched and in the case of
-an exception  exists evaluated to *False* else to *True*.
-
-The effects all transformers have is shown in the next figures.
-
-.. figure:: /docs/gen/ac_eval_after_exists.png
-
-   AST after the run of the exists transformer 
-
-.. figure:: /docs/gen/ac_eval_after_attr.png
-
-   AST after the run of the attribute transformer
+Applicated to our example, the operator tokens got replaced by a class.
 
 .. figure:: /docs/gen/ac_eval_after_op.png
 
    AST after the run of the operator transformer
 
+The nodes `comparison`, `single` and `linked` are transformed with 
+middle level transformers. For the linked statement its important that 
+it does not change the tree if
+the children are not already transformed.
+
 .. figure:: /docs/gen/ac_eval_after_mlt.png
 
    AST after the run of the middle level transformer
+
+Top level transformers, like statement,  condition or target,
+then pass the results of middle level transformers through, but forcing the value
+to be boolean.
+
 
 .. figure:: /docs/gen/ac_eval_after_tlt.png
 
    AST after the run of the top level transformer
 
+
+For the `linked` statement we need to re-apply a middle level transformer.
+
 .. figure:: /docs/gen/ac_eval_after_tlt_mlt.png
-   :width: 60%
+   :scale: 40%
 
    AST after the run of the middle level transformer
+
+
+
+Conflict Resolution
+====================
+
+
+We use two conflict resolution algorithm: `ANY` and `AND`.
+
+The `ANY` algorithm evaluates to `GRANT` as soon as any of the contained ac entities
+evaluated to `GRANT`. After the first `GRANT` is transmitted to the conflict 
+resolution, `check_break` will return `True` and `get_result` will return `GRANT`.
+If none of the ac entity evaluated to `DENY` or `GRANT`, the conflict resolution
+will return `None`. If no ac entity evaluated to `GRANT` but at least one entity
+evaluated to `DENY`, `DENY` is returend.
+
+The `AND` algorithm evalutes to `GRANT` only if at least one of the contained ac entities
+evaluated to `GRANT` and every other entity evaluated to `GRANT` or  `None`. 
+After the first `DENY` is transmitted to the conflict resolution, `check_break`
+will return `True` and `get_result` returns `DENY`.
+
+Error Handling
+^^^^^^^^^^^^^^^^^^
+
+TODO: Move into Implementation chapter
+In the evaluation of an ac entity two errors can occur: a missing AC entity or
+missing attributes of the subject, object, environment or access.
+
+
+Missing ac entities
+"""""""""""""""""""
+
+If an ac entity is missing, e.g. a typing error, a log message is generated
+with the log level `Warning`.
+The referencing entity evaluates to `None` in this case. Note that this is only
+true if the missing entity type is called for evaluation, i.e. if the conflict
+resolution algorithm already decided the result of the policy, a missing rule
+will not change this result.
+
+Missing attributes
+""""""""""""""""""
+
+If the evaluation tries to access an argument that is not provided by the corresponding
+dictionary, an exception of one of the following types is raised:
+
+* SubjectAttributeMissing
+* ObjectAttributeMissing
+* EnvironmentAttributeMissing
+* AccessAttributeMissing
+
+The evaluation process catches these exceptions sets his result to None
+and if an subject attribute was missing, adds the key to a list.
+After all AC entities are evaluated, the ac entity that started the evaluation
+has a list of all subject attributes that are missing.

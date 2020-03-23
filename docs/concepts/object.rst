@@ -18,7 +18,7 @@ Objects
 
 The purpose of a reverse proxy is to deliver websites that are available to
 him using HTTP. These objects are referenced to by their URL.
-The administrator of an reverse proxy decides on the path where the resource
+The administrator of a reverse proxy decides on the path where the resource
 will be available.
 In some cases it might be necessary to provide some internal information to the user,
 which cannot be done by proxying webpages.

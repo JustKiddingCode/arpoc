@@ -1,22 +1,17 @@
-Policy Information Point
-========================
+Configuration
+=============
 
-.. uml::
-   :scale: 40 %
-
-   !include docs/overview.plantuml
-   
-   hide user
-   hide oidcprovider
-   hide object
-   hide obligations
-   hide objinf
-   hide environment
-
-The policy information point (PIP) has the purpose to receive ac entities and
-make them available to the proxy. The class that handles this task is the `AC_Container`.
-Furthermore the AC Container allows to evaluate policy sets by their ID
-with given data.
+Many parts of our proxy need configuration. The proxy component needs
+configuration for the adress, the port and TLS key files.
+Each service must specify the path where the service will be available and
+the URL the service is available. Furthermore it needs to specify the policy
+set which defines to verify if the access should be granted or denied.
+For every OpenID Connect Provider at least a configuration URL must be supplied.
+For the policy information point, the directory where the files with the
+AC entities must be specified.
+Some miscellaneous configuration, for example the logging level or paths of the
+log file can also be made.
+The complete configuration is encapsulated in the `OIDCProxyConfig` class.
 
 .. uml::
    :scale: 40 %
@@ -27,8 +22,9 @@ with given data.
    remove oidcproxy.ac.Policy_Set
    remove oidcproxy.ac.AC_Entity
    remove oidcproxy.ac.Rule
-   remove oidcproxy.ac.common.Effects
+   remove oidcproxy.ac.AC_Container
    remove oidcproxy.ac.EvaluationResult
+   remove oidcproxy.ac.common.Effects
    remove oidcproxy.ac.conflict_resolution.AnyOfAny
    remove oidcproxy.ac.conflict_resolution.And
    remove oidcproxy.ac.conflict_resolution.ConflictResolution
@@ -58,12 +54,6 @@ with given data.
    remove oidcproxy.base.TLSOnlyDispatcher
    remove oidcproxy.cache.Cache
    remove oidcproxy.cache.CacheItem
-   remove oidcproxy.config.ACConfig
-   remove oidcproxy.config.Misc
-   remove oidcproxy.config.OIDCProxyConfig
-   remove oidcproxy.config.ProviderConfig
-   remove oidcproxy.config.ProxyConfig
-   remove oidcproxy.config.ServiceConfig
    remove oidcproxy.exceptions.ACEntityMissing
    remove oidcproxy.exceptions.AttributeMissing
    remove oidcproxy.exceptions.BadRuleSyntax
@@ -94,3 +84,11 @@ with given data.
    remove oidcproxy.plugins.obl_loggers.LogFailed
    remove oidcproxy.plugins.obl_loggers.LogSuccessful
    remove oidcproxy.special_pages.Userinfo
+
+pyyaml
+------
+
+We want to make the configuration as easy as possible. Therefore, our configuration
+file is in YAML (todo: ref) syntax. To parse the configuration file, we use
+pyyaml (:cite:`pyyaml`). PyYAML parses the configuration into a dictionary which
+we use in our `config` module.
