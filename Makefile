@@ -1,7 +1,7 @@
 .PHONY: tests, codelines, doc, htmldoc, pdfdoc
 
 tests:
-	python3.7-coverage run --include './oidcproxy/*' -m pytest oidcproxy/tests || :
+	python3.7-coverage run --include './arpoc/*' -m pytest arpoc/tests || :
 	python3.7-coverage html --skip-covered
 
 clean:
@@ -12,11 +12,11 @@ clean:
 
 doc:
 	PYTHONPATH=. run-parts docs/runners
-	PYTHONPATH=. python3 oidcproxy/config.py > docs/gen/sample_config.yml
+	PYTHONPATH=. python3 arpoc/config.py > docs/gen/sample_config.yml
 	plantuml -tsvg docs/gen/classes.plantuml
 	inkscape docs/gen/classes.svg --export-pdf=docs/gen/classes.pdf
 	pdfjam --paper a3 --landscape docs/gen/classes.pdf --outfile docs/gen/classes_a3.pdf
-	sphinx-apidoc -o docs/api oidcproxy -f
+	sphinx-apidoc -o docs/api arpoc -f
 
 htmldoc: doc
 	sphinx-build -c docs -b html . htmldoc
@@ -24,12 +24,12 @@ htmldoc: doc
 pdfdoc: doc
 	sphinx-build -c docs -b latex . latexdoc
 	cd latexdoc; for i in plantuml*.pdf; do pdfcrop $$i $$i; done
-	cd latexdoc && latexmk --pdf OIDCProxy.tex
-	pdfunite latexdoc/OIDCProxy.pdf docs/gen/classes_a3.pdf doc_classdiagram.pdf
-	cp latexdoc/OIDCProxy.pdf ./doc.pdf
+	cd latexdoc && latexmk --pdf ARPOC.tex
+	pdfunite latexdoc/ARPOC.pdf docs/gen/classes_a3.pdf doc_classdiagram.pdf
+	cp latexdoc/ARPOC.pdf ./doc.pdf
 
 codelines:
-	cloc oidcproxy --exclude-dir=htmlcov,__pycache__
+	cloc arpoc --exclude-dir=htmlcov,__pycache__
 
 mypy:
-	mypy oidcproxy --ignore-missing-imports --disallow-untyped-calls --no-site-packages --disallow-incomplete-defs --disallow-untyped-defs || :
+	mypy arpoc --ignore-missing-imports --disallow-untyped-calls --no-site-packages --disallow-incomplete-defs --disallow-untyped-defs || :

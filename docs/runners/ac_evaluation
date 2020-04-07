@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from oidcproxy.ac.parser import *
+from arpoc.ac.parser import *
 
 l = Lark(grammar, start="condition")
 rule = "subject.email == 'email@example.com' and exists object.var"

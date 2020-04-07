@@ -2,7 +2,7 @@
 
 source /home/justkidding/.local/share/virtualenvs/pylint-b0C_0gT4/bin/activate
 
-pyreverse -o plantuml oidcproxy -m y -f OTHER
+pyreverse -o plantuml arpoc -m y -f OTHER
 
 mv packages.plantuml docs/gen/
 mv classes.plantuml docs/gen/

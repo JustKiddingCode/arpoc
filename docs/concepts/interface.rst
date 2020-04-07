@@ -48,9 +48,9 @@ e.g. adding the HTTP header line `Authorization: bearer abcdef` for the access t
 If the access token is a JWT, the data gets unpacked and the issuer field `iss`
 is used to connect to the openid provider.
 If the access token is not a JWT, the client must also supply the issuer, using
-the `x-oidcproxy-issuer` HTTP header.
+the `x-arpoc-issuer` HTTP header.
 If the issuer is `https://openid.example.com/realms/master` then the header
-`x-oidcproxy-issuer: https://openid.example.com/realms/master` must be added.
+`x-arpoc-issuer: https://openid.example.com/realms/master` must be added.
 Except for the retrieval of the access token and userinfo command line clients 
 are treated the same way as webbrowsers.
 

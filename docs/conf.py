@@ -15,7 +15,7 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.abspath('../oidcproxy'))
+sys.path.insert(0, os.path.abspath('../arpoc'))
 sys.path.insert(1, os.path.abspath('..'))
 
 
@@ -113,7 +113,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ---------------------------------------------
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'OIDCProxydoc'
+htmlhelp_basename = 'ARPOCdoc'
 
 
 # -- Options for LaTeX output ------------------------------------------------
@@ -140,7 +140,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'OIDCProxy.tex', 'ARPOC Documentation',
+    (master_doc, 'ARPOC.tex', 'ARPOC Documentation',
      'Konstantin Zangerle', 'manual'),
 ]
 
@@ -161,7 +161,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'OIDCProxy', 'ARPOC Documentation',
+    (master_doc, 'ARPOC', 'ARPOC Documentation',
      author, 'ARPOC', 'Authorisation Reverse Proxy with OpenID Connect',
      'Miscellaneous'),
 ]

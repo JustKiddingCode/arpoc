@@ -1,5 +1,5 @@
-graft oidcproxy
+graft arpoc
 global-exclude *.py[cod] __pycache__ *.so
-prune oidcproxy/htmlcov
-prune oidcproxy/tests
-prune oidcproxy/.coverage
+prune arpoc/htmlcov
+prune arpoc/tests
+prune arpoc/.coverage
