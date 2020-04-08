@@ -164,33 +164,37 @@ class OidcHandler:
 
         # check if issuer is in provider list
         client = None
-        for _, obj in self.__oidc_provider.items():
+        for provider_name, obj in self.__oidc_provider.items():
             LOGGING.debug(obj)
             if obj.issuer == issuer:
                 client = obj
+                client_name = provider_name
 
         valid_until = 0
         if client:
-            # do userinfo with provided AT
-            # we need here the oauth extension client
-            args = ["client_id", "client_authn_method", "keyjar", "config"]
-            kwargs = {x: client.__getattribute__(x) for x in args}
-            oauth_client = oic.extension.client.Client(**kwargs)
-            for key, val in client.__dict__.items():
-                if key.endswith("_endpoint"):
-                    oauth_client.__setattr__(key, val)
-            oauth_client.client_secret = client.client_secret
-            introspection_res = oauth_client.do_token_introspection(
-                request_args={
-                    'token': access_token,
-                    'state': rndstr()
-                },
-                authn_method='client_secret_basic')
-            if introspection_res['active']:
-                if 'exp' in introspection_res:
-                    valid_until = introspection_res['exp']
-                else:
-                    valid_until = arpoc.utils.now() + 30
+            if self.cfg.openid_providers[client_name].do_token_introspection:
+                # do userinfo with provided AT
+                # we need here the oauth extension client
+                args = ["client_id", "client_authn_method", "keyjar", "config"]
+                kwargs = {x: client.__getattribute__(x) for x in args}
+                oauth_client = oic.extension.client.Client(**kwargs)
+                for key, val in client.__dict__.items():
+                    if key.endswith("_endpoint"):
+                        oauth_client.__setattr__(key, val)
+                oauth_client.client_secret = client.client_secret
+                introspection_res = oauth_client.do_token_introspection(
+                    request_args={
+                        'token': access_token,
+                        'state': rndstr()
+                    },
+                    authn_method='client_secret_basic')
+                if introspection_res['active']:
+                    if 'exp' in introspection_res:
+                        valid_until = introspection_res['exp']
+                    else:
+                        valid_until = arpoc.utils.now() + 30
+            else:
+                valid_until = arpoc.utils.now() + 30
             userinfo = client.do_user_info_request(access_token=access_token)
         else:
             LOGGING.info(

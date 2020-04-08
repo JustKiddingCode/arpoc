@@ -28,6 +28,7 @@ class ProviderConfig:
     special_claim2scope: InitVar[dict] = None
     claim2scope: dict = field(init=False)
     redirect_paths: List[str] = field(default_factory=list)
+    do_token_introspection: bool = True
 
     def __post_init__(self, baseuri: str, special_claim2scope: Dict) -> None:
         self.claim2scope = {
