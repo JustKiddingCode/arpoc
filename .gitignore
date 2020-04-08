@@ -10,8 +10,6 @@ __pycache__
 *.swp
 .coverage
 htmlcov
-docs/api/
-docs/gen/
 docs/uml/
 htmldoc/
 latexdoc/

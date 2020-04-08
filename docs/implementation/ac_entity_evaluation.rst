@@ -27,7 +27,7 @@ To illustrate the how the system works, we show the result of every transformer 
 .. uml::
    :scale: 40 %
 
-   !include gen/classes.plantuml
+   !include classes.plantuml
    remove arpoc.App
    remove arpoc.ac.Policy
    remove arpoc.ac.Policy_Set
@@ -145,7 +145,7 @@ This function reference is then executed by the middle level transformers.
 .. uml::
    :scale: 40 %
 
-   !include gen/classes.plantuml
+   !include classes.plantuml
    remove arpoc.App
    remove arpoc.ac.Policy
    remove arpoc.ac.Policy_Set

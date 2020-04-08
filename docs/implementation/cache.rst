@@ -16,7 +16,7 @@ smaller than the current timestamp, i.e. the CacheItem's lifetime period is over
 .. uml::
    :scale: 40 %
 
-   !include gen/classes.plantuml
+   !include classes.plantuml
    remove arpoc.App
    remove arpoc.ac.Policy
    remove arpoc.ac.Policy_Set

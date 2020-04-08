@@ -11,7 +11,7 @@ the `cherrypy` instance and coordinates the application flow.
 .. uml::
    :scale: 40 %
 
-   !include gen/classes.plantuml
+   !include classes.plantuml
    remove arpoc.ac.Policy
    remove arpoc.ac.Policy_Set
    remove arpoc.ac.AC_Entity

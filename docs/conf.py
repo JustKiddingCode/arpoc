@@ -52,6 +52,7 @@ extensions = [
     'sphinxcontrib.bibtex',
     'm2r',
 ]
+plantuml = 'java -Dplantuml.include.path=".:gen/" -jar /usr/share/plantuml/plantuml.jar'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

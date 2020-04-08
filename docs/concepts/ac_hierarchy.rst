@@ -36,7 +36,7 @@ sets are determined with their conflict resolution.
 .. uml::
    :scale: 40 %
 
-   !include gen/classes.plantuml
+   !include classes.plantuml
    remove arpoc.App
    remove arpoc.ac.Policy
    remove arpoc.ac.Policy_Set
@@ -116,7 +116,7 @@ Access Control Hierarchy
 .. uml::
    :scale: 40 %
 
-   !include gen/classes.plantuml
+   !include classes.plantuml
    remove arpoc.App
    remove arpoc.ac.AC_Container
    remove arpoc.ac.EvaluationResult
@@ -223,7 +223,7 @@ Conflict Resolution
 .. uml::
    :scale: 40 %
 
-   !include gen/classes.plantuml
+   !include classes.plantuml
    remove arpoc.App
    remove arpoc.ac.AC_Container
    remove arpoc.ac.AC_Entity
@@ -450,7 +450,7 @@ object delivered if all obligations returned `true`.
 .. uml::
    :scale: 40 %
 
-   !include gen/classes.plantuml
+   !include classes.plantuml
    remove arpoc.App
    remove arpoc.ac.Policy
    remove arpoc.ac.Policy_Set

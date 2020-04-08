@@ -17,7 +17,7 @@ Else an error message with the HTTP status code 403 (`Forbidden`) is returned.
 .. uml::
    :scale: 40 %
 
-   !include gen/classes.plantuml
+   !include classes.plantuml
    remove arpoc.App
    remove arpoc.ac.Policy
    remove arpoc.ac.Policy_Set

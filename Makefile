@@ -19,10 +19,10 @@ doc:
 	sphinx-apidoc -o docs/api arpoc -f
 
 htmldoc: doc
-	sphinx-build -c docs -b html . htmldoc
+	cd docs; sphinx-build -b html . ../htmldoc
 
 pdfdoc: doc
-	sphinx-build -c docs -b latex . latexdoc
+	cd docs; sphinx-build -b latex . ../latexdoc
 	cd latexdoc; for i in plantuml*.pdf; do pdfcrop $$i $$i; done
 	cd latexdoc && latexmk --pdf ARPOC.tex
 	pdfunite latexdoc/ARPOC.pdf docs/gen/classes_a3.pdf doc_classdiagram.pdf
