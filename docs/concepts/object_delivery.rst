@@ -5,7 +5,7 @@ Object delivery
 .. uml::
    :scale: 40 %
 
-   !include docs/overview.plantuml
+   !include overview.plantuml
 
    hide user
    hide oidcprovider

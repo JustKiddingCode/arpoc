@@ -16,7 +16,7 @@ The complete configuration is encapsulated in the `OIDCProxyConfig` class.
 .. uml::
    :scale: 40 %
 
-   !include docs/gen/classes.plantuml
+   !include gen/classes.plantuml
    remove arpoc.App
    remove arpoc.ac.Policy
    remove arpoc.ac.Policy_Set

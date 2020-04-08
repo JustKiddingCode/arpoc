@@ -9,7 +9,7 @@ The following figure shows the AST for the condition `subject.email == 'email@ex
 We show the transformation process with the AC context that only contains the key `email` in the subject mapping
 with the value `email@example.com`.
 
-.. figure:: /docs/gen/ac_eval_before_transformers.png
+.. figure:: /gen/ac_eval_before_transformers.png
 
    Example of the abstract syntax tree (AST) of the condition `subject.email == 'email@example.com' and exists object.var`
 
@@ -27,7 +27,7 @@ To illustrate the how the system works, we show the result of every transformer 
 .. uml::
    :scale: 40 %
 
-   !include docs/gen/classes.plantuml
+   !include gen/classes.plantuml
    remove arpoc.App
    remove arpoc.ac.Policy
    remove arpoc.ac.Policy_Set
@@ -125,11 +125,11 @@ The attributes are substituted using the previously described transformer functi
 but the exeptions thrown by missing attributes are catched and in the case of
 an exception  exists evaluated to *False* else to *True*.
 
-.. figure:: /docs/gen/ac_eval_after_exists.png
+.. figure:: /gen/ac_eval_after_exists.png
 
    AST after the run of the exists transformer 
 
-.. figure:: /docs/gen/ac_eval_after_attr.png
+.. figure:: /gen/ac_eval_after_attr.png
 
    AST after the run of the attribute transformer
 
@@ -145,7 +145,7 @@ This function reference is then executed by the middle level transformers.
 .. uml::
    :scale: 40 %
 
-   !include docs/gen/classes.plantuml
+   !include gen/classes.plantuml
    remove arpoc.App
    remove arpoc.ac.Policy
    remove arpoc.ac.Policy_Set
@@ -208,7 +208,7 @@ This function reference is then executed by the middle level transformers.
 
 Applicated to our example, the operator tokens got replaced by a class.
 
-.. figure:: /docs/gen/ac_eval_after_op.png
+.. figure:: /gen/ac_eval_after_op.png
 
    AST after the run of the operator transformer
 
@@ -217,7 +217,7 @@ middle level transformers. For the linked statement its important that
 it does not change the tree if
 the children are not already transformed.
 
-.. figure:: /docs/gen/ac_eval_after_mlt.png
+.. figure:: /gen/ac_eval_after_mlt.png
 
    AST after the run of the middle level transformer
 
@@ -226,14 +226,14 @@ then pass the results of middle level transformers through, but forcing the valu
 to be boolean.
 
 
-.. figure:: /docs/gen/ac_eval_after_tlt.png
+.. figure:: /gen/ac_eval_after_tlt.png
 
    AST after the run of the top level transformer
 
 
 For the `linked` statement we need to re-apply a middle level transformer.
 
-.. figure:: /docs/gen/ac_eval_after_tlt_mlt.png
+.. figure:: /gen/ac_eval_after_tlt_mlt.png
    :scale: 40%
 
    AST after the run of the middle level transformer

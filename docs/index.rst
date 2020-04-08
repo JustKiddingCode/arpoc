@@ -8,17 +8,17 @@ Welcome to ARPOC's documentation!
 
 
 .. uml::
-   !include docs/overview.plantuml
+   !include overview.plantuml
 
 
 .. toctree::
    :maxdepth: 3
    :caption: Contents:
    
-   docs/concepts/index.rst
-   docs/implementation/index.rst
-   docs/admin/index.rst
-   docs/api/modules.rst
+   concepts/index.rst
+   implementation/index.rst
+   admin/index.rst
+   api/modules.rst
 
 
 
@@ -29,4 +29,4 @@ Indices and tables
 * :ref:`modindex`
 * :ref:`search`
 
-.. bibliography:: docs/ref.bib
+.. bibliography:: ref.bib

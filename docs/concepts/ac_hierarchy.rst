@@ -5,7 +5,7 @@ AC Entities
 .. uml::
    :scale: 40 %
 
-   !include docs/overview.plantuml
+   !include overview.plantuml
    
    remove object
    remove user
@@ -36,7 +36,7 @@ sets are determined with their conflict resolution.
 .. uml::
    :scale: 40 %
 
-   !include docs/gen/classes.plantuml
+   !include gen/classes.plantuml
    remove arpoc.App
    remove arpoc.ac.Policy
    remove arpoc.ac.Policy_Set
@@ -116,7 +116,7 @@ Access Control Hierarchy
 .. uml::
    :scale: 40 %
 
-   !include docs/gen/classes.plantuml
+   !include gen/classes.plantuml
    remove arpoc.App
    remove arpoc.ac.AC_Container
    remove arpoc.ac.EvaluationResult
@@ -223,7 +223,7 @@ Conflict Resolution
 .. uml::
    :scale: 40 %
 
-   !include docs/gen/classes.plantuml
+   !include gen/classes.plantuml
    remove arpoc.App
    remove arpoc.ac.AC_Container
    remove arpoc.ac.AC_Entity
@@ -351,14 +351,14 @@ the evaluation of a policy including more details of the evaluation of a rule.
 
    caption Sequence diagram for policy set evaluation
    skinparam DiagramBorderThickness 2
-   !include docs/concepts/seq_ps_evaluation.puml
+   !include concepts/seq_ps_evaluation.puml
 
 .. uml::
    :scale: 60%
 
    caption Sequence diagram for policy evaluation
    skinparam DiagramBorderThickness 2
-   !include docs/concepts/seq_p_evaluation.puml
+   !include concepts/seq_p_evaluation.puml
 
 
 Access Control Language
@@ -426,7 +426,7 @@ Obligations
 .. uml::
    :scale: 40 %
 
-   !include docs/overview.plantuml
+   !include overview.plantuml
    
    remove object
    remove user
@@ -450,7 +450,7 @@ object delivered if all obligations returned `true`.
 .. uml::
    :scale: 40 %
 
-   !include docs/gen/classes.plantuml
+   !include gen/classes.plantuml
    remove arpoc.App
    remove arpoc.ac.Policy
    remove arpoc.ac.Policy_Set

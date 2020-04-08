@@ -6,7 +6,7 @@ Plugin Architecture
 .. uml::
    :scale: 40 %
 
-   !include docs/overview.plantuml
+   !include overview.plantuml
    
    hide oidcprovider
    hide user
@@ -27,7 +27,7 @@ module must be placed in specific configurable folder.
 .. uml::
    :scale: 40 %
 
-   !include docs/gen/classes.plantuml
+   !include gen/classes.plantuml
    remove arpoc.App
    remove arpoc.ac.Policy
    remove arpoc.ac.Policy_Set

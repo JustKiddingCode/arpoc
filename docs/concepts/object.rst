@@ -4,7 +4,7 @@ Objects
 .. uml::
    :scale: 40 %
 
-   !include docs/overview.plantuml
+   !include overview.plantuml
 
 
    hide OIDC

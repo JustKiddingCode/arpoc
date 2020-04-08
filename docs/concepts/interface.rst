@@ -4,7 +4,7 @@ Interface (Policy Enforcement Point)
 .. uml::
    :scale: 40 %
 
-   !include docs/overview.plantuml
+   !include overview.plantuml
    
    hide acentities
    hide object

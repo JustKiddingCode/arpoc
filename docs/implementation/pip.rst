@@ -10,7 +10,7 @@ The expected keys in the dictionary are: `Type`, `Description`, `Target`, `Polic
 remaining keys are expected to be strings. The use of the keys is identical to
 their description in TODOREF.
 
-.. literalinclude:: /docs/gen/ac_sample.json
+.. literalinclude:: /gen/ac_sample.json
    :linenos:
 
 The AC Container allows to load a single json file or a directory of json files.
