@@ -125,13 +125,13 @@ def test_string_startswith_false(benchmark):
 def test_string_regex_true(benchmark):
     subject = {"attr1" : "test@example.com"}
     context = {"subject" : subject }
-    rule = "subject.attr1 matches '^[A-Z0-9._%+-]+@(?:[A-Z0-9-]+\.)+[A-Z]{2,}$'"
+    rule = "subject.attr1 matches r'^[A-Z0-9._%+-]+@(?:[A-Z0-9-]+\.)+[A-Z]{2,}$'"
     benchmark(check_condition, rule, context)
 
 def test_string_regex_false(benchmark):
     subject = {"attr1" : "test example.com"}
     context = {"subject" : subject }
-    rule = "subject.attr1 matches '^[A-Z0-9._%+-]+@(?:[A-Z0-9-]+\.)+[A-Z]{2,}$'"
+    rule = "subject.attr1 matches r'^[A-Z0-9._%+-]+@(?:[A-Z0-9-]+\.)+[A-Z]{2,}$'"
     benchmark(check_condition, rule, context)
 
 # in

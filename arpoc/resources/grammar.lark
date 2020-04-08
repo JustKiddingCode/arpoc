@@ -21,9 +21,10 @@ lit: INT | quoted_string | BOOL | list
 list_inner: list_elem "," list_inner | list_elem
 ?list_elem: lit 
 BOOL: "True" | "False"
-?quoted_string : DOUBLE_QUOTED_STRING | SINGLE_QUOTED_STRING
+?quoted_string : DOUBLE_QUOTED_STRING | SINGLE_QUOTED_STRING | RAW_STRING
 DOUBLE_QUOTED_STRING  : /"[^"]*"/
 SINGLE_QUOTED_STRING  : /'[^']*'/
+RAW_STRING: /r'[^']*'/
 INT : /[0-9]+/
 
 uop : UOP

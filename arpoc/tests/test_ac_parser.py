@@ -78,7 +78,7 @@ def test_regex():
         "object": {},
         "environment": {}
     }
-    assert check_condition('subject.name matches ".*\.mueller"', context)
+    assert check_condition("subject.name matches r'.*\.mueller'", context)
 
 
 def test_startswith():

@@ -215,9 +215,7 @@ class TransformAttr(MyTransformer):
     def lit(self, args: List) -> Union[Dict, List, str, int, float]:
         if isinstance(args[0], (list, )):
             return args[0]
-        if args[0].type == "SINGLE_QUOTED_STRING":
-            return str(literal_eval(args[0]))
-        if args[0].type == "DOUBLE_QUOTED_STRING":
+        if args[0].type in ["SINGLE_QUOTED_STRING", "DOUBLE_QUOTED_STRING", "RAW_STRING"]:
             return str(literal_eval(args[0]))
         if args[0].type == "BOOL":
             return args[0] == "True"
