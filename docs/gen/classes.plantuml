@@ -1,0 +1,631 @@
+@startuml
+class arpoc.App {
+config
+gid
+oidc_handler
+thread
+uid
+
+__init__()
+cancel_scheduler()
+create_secrets_dir()
+get_routes_dispatcher()
+read_secrets(filepath)
+retry(function, exceptions)
+run()
+save_secrets()
+setup_loggers()
+setup_oidc_provider()
+tls_redirect()
+ 
+}
+class arpoc.ac.AC_Container {
+policies
+policy_sets
+rules
+
+__init__()
+__str__()
+add_entity(entity_id, definition)
+check()
+evaluate_by_entity_id(entity_id, context, evaluation_result)
+load_dir(path)
+load_file(filename)
+ 
+}
+class arpoc.ac.AC_Entity {
+container
+description
+entity_id
+obligations
+target
+
+evaluate(context, evaluation_result)
+ 
+}
+class arpoc.ac.EvaluationResult {
+missing_attr
+obligations
+results
+
+ 
+}
+class arpoc.ac.Policy {
+conflict_resolution
+rules
+
+ 
+}
+class arpoc.ac.Policy_Set {
+conflict_resolution
+policies
+policy_sets
+
+ 
+}
+class arpoc.ac.Rule {
+condition
+effect
+
+__post_init__(effect)
+evaluate(context, evaluation_result)
+ 
+}
+enum arpoc.ac.common.Effects {
+GRANT = True
+DENY = False
+
+__str__()
+ 
+}
+class arpoc.ac.conflict_resolution.And {
+
+
+update(entity_id, result)
+ 
+}
+class arpoc.ac.conflict_resolution.AnyOfAny {
+
+
+update(entity_id, result)
+ 
+}
+class arpoc.ac.conflict_resolution.ConflictResolution {
+
+
+__init__()
+__str__()
+check_break()
+get_effect()
+update(entity_id, result)
+ 
+}
+class arpoc.ac.lark_adapter.CombinedTransformer {
+transformers
+
+__add__(other)
+__getattr__(key)
+__init__()
+ 
+}
+class arpoc.ac.lark_adapter.MyTransformer {
+
+
+__add__(other)
+ 
+}
+class arpoc.ac.parser.BinaryNumeralOperator {
+
+
+eval(cls, op1, op2)
+ 
+}
+class arpoc.ac.parser.BinaryOperator {
+
+
+__call__(cls)
+__str__(cls)
+eval(cls, op1, op2)
+ 
+}
+class arpoc.ac.parser.BinaryOperatorAnd {
+
+
+eval(cls, op1, op2)
+ 
+}
+class arpoc.ac.parser.BinaryOperatorIn {
+
+
+eval(cls, op1, op2)
+ 
+}
+class arpoc.ac.parser.BinaryOperatorOr {
+
+
+eval(cls, op1, op2)
+ 
+}
+class arpoc.ac.parser.BinarySameTypeOperator {
+
+
+eval(cls, op1, op2)
+ 
+}
+class arpoc.ac.parser.BinaryStringOperator {
+
+
+eval(cls, op1, op2)
+ 
+}
+class arpoc.ac.parser.Equal {
+
+
+eval(cls, op1, op2)
+ 
+}
+class arpoc.ac.parser.ExistsTransformer {
+attr_transformer
+
+__init__(attr_transformer)
+single(args)
+uop(args)
+ 
+}
+class arpoc.ac.parser.Greater {
+
+
+eval(cls, op1, op2)
+ 
+}
+class arpoc.ac.parser.Lesser {
+
+
+eval(cls, op1, op2)
+ 
+}
+class arpoc.ac.parser.MiddleLevelTransformer {
+
+
+comparison(args)
+linked(args)
+single(args)
+ 
+}
+class arpoc.ac.parser.NotEqual {
+
+
+eval(cls, op1, op2)
+ 
+}
+class arpoc.ac.parser.OperatorTransformer {
+
+
+cbop(args)
+lbop(args)
+uop(args)
+ 
+}
+class arpoc.ac.parser.TopLevelTransformer {
+
+
+condition(args)
+statement(args)
+target(args)
+ 
+}
+class arpoc.ac.parser.TransformAttr {
+data
+
+__init__(data)
+access_attr(args)
+environment_attr(args)
+list_inner(args)
+lit(args)
+object_attr(args)
+subject_attr(args)
+ 
+}
+class arpoc.ac.parser.UOP {
+
+
+exists(elem)
+ 
+}
+class arpoc.ac.parser.matches {
+
+
+eval(cls, op1, op2)
+ 
+}
+class arpoc.ac.parser.startswith {
+
+
+eval(cls, op1, op2)
+ 
+}
+class arpoc.base.OidcHandler {
+cfg
+
+__init__(cfg)
+auth()
+check_scopes(request, response)
+create_client_from_secrets(name, provider)
+do_userinfo_request_with_state(state)
+get_access_token_from_code(state, code)
+get_access_token_from_headers()
+get_secrets()
+get_userinfo()
+get_userinfo_access_token(access_token)
+get_validity_from_token(token)
+need_claims(claims)
+redirect()
+refresh_access_token(hash_access_token)
+register_first_time(name, provider)
+ 
+}
+class arpoc.base.ServiceProxy {
+ac
+cfg
+service_name
+
+__init__(service_name, oidc_handler, cfg)
+build_access_dict(query_dict)
+index()
+ 
+}
+class arpoc.base.TLSOnlyDispatcher {
+
+
+__call__(path_info)
+__init__(tls_url, next_dispatcher)
+ 
+}
+class arpoc.cache.Cache {
+
+
+__getitem__(key)
+__init__()
+expire()
+get(key, default)
+put(key, data, valid)
+ 
+}
+class arpoc.cache.CacheItem {
+item
+timestamp
+
+ 
+}
+class arpoc.config.ACConfig {
+json_dir
+
+__getitem__(key)
+ 
+}
+class arpoc.config.Misc {
+access_log
+daemonize
+error_log
+log_level
+pid_file
+
+ 
+}
+class arpoc.config.OIDCProxyConfig {
+access_control
+misc
+openid_providers
+proxy
+services
+
+__init__(config_file, std_config)
+add_provider(name, prov_cfg)
+check_config()
+check_config_proxy_url()
+check_redirect_uri()
+merge_config(new_cfg)
+print_config()
+print_sample_config()
+read_file(filepath)
+ 
+}
+class arpoc.config.ProviderConfig {
+baseuri
+claim2scope
+configuration_token
+configuration_url
+do_token_introspection
+human_readable_name
+redirect_paths
+redirect_uris
+registration_token
+registration_url
+special_claim2scope
+
+__getitem__(key)
+__post_init__(baseuri, special_claim2scope)
+ 
+}
+class arpoc.config.ProxyConfig {
+address
+auth
+baseuri
+certfile
+contacts
+domainname
+groupname
+https_only
+keyfile
+plain_port
+plugin_dirs
+redirect
+redirect_uris
+secrets
+tls_port
+tls_redirect
+username
+
+__getitem__(key)
+__post_init__()
+ 
+}
+class arpoc.config.ServiceConfig {
+AC
+authentication
+objectsetters
+obligations
+origin_URL
+proxy_URL
+
+__getitem__(key)
+ 
+}
+class arpoc.exceptions.ACEntityMissing <<Exception>> {
+
+
+ 
+}
+class arpoc.exceptions.AttributeMissing <<Exception>> {
+
+
+ 
+}
+class arpoc.exceptions.BadRuleSyntax <<Exception>> {
+
+
+ 
+}
+class arpoc.exceptions.BadSemantics <<Exception>> {
+
+
+ 
+}
+class arpoc.exceptions.ConfigError <<Exception>> {
+
+
+ 
+}
+class arpoc.exceptions.DuplicateKeyError <<Exception>> {
+
+
+ 
+}
+class arpoc.exceptions.EnvironmentAttributeMissing <<Exception>> {
+
+
+ 
+}
+class arpoc.exceptions.OIDCProxyException <<Exception>> {
+
+
+ 
+}
+class arpoc.exceptions.ObjectAttributeMissing <<Exception>> {
+
+
+ 
+}
+class arpoc.exceptions.SubjectAttributeMissing <<Exception>> {
+attr
+
+__init__(message, attr)
+ 
+}
+class arpoc.pap.PAPNode {
+ID
+condition
+effect
+node_type
+policies
+policy_sets
+resolver
+rules
+target
+
+ 
+}
+class arpoc.pap.PolicyAdministrationPoint {
+
+
+ 
+}
+class arpoc.plugins.EnvironmentDict {
+
+
+__getitem__(key)
+__init__(initialdata)
+get(key, default)
+ 
+}
+class arpoc.plugins.ObjectDict {
+
+
+__getitem__(key)
+__init__(objsetter, initialdata)
+get(key, default)
+ 
+}
+class arpoc.plugins.ObligationsDict {
+
+
+__getitem__(key)
+__init__()
+get(key, default)
+run_all(obligations, effect, context, cfg)
+ 
+}
+class arpoc.plugins.PrioritizedItem {
+item
+priority
+
+ 
+}
+class arpoc.plugins._lib.EnvironmentAttribute {
+target : str
+
+run()
+ 
+}
+class arpoc.plugins._lib.ObjectSetter {
+name : str
+
+__init__(cfg)
+run(data)
+ 
+}
+class arpoc.plugins._lib.Obligation {
+name : str
+
+__init__()
+run(effect, context, cfg)
+ 
+}
+class arpoc.plugins.env_attr_time.EnvAttrDateTime {
+target : str
+
+run()
+ 
+}
+class arpoc.plugins.env_attr_time.EnvAttrTime {
+target : str
+
+run()
+ 
+}
+class arpoc.plugins.env_attr_time.EnvAttrTimeHour {
+target : str
+
+run()
+ 
+}
+class arpoc.plugins.env_attr_time.EnvAttrTimeMinute {
+target : str
+
+run()
+ 
+}
+class arpoc.plugins.env_attr_time.EnvAttrTimeSecond {
+target : str
+
+run()
+ 
+}
+class arpoc.plugins.obj_json.obj_json {
+cfg
+name : str
+
+__init__(cfg)
+run(data)
+ 
+}
+class arpoc.plugins.obj_urlmap.ObjUrlmap {
+cfg
+name : str
+
+__init__(cfg)
+run(data)
+ 
+}
+class arpoc.plugins.obl_loggers.Log {
+name : str
+
+replace_accessattr(logtext, access_info)
+replace_attr(logtext, context)
+replace_envattr(logtext, env_info)
+replace_objectattr(logtext, object_info)
+replace_subjectattr(logtext, subject_info)
+run(effect, context, cfg)
+ 
+}
+class arpoc.plugins.obl_loggers.LogFailed {
+name : str
+
+run(effect, context, cfg)
+ 
+}
+class arpoc.plugins.obl_loggers.LogSuccessful {
+name : str
+
+run(effect, context, cfg)
+ 
+}
+class arpoc.special_pages.Userinfo {
+
+
+ 
+}
+arpoc.ac.Policy --|> arpoc.ac.AC_Entity
+arpoc.ac.Policy_Set --|> arpoc.ac.AC_Entity
+arpoc.ac.Rule --|> arpoc.ac.AC_Entity
+arpoc.ac.conflict_resolution.And --|> arpoc.ac.conflict_resolution.ConflictResolution
+arpoc.ac.conflict_resolution.AnyOfAny --|> arpoc.ac.conflict_resolution.ConflictResolution
+arpoc.ac.parser.BinaryNumeralOperator --|> arpoc.ac.parser.BinaryOperator
+arpoc.ac.parser.BinaryOperatorAnd --|> arpoc.ac.parser.BinaryOperator
+arpoc.ac.parser.BinaryOperatorIn --|> arpoc.ac.parser.BinaryOperator
+arpoc.ac.parser.BinaryOperatorOr --|> arpoc.ac.parser.BinaryOperator
+arpoc.ac.parser.BinarySameTypeOperator --|> arpoc.ac.parser.BinaryOperator
+arpoc.ac.parser.BinaryStringOperator --|> arpoc.ac.parser.BinaryOperator
+arpoc.ac.parser.Equal --|> arpoc.ac.parser.BinaryOperator
+arpoc.ac.parser.ExistsTransformer --|> arpoc.ac.lark_adapter.MyTransformer
+arpoc.ac.parser.Greater --|> arpoc.ac.parser.BinarySameTypeOperator
+arpoc.ac.parser.Lesser --|> arpoc.ac.parser.BinarySameTypeOperator
+arpoc.ac.parser.MiddleLevelTransformer --|> arpoc.ac.lark_adapter.MyTransformer
+arpoc.ac.parser.NotEqual --|> arpoc.ac.parser.BinaryOperator
+arpoc.ac.parser.OperatorTransformer --|> arpoc.ac.lark_adapter.MyTransformer
+arpoc.ac.parser.TopLevelTransformer --|> arpoc.ac.lark_adapter.MyTransformer
+arpoc.ac.parser.TransformAttr --|> arpoc.ac.lark_adapter.MyTransformer
+arpoc.ac.parser.matches --|> arpoc.ac.parser.BinaryStringOperator
+arpoc.ac.parser.startswith --|> arpoc.ac.parser.BinaryStringOperator
+arpoc.exceptions.ACEntityMissing --|> arpoc.exceptions.OIDCProxyException
+arpoc.exceptions.AttributeMissing --|> arpoc.exceptions.OIDCProxyException
+arpoc.exceptions.ConfigError --|> arpoc.exceptions.OIDCProxyException
+arpoc.exceptions.DuplicateKeyError --|> arpoc.exceptions.OIDCProxyException
+arpoc.exceptions.EnvironmentAttributeMissing --|> arpoc.exceptions.AttributeMissing
+arpoc.exceptions.ObjectAttributeMissing --|> arpoc.exceptions.AttributeMissing
+arpoc.exceptions.SubjectAttributeMissing --|> arpoc.exceptions.AttributeMissing
+arpoc.pap.PolicyAdministrationPoint --|> arpoc.base.ServiceProxy
+arpoc.plugins.env_attr_time.EnvAttrDateTime --|> arpoc.plugins._lib.EnvironmentAttribute
+arpoc.plugins.env_attr_time.EnvAttrTime --|> arpoc.plugins._lib.EnvironmentAttribute
+arpoc.plugins.env_attr_time.EnvAttrTimeHour --|> arpoc.plugins._lib.EnvironmentAttribute
+arpoc.plugins.env_attr_time.EnvAttrTimeMinute --|> arpoc.plugins._lib.EnvironmentAttribute
+arpoc.plugins.env_attr_time.EnvAttrTimeSecond --|> arpoc.plugins._lib.EnvironmentAttribute
+arpoc.plugins.obj_json.obj_json --|> arpoc.plugins._lib.ObjectSetter
+arpoc.plugins.obj_urlmap.ObjUrlmap --|> arpoc.plugins._lib.ObjectSetter
+arpoc.plugins.obl_loggers.Log --|> arpoc.plugins._lib.Obligation
+arpoc.plugins.obl_loggers.LogFailed --|> arpoc.plugins._lib.Obligation
+arpoc.plugins.obl_loggers.LogSuccessful --|> arpoc.plugins._lib.Obligation
+arpoc.special_pages.Userinfo --|> arpoc.base.ServiceProxy
+arpoc.ac.AC_Container -- arpoc.base.ServiceProxy
+arpoc.base.OidcHandler -- arpoc.App
+arpoc.cache.Cache -- arpoc.base.OidcHandler
+arpoc.config.ACConfig -- arpoc.config.OIDCProxyConfig
+arpoc.config.ACConfig -- arpoc.config.OIDCProxyConfig
+arpoc.config.Misc -- arpoc.config.OIDCProxyConfig
+arpoc.config.Misc -- arpoc.config.OIDCProxyConfig
+arpoc.config.Misc -- arpoc.config.OIDCProxyConfig
+arpoc.config.OIDCProxyConfig -- arpoc.App
+arpoc.config.ProxyConfig -- arpoc.config.OIDCProxyConfig
+arpoc.config.ProxyConfig -- arpoc.config.OIDCProxyConfig
+arpoc.config.ProxyConfig -- arpoc.config.OIDCProxyConfig
+@enduml

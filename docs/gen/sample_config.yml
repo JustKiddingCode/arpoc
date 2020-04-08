@@ -1,0 +1,45 @@
+access_control:
+  json_dir:
+  - /etc/oidc-proxy/acl
+misc:
+  access_log: /var/log/arpoc/access.log
+  daemonize: true
+  error_log: /var/log/arpoc/error.log
+  log_level: INFO
+  pid_file: /var/run/arpoc.pid
+openid_providers:
+  example:
+    configuration_token: ''
+    configuration_url: ''
+    do_token_introspection: true
+    human_readable_name: ''
+    redirect_paths: []
+    registration_token: ''
+    registration_url: ''
+proxy:
+  address: ''
+  auth: /auth
+  certfile: ''
+  contacts:
+  - ''
+  domainname: ''
+  groupname: www-data
+  https_only: true
+  keyfile: ''
+  plain_port: 80
+  plugin_dirs: []
+  redirect:
+  - /secure/redirect_uris
+  secrets: /var/lib/oidc-proxy/secrets.yml
+  tls_port: 443
+  tls_redirect: /TLSRedirect
+  username: www-data
+services:
+  example:
+    AC: ''
+    authentication: {}
+    objectsetters: {}
+    obligations: {}
+    origin_URL: ''
+    proxy_URL: ''
+

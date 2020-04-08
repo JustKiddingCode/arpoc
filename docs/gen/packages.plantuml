@@ -1,0 +1,48 @@
+@startuml
+package arpoc { 
+  package arpoc.__main__ { 
+  }
+  package arpoc.ac { 
+    package arpoc.ac.__main__ { 
+    }
+    package arpoc.ac.common { 
+    }
+    package arpoc.ac.conflict_resolution { 
+    }
+    package arpoc.ac.lark_adapter { 
+    }
+    package arpoc.ac.parser { 
+    }
+  }
+  package arpoc.base { 
+  }
+  package arpoc.cache { 
+  }
+  package arpoc.config { 
+  }
+  package arpoc.exceptions { 
+  }
+  package arpoc.pap { 
+    package arpoc.pap.resources { 
+    }
+  }
+  package arpoc.plugins { 
+    package arpoc.plugins._lib { 
+    }
+    package arpoc.plugins.env_attr_time { 
+    }
+    package arpoc.plugins.obj_json { 
+    }
+    package arpoc.plugins.obj_urlmap { 
+    }
+    package arpoc.plugins.obl_loggers { 
+    }
+  }
+  package arpoc.resources { 
+  }
+  package arpoc.special_pages { 
+  }
+  package arpoc.utils { 
+  }
+}
+@enduml
