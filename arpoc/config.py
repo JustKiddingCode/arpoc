@@ -1,4 +1,4 @@
-""" Configuration Module of OIDC Proxy
+""" Configuration Module of ARPOC
 
 After importing this file you have access to
 the configuration with the `config.cfg` variable.

@@ -1,5 +1,5 @@
 """"
-Access Control Module for OIDC Proxy
+Access Control Module for ARPOC
 
 """
 import os

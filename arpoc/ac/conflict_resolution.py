@@ -1,5 +1,5 @@
 """
-Conflict Resolution Module for OIDC Proxy.
+Conflict Resolution Module for ARPOC.
 
 Provides functions to use to evaluate how Policies and Policy Sets
 combine the results of the rules they use.

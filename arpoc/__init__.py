@@ -1,4 +1,4 @@
-""" Main module of the OIDC Proxy """
+""" Main module of the ARPOC """
 
 # Python imports
 import logging
@@ -250,7 +250,7 @@ class App:
     def run(self) -> None:
         """ Starts the application """
         #### Command Line Argument Parsing
-        parser = argparse.ArgumentParser(description='OIDC Proxy')
+        parser = argparse.ArgumentParser(description='ARPOC')
         parser.add_argument('-c', '--config-file')
         parser.add_argument('--print-sample-config', action='store_true')
         parser.add_argument('--print-sample-ac', action='store_true')
